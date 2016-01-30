@@ -19,30 +19,32 @@ func (a *Account) String() string {
 	return fmt.Sprintf("%#v", a)
 }
 
-func saveAccount(account *Account) {
+func saveAccount(account *Account) error {
 	d, err := yaml.Marshal(account)
 	if err != nil {
-		fmt.Printf("error: %v", err)
+		return err
 	}
 	fmt.Printf("dump:\n%s\n\n", string(d))
 
 	err = ioutil.WriteFile(filepath.Join(App.SavePath, "userData.yml"), d, 0600)
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
-func loadAccount() *Account {
+func loadAccount() (*Account, error) {
 	a := new(Account)
 	d, err := ioutil.ReadFile(filepath.Join(App.SavePath, "userData.yml"))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	err = yaml.Unmarshal(d, a)
 	if err != nil {
-		fmt.Printf("error: %v", err)
+		return nil, err
 	}
 
-	return a
+	return a, nil
 }

@@ -36,7 +36,10 @@ func main() {
 		return
 	}
 
-	os.MkdirAll(App.SavePath, 0777)
+	err := os.MkdirAll(App.SavePath, 0777)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	fmt.Println("Hello Nagome")
 
