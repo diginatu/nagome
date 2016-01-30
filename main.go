@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,11 +15,15 @@ type Application struct {
 	SavePath string
 	// Version is version info
 	Version string
+	// Name is name of this app
+	Name string
 }
 
 var (
-	// App is global Application for this app
-	App          Application
+	// App is global Application settings and valuables for this app
+	App Application
+	// Logger is logger in this app
+	Logger       *log.Logger
 	printVersion bool
 	printHelp    bool
 )
@@ -30,26 +35,47 @@ func main() {
 		flag.Usage()
 		return
 	}
-
 	if printVersion {
-		fmt.Println("Nagome ", App.Version)
+		fmt.Println(App.Name, " ", App.Version)
 		return
 	}
 
 	err := os.MkdirAll(App.SavePath, 0777)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal("could not make save directory\n" + err.Error())
 	}
 
-	fmt.Println("Hello Nagome")
+	file, err := os.Create(filepath.Join(App.SavePath, "info.log"))
+	if err != nil {
+		log.Fatal("could not open log file\n" + err.Error())
+	}
+	defer file.Close()
+	Logger = log.New(file, "", log.Lshortfile|log.Ltime)
+
+	Logger.Println("kepe")
+
+	fmt.Println("Hello ", App.Name)
 
 	return
 }
 
 func init() {
 	App.Version = "0.0"
+	App.Name = "Nagome"
 
+	// set command line options
+	flag.StringVar(&App.SavePath, "savepath",
+		findUserConfigPath(), "Set <directory> to save directory.")
+	flag.BoolVar(&printHelp, "h", false, "Print this help.")
+	flag.BoolVar(&printHelp, "help", false, "Print this help.")
+	flag.BoolVar(&printVersion, "version", false, "Print version information.")
+
+	return
+}
+
+func findUserConfigPath() string {
 	var home, dir string
+
 	switch runtime.GOOS {
 	case "windows":
 		home = os.Getenv("USERPROFILE")
@@ -64,13 +90,6 @@ func init() {
 		home = os.Getenv("HOME")
 		dir = filepath.Join(home, ".config")
 	}
-	defaultSavePath := filepath.Join(dir, "Nagome")
 
-	// set command line options
-	flag.StringVar(&App.SavePath, "savepath", defaultSavePath, "Set <directory> to save directory.")
-	flag.BoolVar(&printHelp, "h", false, "Print this help.")
-	flag.BoolVar(&printHelp, "help", false, "Print this help.")
-	flag.BoolVar(&printVersion, "version", false, "Print version information.")
-
-	return
+	return filepath.Join(dir, App.Name)
 }
