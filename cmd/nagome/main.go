@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/diginatu/Nagome"
 )
 
 // Application holds app settings and valuables
@@ -52,9 +54,17 @@ func main() {
 	defer file.Close()
 	Logger = log.New(file, "", log.Lshortfile|log.Ltime)
 
-	Logger.Println("kepe")
-
 	fmt.Println("Hello ", App.Name)
+	var ac nicolive.Account
+	ac.LoadAccount(filepath.Join(App.SavePath, "userData.yml"))
+
+	var l nicolive.LiveWaku
+	l.Account = &ac
+	l.Stream.BroadID = "lv250995651"
+	err = l.FetchInformation()
+	if err != nil {
+		Logger.Fatalln(err)
+	}
 
 	return
 }
