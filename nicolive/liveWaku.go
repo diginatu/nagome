@@ -8,11 +8,6 @@ import (
 	"gopkg.in/xmlpath.v1"
 )
 
-var (
-	statusPath    = xmlpath.MustCompile("//@status")
-	errorCodePath = xmlpath.MustCompile("//error/code")
-)
-
 // LiveWaku is a live broadcast(Waku) of Niconama
 type LiveWaku struct {
 	Account *Account
@@ -139,8 +134,6 @@ func (l *LiveWaku) FetchInformation() error {
 	if v, ok := xmlpath.MustCompile("//ms/thread").String(root); ok {
 		l.CommentServer.Thread = v
 	}
-
-	fmt.Println(l)
 
 	return nil
 }

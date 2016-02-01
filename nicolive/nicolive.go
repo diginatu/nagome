@@ -4,9 +4,14 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+
+	"gopkg.in/xmlpath.v1"
 )
 
-var ()
+var (
+	statusPath    = xmlpath.MustCompile("//@status")
+	errorCodePath = xmlpath.MustCompile("//error/code")
+)
 
 // NewNicoClient makes new http.Client with usersession
 func NewNicoClient(a *Account) (*http.Client, error) {

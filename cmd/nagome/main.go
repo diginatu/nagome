@@ -8,22 +8,22 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/diginatu/Nagome"
+	"github.com/diginatu/Nagome/nicolive"
 )
 
 // Application holds app settings and valuables
 type Application struct {
-	// SavePath is directory to hold save files
-	SavePath string
-	// Version is version info
-	Version string
 	// Name is name of this app
 	Name string
+	// Version is version info
+	Version string
+	// SavePath is directory to hold save files
+	SavePath string
 }
 
 var (
 	// App is global Application settings and valuables for this app
-	App Application
+	App = Application{Name: "Nagome", Version: "0.0"}
 	// Logger is logger in this app
 	Logger       *log.Logger
 	printVersion bool
@@ -58,9 +58,8 @@ func main() {
 	var ac nicolive.Account
 	ac.LoadAccount(filepath.Join(App.SavePath, "userData.yml"))
 
-	var l nicolive.LiveWaku
-	l.Account = &ac
-	l.Stream.BroadID = "lv250995651"
+	l := nicolive.LiveWaku{Account: &ac}
+	l.Stream.BroadID = "lv1234567"
 	err = l.FetchInformation()
 	if err != nil {
 		Logger.Fatalln(err)
@@ -70,9 +69,6 @@ func main() {
 }
 
 func init() {
-	App.Version = "0.0"
-	App.Name = "Nagome"
-
 	// set command line options
 	flag.StringVar(&App.SavePath, "savepath",
 		findUserConfigPath(), "Set <directory> to save directory.")
