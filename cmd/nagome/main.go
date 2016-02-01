@@ -62,14 +62,16 @@ func main() {
 
 	// below is test code
 	fmt.Println("Hello ", App.Name)
-	var ac nicolive.Account
-	ac.LoadAccount(filepath.Join(App.SavePath, "userData.yml"))
+	//var ac nicolive.Account
+	//ac.LoadAccount(filepath.Join(App.SavePath, "userData.yml"))
 
-	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv1234567"}
-	err = l.FetchInformation()
-	if err != nil {
-		Logger.Fatalln(err)
-	}
+	//l := nicolive.LiveWaku{Account: &ac, BroadID: "lv1234567"}
+	//err = l.FetchInformation()
+	//if err != nil {
+	//Logger.Fatalln(err)
+	//}
+
+	Logger.Println(nicolive.NewNicoErr(nicolive.NotLogin, "aaa", "bbb"))
 
 	return
 }
