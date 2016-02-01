@@ -25,9 +25,10 @@ var (
 	// App is global Application settings and valuables for this app
 	App = Application{Name: "Nagome", Version: "0.0"}
 	// Logger is logger in this app
-	Logger       *log.Logger
-	printVersion bool
-	printHelp    bool
+	Logger        *log.Logger
+	printVersion  bool
+	printHelp     bool
+	debugToStderr bool
 )
 
 func main() {
@@ -47,13 +48,19 @@ func main() {
 		log.Fatal("could not make save directory\n" + err.Error())
 	}
 
-	file, err := os.Create(filepath.Join(App.SavePath, "info.log"))
-	if err != nil {
-		log.Fatal("could not open log file\n" + err.Error())
+	var file *os.File
+	if debugToStderr {
+		file = os.Stderr
+	} else {
+		file, err = os.Create(filepath.Join(App.SavePath, "info.log"))
+		if err != nil {
+			log.Fatal("could not open log file\n" + err.Error())
+		}
 	}
 	defer file.Close()
 	Logger = log.New(file, "", log.Lshortfile|log.Ltime)
 
+	// below is test code
 	fmt.Println("Hello ", App.Name)
 	var ac nicolive.Account
 	ac.LoadAccount(filepath.Join(App.SavePath, "userData.yml"))
@@ -74,6 +81,9 @@ func init() {
 	flag.BoolVar(&printHelp, "h", false, "Print this help.")
 	flag.BoolVar(&printHelp, "help", false, "Print this help.")
 	flag.BoolVar(&printVersion, "version", false, "Print version information.")
+	flag.BoolVar(&debugToStderr, "dbgtostd", false,
+		"Output debug info into stderr\n"+
+			"otherwise save to the log file in the save directory.")
 
 	return
 }

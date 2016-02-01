@@ -1,3 +1,5 @@
+// Package nicolive provides access way to NicoNama API,
+// corresponding structure and other features.
 package nicolive
 
 import (
