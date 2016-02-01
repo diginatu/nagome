@@ -11,9 +11,9 @@ import (
 // LiveWaku is a live broadcast(Waku) of Niconama
 type LiveWaku struct {
 	Account *Account
+	BroadID string
 
 	Stream struct {
-		BroadID     string
 		Title       string
 		Description string
 		CommunityID string
@@ -43,6 +43,11 @@ type LiveWaku struct {
 	OwnerCommentToken string
 }
 
+// IsUserOwner returns whether the user own this broad
+func (l *LiveWaku) IsUserOwner() bool {
+	return l.Stream.OwnerID == l.User.UserID
+}
+
 // FetchInformation gets information using PlayerStatus API
 func (l *LiveWaku) FetchInformation() error {
 	if l.Account == nil {
@@ -54,12 +59,12 @@ func (l *LiveWaku) FetchInformation() error {
 		return err
 	}
 
-	if l.Stream.BroadID == "" {
-		return fmt.Errorf("Stream.BroadID is not set")
+	if l.BroadID == "" {
+		return fmt.Errorf("BroadID is not set")
 	}
 	u := fmt.Sprintf(
 		"http://watch.live.nicovideo.jp/api/getplayerstatus?v=%s",
-		l.Stream.BroadID)
+		l.BroadID)
 
 	res, err := c.Get(u)
 	if err != nil {
@@ -82,9 +87,6 @@ func (l *LiveWaku) FetchInformation() error {
 	}
 
 	// stream
-	if v, ok := xmlpath.MustCompile("//stream/id").String(root); ok {
-		l.Stream.BroadID = v
-	}
 	if v, ok := xmlpath.MustCompile("//stream/title").String(root); ok {
 		l.Stream.Title = v
 	}

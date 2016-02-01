@@ -58,8 +58,7 @@ func main() {
 	var ac nicolive.Account
 	ac.LoadAccount(filepath.Join(App.SavePath, "userData.yml"))
 
-	l := nicolive.LiveWaku{Account: &ac}
-	l.Stream.BroadID = "lv1234567"
+	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv1234567"}
 	err = l.FetchInformation()
 	if err != nil {
 		Logger.Fatalln(err)
