@@ -49,18 +49,20 @@ func (l *LiveWaku) IsUserOwner() bool {
 }
 
 // FetchInformation gets information using PlayerStatus API
-func (l *LiveWaku) FetchInformation() error {
+func (l *LiveWaku) FetchInformation() *NicoErr {
 	if l.Account == nil {
-		return fmt.Errorf("account is a nil value")
+		return NewNicoErr(NicoErrOther, "FetchInformation no account",
+			"LiveWaku does not have an account")
 	}
 
 	c, err := NewNicoClient(l.Account)
 	if err != nil {
-		return err
+		return NewNicoErrFromStdErr(err)
 	}
 
 	if l.BroadID == "" {
-		return fmt.Errorf("BroadID is not set")
+		return NewNicoErr(NicoErrOther, "FetchInformation no BroadID",
+			"BroadID is not set")
 	}
 	u := fmt.Sprintf(
 		"http://watch.live.nicovideo.jp/api/getplayerstatus?v=%s",
@@ -68,21 +70,22 @@ func (l *LiveWaku) FetchInformation() error {
 
 	res, err := c.Get(u)
 	if err != nil {
-		return err
+		return NewNicoErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
-		return err
+		return NewNicoErrFromStdErr(err)
 	}
 
 	if v, ok := statusPath.String(root); ok {
 		if v != "ok" {
 			if v, ok := errorCodePath.String(root); ok {
-				return fmt.Errorf("returned error with code : %s", v)
+				return NewNicoErr(NicoErrNicoLiveOther, v, "")
 			}
-			return fmt.Errorf("returned error")
+			return NewNicoErr(NicoErrOther, "FetchInformation unknown err",
+				"request failed with unknown error")
 		}
 	}
 

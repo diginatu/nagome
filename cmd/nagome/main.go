@@ -71,7 +71,8 @@ func main() {
 	//Logger.Fatalln(err)
 	//}
 
-	Logger.Println(nicolive.NewNicoErr(nicolive.NotLogin, "aaa", "bbb"))
+	fmt.Errorf("aa")
+	Logger.Println(nicolive.NewNicoErr(nicolive.NicoErrOther, "aaa", "bbb"))
 
 	return
 }
