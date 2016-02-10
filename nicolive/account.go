@@ -18,16 +18,16 @@ type Account struct {
 	Usersession string
 }
 
-func (a *Account) String() string {
+func (a Account) String() string {
 	i, l := 5, len(a.Mail)
 	if i > l {
 		i = l
 	}
-	return fmt.Sprintf("Account(%s..)", a.Mail[0:i])
+	return fmt.Sprintf("Account{%s..}", a.Mail[0:i])
 }
 
-// SaveAccount save Account to a file
-func (a *Account) SaveAccount(filePath string) error {
+// Save save Account to a file
+func (a Account) Save(filePath string) error {
 	d, err := yaml.Marshal(a)
 	if err != nil {
 		return err
@@ -42,8 +42,8 @@ func (a *Account) SaveAccount(filePath string) error {
 	return nil
 }
 
-// LoadAccount lead from a file and returns a pointer to Account
-func (a *Account) LoadAccount(filePath string) error {
+// Load lead from a file and returns a pointer to Account
+func (a *Account) Load(filePath string) error {
 	d, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
@@ -54,5 +54,16 @@ func (a *Account) LoadAccount(filePath string) error {
 		return err
 	}
 
+	return nil
+}
+
+// Login log in to niconico using UserSessionLoginClient and update Usersession
+func (a *Account) Login() error {
+	loginCl := NewUserSessionLoginClient(a.Mail, a.Pass)
+	usersession, err := loginCl.Request()
+	if err != nil {
+		return err
+	}
+	a.Usersession = usersession
 	return nil
 }
