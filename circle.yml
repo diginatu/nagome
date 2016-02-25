@@ -1,0 +1,15 @@
+machine:
+  timezone: Asia/Tokyo
+  environment:
+    IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+    GOPATH: $HOME/.go_workspace
+
+dependencies:
+  override:
+    - mkdir -p "$GOPATH/src/$IMPORT_PATH"
+    - rsync -va --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - cd $GOPATH/src/$IMPORT_PATH && go get -v ./...
+
+test:
+  override:
+    - cd $GOPATH/src/$IMPORT_PATH && go test -v ./...
