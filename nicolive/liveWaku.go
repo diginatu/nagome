@@ -49,19 +49,19 @@ func (l *LiveWaku) IsUserOwner() bool {
 }
 
 // FetchInformation gets information using PlayerStatus API
-func (l *LiveWaku) FetchInformation() *NicoErr {
+func (l *LiveWaku) FetchInformation() NicoError {
 	if l.Account == nil {
-		return NewNicoErr(NicoErrOther, "FetchInformation no account",
+		return NicoErr(NicoErrOther, "FetchInformation no account",
 			"LiveWaku does not have an account")
 	}
 
 	c, err := NewNicoClient(l.Account)
 	if err != nil {
-		return NewNicoErrFromStdErr(err)
+		return NicoErrFromStdErr(err)
 	}
 
 	if l.BroadID == "" {
-		return NewNicoErr(NicoErrOther, "FetchInformation no BroadID",
+		return NicoErr(NicoErrOther, "FetchInformation no BroadID",
 			"BroadID is not set")
 	}
 	u := fmt.Sprintf(
@@ -70,21 +70,21 @@ func (l *LiveWaku) FetchInformation() *NicoErr {
 
 	res, err := c.Get(u)
 	if err != nil {
-		return NewNicoErrFromStdErr(err)
+		return NicoErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
-		return NewNicoErrFromStdErr(err)
+		return NicoErrFromStdErr(err)
 	}
 
-	if v, ok := statusPath.String(root); ok {
+	if v, ok := statusXMLPath.String(root); ok {
 		if v != "ok" {
-			if v, ok := errorCodePath.String(root); ok {
-				return NewNicoErr(NicoErrNicoLiveOther, v, "")
+			if v, ok := errorCodeXMLPath.String(root); ok {
+				return NicoErr(NicoErrNicoLiveOther, v, "")
 			}
-			return NewNicoErr(NicoErrOther, "FetchInformation unknown err",
+			return NicoErr(NicoErrOther, "FetchInformation unknown err",
 				"request failed with unknown error")
 		}
 	}

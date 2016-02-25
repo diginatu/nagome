@@ -15,24 +15,51 @@ const (
 	NicoErrNotLogin
 )
 
-// NicoErr is an error struct in nicolive
-type NicoErr struct {
-	Errnum      NicoErrNum
-	Code        string
-	Description string
-	Where       string
+// NicoError is error interface in nicolive
+type NicoError interface {
+	Code() string
+	Description() string
+	Where() string
 }
 
-func (n NicoErr) Error() string {
-	if n.Description == "" {
-		return fmt.Sprintf("[%s] %s", n.Where, n.Code)
+// NicoErrStruct is an error struct in nicolive
+type NicoErrStruct struct {
+	errnum      NicoErrNum
+	code        string
+	description string
+	where       string
+}
+
+func (n NicoErrStruct) Error() string {
+	if n.description == "" {
+		return fmt.Sprintf("[%s] %s", n.where, n.code)
 	}
-	return fmt.Sprintf("[%s] %s : %s", n.Where, n.Code, n.Description)
+	return fmt.Sprintf("[%s] %s : %s", n.where, n.code, n.description)
 }
 
-// NewNicoErr returns NicoErr that format as the given info
+// ErrorNum returns errorNum
+func (n NicoErrStruct) ErrorNum() NicoErrNum {
+	return n.errnum
+}
+
+// Code returns code
+func (n NicoErrStruct) Code() string {
+	return n.code
+}
+
+// Description returns description
+func (n NicoErrStruct) Description() string {
+	return n.description
+}
+
+// Where returns where
+func (n NicoErrStruct) Where() string {
+	return n.where
+}
+
+// NicoErr returns NicoErr that format as the given info
 // and the code position.
-func NewNicoErr(errNum NicoErrNum, code string, description string) *NicoErr {
+func NicoErr(errNum NicoErrNum, code string, description string) NicoError {
 	_, file, line, ok := runtime.Caller(1)
 	short := file
 	if !ok {
@@ -48,10 +75,10 @@ func NewNicoErr(errNum NicoErrNum, code string, description string) *NicoErr {
 	}
 	where := fmt.Sprintf("%s:%d", short, line)
 
-	return &NicoErr{errNum, code, description, where}
+	return &NicoErrStruct{errNum, code, description, where}
 }
 
-// NewNicoErrFromStdErr returns NicoErr converted from standard error.
-func NewNicoErrFromStdErr(e error) *NicoErr {
-	return NewNicoErr(NicoErrOther, "standard error", e.Error())
+// NicoErrFromStdErr returns NicoErr converted from standard error.
+func NicoErrFromStdErr(e error) NicoError {
+	return NicoErr(NicoErrOther, "standard error", e.Error())
 }

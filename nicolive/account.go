@@ -3,12 +3,11 @@ package nicolive
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 
 	"gopkg.in/yaml.v2"
-)
-
-const (
-	accountFileName = "userData.yml"
 )
 
 // Account is a niconico account
@@ -32,7 +31,6 @@ func (a Account) Save(filePath string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("dump:\n%s\n\n", string(d))
 
 	err = ioutil.WriteFile(filePath, d, 0600)
 	if err != nil {
@@ -57,13 +55,40 @@ func (a *Account) Load(filePath string) error {
 	return nil
 }
 
-// Login log in to niconico using UserSessionLoginClient and update Usersession
-func (a *Account) Login() error {
-	loginCl := NewUserSessionLoginClient(a.Mail, a.Pass)
-	usersession, err := loginCl.Request()
-	if err != nil {
-		return err
+// Login log in to niconico and update Usersession
+func (a *Account) Login() NicoError {
+	if a.Mail == "" || a.Pass == "" {
+		return NicoErr(NicoErrOther, "invalid account info", "mail or pass is not set")
 	}
-	a.Usersession = usersession
-	return nil
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+	cl := http.Client{Jar: jar}
+
+	params := url.Values{
+		"mail":     []string{a.Mail},
+		"password": []string{a.Pass},
+	}
+	resp, err := cl.PostForm("https://secure.nicovideo.jp/secure/login?site=nicolive", params)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+	defer resp.Body.Close()
+
+	nicoURL, err := url.Parse("http://nicovideo.jp")
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+	for _, ck := range cl.Jar.Cookies(nicoURL) {
+		if ck.Name == "user_session" {
+			if ck.Value != "deleted" && ck.Value != "" {
+				a.Usersession = ck.Value
+				return nil
+			}
+		}
+	}
+
+	return NicoErr(NicoErrOther, "login error", "failed log in to niconico")
 }

@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	statusPath    = xmlpath.MustCompile("//@status")
-	errorCodePath = xmlpath.MustCompile("//error/code")
+	statusXMLPath    = xmlpath.MustCompile("//@status")
+	errorCodeXMLPath = xmlpath.MustCompile("//error/code")
 )
 
 // NewNicoClient makes new http.Client with usersession
