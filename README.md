@@ -1,6 +1,8 @@
 Nagome
 ======
 
+[![Circle CI](https://circleci.com/gh/diginatu/Nagome.svg?style=svg)](https://circleci.com/gh/diginatu/Nagome)
+
 Advanced NicoLive Comment Viewer written in go
 
 Nagome はアドバンストでクロスプラットフォームなニコニコ生放送用 コメントビューア（ニコ生 コメビュ）です。
