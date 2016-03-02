@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/diginatu/nagome/nicolive"
 )
 
 var (
@@ -15,6 +17,39 @@ var (
 	printHelp     bool
 	debugToStderr bool
 )
+
+func init() {
+	// set command line options
+	flag.StringVar(&App.SavePath, "savepath",
+		findUserConfigPath(), "Set <directory> to save directory.")
+	flag.BoolVar(&printHelp, "h", false, "Print this help.")
+	flag.BoolVar(&printHelp, "help", false, "Print this help.")
+	flag.BoolVar(&printVersion, "version", false, "Print version information.")
+	flag.BoolVar(&debugToStderr, "dbgtostd", false,
+		"Output debug info into stderr\n"+
+			"otherwise save to the log file in the save directory.")
+}
+
+func mainProcess() {
+	var ac nicolive.Account
+	ac.Load(filepath.Join(App.SavePath, "userData.yml"))
+	//ac.Save(filepath.Join(App.SavePath, "userData.yml"))
+
+	//err = ac.Login()
+	//if err != nil {
+	//Logger.Fatalln(err)
+	//}
+
+	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv253955473"}
+	//nicoerr := l.FetchInformation()
+	//if nicoerr != nil {
+	//Logger.Fatalln(nicoerr)
+	//}
+
+	commentconn := nicolive.NewCommentConnection(&l)
+	commentconn.Connect()
+
+}
 
 // RunCli processes flags and io
 func RunCli() {
@@ -45,18 +80,6 @@ func RunCli() {
 	}
 	defer file.Close()
 	Logger = log.New(file, "", log.Lshortfile|log.Ltime)
-}
 
-func init() {
-	// set command line options
-	flag.StringVar(&App.SavePath, "savepath",
-		findUserConfigPath(), "Set <directory> to save directory.")
-	flag.BoolVar(&printHelp, "h", false, "Print this help.")
-	flag.BoolVar(&printHelp, "help", false, "Print this help.")
-	flag.BoolVar(&printVersion, "version", false, "Print version information.")
-	flag.BoolVar(&debugToStderr, "dbgtostd", false,
-		"Output debug info into stderr\n"+
-			"otherwise save to the log file in the save directory.")
-
-	return
+	mainProcess()
 }

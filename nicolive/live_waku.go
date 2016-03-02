@@ -55,9 +55,9 @@ func (l *LiveWaku) FetchInformation() NicoError {
 			"LiveWaku does not have an account")
 	}
 
-	c, err := NewNicoClient(l.Account)
-	if err != nil {
-		return NicoErrFromStdErr(err)
+	c, nicoerr := NewNicoClient(l.Account)
+	if nicoerr != nil {
+		return nicoerr
 	}
 
 	if l.BroadID == "" {
