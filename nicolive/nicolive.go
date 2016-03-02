@@ -16,15 +16,19 @@ var (
 )
 
 // NewNicoClient makes new http.Client with usersession
-func NewNicoClient(a *Account) (*http.Client, error) {
+func NewNicoClient(a *Account) (*http.Client, NicoError) {
+	if a.Usersession == "" {
+		return nil, NicoErr(NicoErrOther, "no usersession", "usersession is empty in this accout")
+	}
+
 	nicoURL, err := url.Parse("http://nicovideo.jp")
 	if err != nil {
-		return nil, err
+		return nil, NicoErrFromStdErr(err)
 	}
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return nil, err
+		return nil, NicoErrFromStdErr(err)
 	}
 	c := http.Client{Jar: jar}
 	c.Jar.SetCookies(nicoURL, []*http.Cookie{
