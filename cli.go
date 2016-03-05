@@ -41,10 +41,10 @@ func mainProcess() {
 	//}
 
 	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv253955473"}
-	//nicoerr := l.FetchInformation()
-	//if nicoerr != nil {
-	//Logger.Fatalln(nicoerr)
-	//}
+	nicoerr := l.FetchInformation()
+	if nicoerr != nil {
+		Logger.Fatalln(nicoerr)
+	}
 
 	commentconn := nicolive.NewCommentConnection(&l)
 	commentconn.Connect()

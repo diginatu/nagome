@@ -13,6 +13,7 @@ const (
 	NicoErrOther NicoErrNum = iota - 1
 	NicoErrNicoLiveOther
 	NicoErrNotLogin
+	NicoErrClosed
 )
 
 // NicoError is error interface in nicolive

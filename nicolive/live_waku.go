@@ -54,21 +54,20 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		return NicoErr(NicoErrOther, "FetchInformation no account",
 			"LiveWaku does not have an account")
 	}
+	if l.BroadID == "" {
+		return NicoErr(NicoErrOther, "FetchInformation no BroadID",
+			"BroadID is not set")
+	}
 
 	c, nicoerr := NewNicoClient(l.Account)
 	if nicoerr != nil {
 		return nicoerr
 	}
 
-	if l.BroadID == "" {
-		return NicoErr(NicoErrOther, "FetchInformation no BroadID",
-			"BroadID is not set")
-	}
-	u := fmt.Sprintf(
+	url := fmt.Sprintf(
 		"http://watch.live.nicovideo.jp/api/getplayerstatus?v=%s",
 		l.BroadID)
-
-	res, err := c.Get(u)
+	res, err := c.Get(url)
 	if err != nil {
 		return NicoErrFromStdErr(err)
 	}
@@ -82,7 +81,11 @@ func (l *LiveWaku) FetchInformation() NicoError {
 	if v, ok := statusXMLPath.String(root); ok {
 		if v != "ok" {
 			if v, ok := errorCodeXMLPath.String(root); ok {
-				return NicoErr(NicoErrNicoLiveOther, v, "")
+				errorNum := NicoErrNicoLiveOther
+				if v == "closed" {
+					errorNum = NicoErrClosed
+				}
+				return NicoErr(errorNum, v, "getplayerstatus error")
 			}
 			return NicoErr(NicoErrOther, "FetchInformation unknown err",
 				"request failed with unknown error")
