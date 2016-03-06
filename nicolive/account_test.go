@@ -50,8 +50,9 @@ func TestAccountLoad(t *testing.T) {
 		t.Fatalf("Pass should be %v but %v", expect, a.Pass)
 	}
 
-	if a.Usersession != "" {
-		t.Fatalf("Usersession be empty but %v", a.Usersession)
+	expect = "abcde"
+	if a.Usersession != expect {
+		t.Fatalf("Usersession should be %v but %v", expect, a.Pass)
 	}
 }
 func TestAccountLoadFail(t *testing.T) {
@@ -89,9 +90,9 @@ func TestAccountSave(t *testing.T) {
 		t.Fatalf("Should be %v but %v", a.Mail, b.Mail)
 	}
 	if a.Pass != b.Pass {
-		t.Fatalf("Should be %v but %v", a.Mail, b.Mail)
+		t.Fatalf("Should be %v but %v", a.Pass, b.Pass)
 	}
-	if a.Usersession == b.Usersession {
-		t.Fatalf("Usersession be empty but %v", b.Usersession)
+	if a.Usersession != b.Usersession {
+		t.Fatalf("Should be %v but %v", a.Usersession, b.Usersession)
 	}
 }

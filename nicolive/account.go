@@ -14,7 +14,7 @@ import (
 type Account struct {
 	Mail        string `yaml:"mail"`
 	Pass        string `yaml:"pass"`
-	Usersession string `yaml:"-"`
+	Usersession string `yaml:"usersession"`
 }
 
 func (a Account) String() string {
