@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 const ()
@@ -22,9 +23,10 @@ type CommentConnection struct {
 	reconnectN        int
 	reconnectWaitMsec int
 
-	commReader *bufio.Reader
-	waitGroup  sync.WaitGroup
-	termSig    chan struct{}
+	commReadWriter bufio.ReadWriter
+	writeMutex     sync.Mutex
+	waitGroup      sync.WaitGroup
+	termSig        chan struct{}
 }
 
 // NewCommentConnection returns a pointer to new CommentConnection
@@ -50,14 +52,16 @@ func (cc CommentConnection) Connect() NicoError {
 		return NicoErrFromStdErr(err)
 	}
 
-	cc.commReader = bufio.NewReader(cc.socket)
+	cc.commReadWriter.Reader = bufio.NewReader(cc.socket)
+	cc.commReadWriter.Writer = bufio.NewWriter(cc.socket)
 
 	fmt.Fprintf(cc.socket,
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
 		cc.liveWaku.CommentServer.Thread)
 
-	cc.waitGroup.Add(1)
+	cc.waitGroup.Add(2)
 	go cc.receiveStream()
+	go cc.keepAlive()
 
 	return nil
 }
@@ -66,7 +70,7 @@ func (cc *CommentConnection) receiveStream() {
 	defer cc.waitGroup.Done()
 
 	for {
-		commxml, err := cc.commReader.ReadString('\x00')
+		commxml, err := cc.commReadWriter.ReadString('\x00')
 		if err != nil {
 			fmt.Println("receive err")
 			return
@@ -75,13 +79,33 @@ func (cc *CommentConnection) receiveStream() {
 
 		if strings.HasPrefix(commxml, "<thread ") {
 			fmt.Println("thread")
+			continue
 		}
+		if strings.HasPrefix(commxml, "<chat ") {
+			fmt.Println("chat")
+			continue
+		}
+	}
+}
 
+func (cc *CommentConnection) keepAlive() {
+	defer cc.waitGroup.Done()
+
+	tick := time.Tick(time.Minute)
+	for {
 		select {
+		case <-tick:
+			cc.writeMutex.Lock()
+			err := cc.commReadWriter.WriteByte(0)
+			if err == nil {
+				err = cc.commReadWriter.Flush()
+			}
+			cc.writeMutex.Unlock()
+			if err != nil {
+				return
+			}
 		case <-cc.termSig:
-			fmt.Println("terminated")
 			return
-		default:
 		}
 	}
 }

@@ -41,7 +41,7 @@ func mainProcess() {
 	//Logger.Fatalln(err)
 	//}
 
-	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv255080260"}
+	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv255083291"}
 	nicoerr := l.FetchInformation()
 	if nicoerr != nil {
 		Logger.Fatalln(nicoerr)
@@ -53,14 +53,8 @@ func mainProcess() {
 	stdinReader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Print("Enter text: ")
 		text, err := stdinReader.ReadString('\n')
-		if err != nil {
-			Logger.Fatal(err)
-		}
-		fmt.Println(text)
-
-		if text == "close\n" {
+		if err != nil || text == "close\n" {
 			commentconn.Close()
 			return
 		}
