@@ -10,6 +10,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	loginAddr           = "https://secure.nicovideo.jp/secure/login?site=nicolive"
+	usersessionBaseAddr = "http://nicovideo.jp"
+)
+
 // Account is a niconico account
 type Account struct {
 	Mail        string `yaml:"mail"`
@@ -57,8 +62,14 @@ func (a *Account) Load(filePath string) error {
 
 // Login log in to niconico and update Usersession
 func (a *Account) Login() NicoError {
+	return a.LoginImpl(loginAddr, usersessionBaseAddr)
+}
+
+// LoginImpl is implementation of Login.
+func (a *Account) LoginImpl(addr, baseAddr string) NicoError {
 	if a.Mail == "" || a.Pass == "" {
-		return NicoErr(NicoErrOther, "invalid account info", "mail or pass is not set")
+		return NicoErr(NicoErrOther,
+			"invalid account info", "mail or pass is not set")
 	}
 
 	jar, err := cookiejar.New(nil)
@@ -71,13 +82,13 @@ func (a *Account) Login() NicoError {
 		"mail":     []string{a.Mail},
 		"password": []string{a.Pass},
 	}
-	resp, err := cl.PostForm("https://secure.nicovideo.jp/secure/login?site=nicolive", params)
+	resp, err := cl.PostForm(addr, params)
 	if err != nil {
 		return NicoErrFromStdErr(err)
 	}
 	defer resp.Body.Close()
 
-	nicoURL, err := url.Parse("http://nicovideo.jp")
+	nicoURL, err := url.Parse(baseAddr)
 	if err != nil {
 		return NicoErrFromStdErr(err)
 	}
