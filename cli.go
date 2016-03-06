@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -40,7 +41,7 @@ func mainProcess() {
 	//Logger.Fatalln(err)
 	//}
 
-	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv253955473"}
+	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv255080260"}
 	nicoerr := l.FetchInformation()
 	if nicoerr != nil {
 		Logger.Fatalln(nicoerr)
@@ -49,6 +50,21 @@ func mainProcess() {
 	commentconn := nicolive.NewCommentConnection(&l)
 	commentconn.Connect()
 
+	stdinReader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print("Enter text: ")
+		text, err := stdinReader.ReadString('\n')
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		fmt.Println(text)
+
+		if text == "close\n" {
+			commentconn.Close()
+			return
+		}
+	}
 }
 
 // RunCli processes flags and io
