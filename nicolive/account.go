@@ -12,9 +12,9 @@ import (
 
 // Account is a niconico account
 type Account struct {
-	Mail        string
-	Pass        string
-	Usersession string
+	Mail        string `yaml:"mail"`
+	Pass        string `yaml:"pass"`
+	Usersession string `yaml:"-"`
 }
 
 func (a Account) String() string {
