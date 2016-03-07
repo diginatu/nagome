@@ -3,9 +3,11 @@
 package nicolive
 
 import (
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 
 	"gopkg.in/xmlpath.v1"
 )
@@ -13,7 +15,37 @@ import (
 var (
 	statusXMLPath    = xmlpath.MustCompile("//@status")
 	errorCodeXMLPath = xmlpath.MustCompile("//error/code")
+
+	// Logger is used in nicolive to output logs
+	Logger *log.Logger
+	// EvReceiver is EventReceiver used in nicolive
+	EvReceiver EventReceiver
 )
+
+func init() {
+	Logger = log.New(os.Stderr, "", log.Lshortfile|log.Ltime)
+	EvReceiver = &defaultEventReceiver{}
+}
+
+// Event is an event
+type Event struct {
+	EventString string
+}
+
+func (e *Event) String() string {
+	return e.EventString
+}
+
+// EventReceiver receive events and proceed
+type EventReceiver interface {
+	Proceed(*Event)
+}
+
+type defaultEventReceiver struct{}
+
+func (der *defaultEventReceiver) Proceed(ev *Event) {
+	Logger.Println(ev.EventString)
+}
 
 // NewNicoClient makes new http.Client with usersession
 func NewNicoClient(a *Account) (*http.Client, NicoError) {

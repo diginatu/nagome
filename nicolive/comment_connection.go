@@ -39,7 +39,7 @@ func NewCommentConnection(l *LiveWaku) *CommentConnection {
 }
 
 // Connect Connect to nicolive and start receiving comment
-func (cc CommentConnection) Connect() NicoError {
+func (cc CommentConnection) Connect() {
 	var err error
 
 	addrport := fmt.Sprintf("%s:%s",
@@ -48,8 +48,9 @@ func (cc CommentConnection) Connect() NicoError {
 
 	cc.socket, err = net.Dial("tcp", addrport)
 	if err != nil {
-		return cc.RetryConnect()
-		//return NicoErrFromStdErr(err)
+		Logger.Println(NicoErrFromStdErr(err))
+		go cc.RetryConnect()
+		return
 	}
 
 	cc.commReadWriter = bufio.ReadWriter{
@@ -64,8 +65,9 @@ func (cc CommentConnection) Connect() NicoError {
 	err = cc.commReadWriter.Flush()
 	cc.connectMutex.Unlock()
 	if err != nil {
-		return cc.RetryConnect()
-		//return NicoErrFromStdErr(err)
+		Logger.Println(NicoErrFromStdErr(err))
+		go cc.RetryConnect()
+		return
 	}
 
 	cc.waitGroup.Add(2)
@@ -73,11 +75,11 @@ func (cc CommentConnection) Connect() NicoError {
 	go cc.keepAlive()
 	cc.reconnectN = 0
 
-	return nil
+	return
 }
 
 // RetryConnect try to retry connecting comment server
-func (cc CommentConnection) RetryConnect() NicoError {
+func (cc CommentConnection) RetryConnect() {
 	cc.retryMutex.Lock()
 	defer cc.retryMutex.Unlock()
 
@@ -86,16 +88,17 @@ func (cc CommentConnection) RetryConnect() NicoError {
 	if cc.reconnectN < cc.reconnectTimes {
 		select {
 		case <-cc.termSig:
-			return NicoErr(NicoErrOther, "comment connection terminated",
-				"connection was closed and canceled to reconnect")
+			Logger.Println(NicoErr(NicoErrOther, "comment connection terminated",
+				"connection was closed and canceled to reconnect"))
+			return
 		case <-time.After(cc.reconnectWaitTime):
 			cc.Connect()
 		}
 	} else {
-		return NicoErr(NicoErrOther, "comment connection error",
-			"retry time reached reconnectTimes")
+		Logger.Println(NicoErr(NicoErrOther, "comment connection error",
+			"retry time reached reconnectTimes"))
 	}
-	return nil
+	return
 }
 
 func (cc *CommentConnection) receiveStream() {
@@ -106,6 +109,7 @@ func (cc *CommentConnection) receiveStream() {
 		commxml, err := cc.commReadWriter.ReadString('\x00')
 		cc.connectMutex.RUnlock()
 		if err != nil {
+			Logger.Println(NicoErrFromStdErr(err))
 			go cc.RetryConnect()
 			return
 		}
@@ -136,6 +140,7 @@ func (cc *CommentConnection) keepAlive() {
 			}
 			cc.connectMutex.Unlock()
 			if err != nil {
+				Logger.Println(NicoErrFromStdErr(err))
 				return
 			}
 		case <-cc.termSig:
