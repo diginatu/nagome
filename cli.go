@@ -41,7 +41,7 @@ func mainProcess() {
 	//Logger.Fatalln(err)
 	//}
 
-	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv256606827"}
+	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv256612919"}
 	nicoerr := l.FetchInformation()
 	if nicoerr != nil {
 		Logger.Fatalln(nicoerr)

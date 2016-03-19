@@ -17,6 +17,61 @@ const (
 // This struct automatically submits NULL character to reserve connection and
 // get the PostKey, which is necessary for sending comments.
 // liveWaku should have connection information which is able to get by fetchInformation()
+/*
+@startuml
+title "Comment connection - Sequence Diagram"
+actor User
+
+== Connecting ==
+User -> Main : Connect
+create "receiveStream()" as rs
+Main -> rs : lock and go
+create "keepAlive()" as kp
+Main -> kp : lock and go
+
+create "open()" as open
+Main -> open : go
+activate open
+
+open -> socket : dial
+activate socket
+
+open -> rs : unlock
+destroy open
+note right
+    open returns no error
+    even if failed to connect
+end note
+activate rs
+open -> kp : unlock
+activate kp
+
+open -> event : open
+
+
+loop
+...Wait for a comment or closing socket...
+rs -> event : comment
+note left
+    wait for a comment
+    even if connection error occured
+end note
+end
+
+== Disconnecting ==
+User -> Main : Disconnect
+Main -> socket : close
+deactivate socket
+
+Main -> rs : termSig
+destroy rs
+Main -> kp : termSig
+destroy kp
+Main -> Main : close
+
+Main -> event : disconnect
+@enduml
+*/
 type CommentConnection struct {
 	isConnected bool
 	liveWaku    *LiveWaku
@@ -30,7 +85,6 @@ type CommentConnection struct {
 
 	connectReadMutex  sync.Mutex
 	connectWriteMutex sync.Mutex
-	retryMutex        sync.Mutex
 	termSig           chan bool
 }
 
@@ -82,14 +136,12 @@ func (cc *CommentConnection) Connect() NicoError {
 	}
 	cc.isConnected = true
 
-	cc.retryMutex.Lock()
 	cc.connectWriteMutex.Lock()
 	cc.connectReadMutex.Lock()
 
 	go func() {
 		cc.open()
 
-		cc.retryMutex.Unlock()
 		cc.connectWriteMutex.Unlock()
 		cc.connectReadMutex.Unlock()
 	}()
@@ -98,39 +150,6 @@ func (cc *CommentConnection) Connect() NicoError {
 	go cc.keepAlive()
 
 	return nil
-}
-
-// retryConnect try to retry connecting comment server
-// returns ok or not
-func (cc *CommentConnection) retryConnect() bool {
-	cc.retryMutex.Lock()
-	defer cc.retryMutex.Unlock()
-	cc.connectWriteMutex.Lock()
-	defer cc.connectWriteMutex.Unlock()
-	cc.connectReadMutex.Lock()
-	defer cc.connectReadMutex.Unlock()
-
-	Logger.Println("CommentConnection reconnect")
-
-	cc.close()
-	cc.reconnectN++
-	if cc.reconnectN <= cc.ReconnectTimes {
-		select {
-		case <-cc.termSig:
-			Logger.Println(NicoErr(NicoErrOther, "comment connection terminated",
-				"connection was closed and canceled to reconnect"))
-			return false
-		case <-time.After(cc.ReconnectWaitTime):
-			cc.open()
-			return true
-		}
-	} else {
-		Logger.Println(NicoErr(NicoErrOther, "comment connection error",
-			"retry time reached reconnectTimes"))
-		go cc.Disconnect()
-		<-cc.termSig
-		return false
-	}
 }
 
 func (cc *CommentConnection) receiveStream() {
@@ -144,10 +163,7 @@ func (cc *CommentConnection) receiveStream() {
 			cc.connectReadMutex.Unlock()
 			if err != nil {
 				Logger.Println(NicoErrFromStdErr(err))
-				if ok := cc.retryConnect(); ok {
-					continue
-				}
-				return
+				continue
 			}
 			fmt.Println(commxml)
 
