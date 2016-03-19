@@ -41,7 +41,7 @@ func mainProcess() {
 	//Logger.Fatalln(err)
 	//}
 
-	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv255245626"}
+	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv256606827"}
 	nicoerr := l.FetchInformation()
 	if nicoerr != nil {
 		Logger.Fatalln(nicoerr)
@@ -55,7 +55,7 @@ func mainProcess() {
 	for {
 		text, err := stdinReader.ReadString('\n')
 		if err != nil || text == "close\n" {
-			commentconn.Close()
+			commentconn.Disconnect()
 			return
 		}
 	}
