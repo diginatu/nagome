@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/xmlpath.v1"
+	"gopkg.in/xmlpath.v2"
 )
 
 // LiveWaku is a live broadcast(Waku) of Niconama
@@ -128,8 +128,7 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		l.User.Name = v
 	}
 	if v, ok := xmlpath.MustCompile("//user/is_premium").String(root); ok {
-		i, _ := strconv.Atoi(v)
-		l.User.IsPremium = i
+		l.User.IsPremium, _ = strconv.Atoi(v)
 	}
 
 	// comment server

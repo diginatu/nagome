@@ -4,14 +4,27 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"gopkg.in/xmlpath.v2"
 )
 
 const (
 	numCommentConnectionGoRoutines = 2
 )
+
+// Comment is struct to hold a comment
+type Comment struct {
+	No        int
+	Date      time.Time
+	UserID    string
+	Premium   int
+	Anonymity bool
+	Comment   string
+}
 
 // CommentConnection is a struct to manage sending/receiving comments.
 // This struct automatically submits NULL character to reserve connection and
@@ -165,6 +178,10 @@ func (cc *CommentConnection) receiveStream() {
 				Logger.Println(NicoErrFromStdErr(err))
 				continue
 			}
+
+			// strip null char
+			commxml = commxml[0 : len(commxml)-1]
+
 			fmt.Println(commxml)
 
 			if strings.HasPrefix(commxml, "<thread ") {
@@ -172,7 +189,35 @@ func (cc *CommentConnection) receiveStream() {
 				continue
 			}
 			if strings.HasPrefix(commxml, "<chat ") {
-				fmt.Println("chat")
+				commxmlReader := strings.NewReader(commxml)
+				var comment Comment
+
+				root, err := xmlpath.Parse(commxmlReader)
+				if err != nil {
+					Logger.Println(NicoErrFromStdErr(err))
+				}
+
+				if v, ok := xmlpath.MustCompile("/chat").String(root); ok {
+					comment.Comment = v
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@no").String(root); ok {
+					comment.No, _ = strconv.Atoi(v)
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@premium").String(root); ok {
+					comment.Premium, _ = strconv.Atoi(v)
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@date").String(root); ok {
+					i, _ := strconv.Atoi(v)
+					comment.Date = time.Unix(int64(i), 0)
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@anonymity").String(root); ok {
+					comment.Anonymity, _ = strconv.ParseBool(v)
+				}
+
+				EvReceiver.Proceed(&Event{
+					EventString: "comment",
+					Content:     comment,
+				})
 				continue
 			}
 		}

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"os"
 
-	"gopkg.in/xmlpath.v1"
+	"gopkg.in/xmlpath.v2"
 )
 
 var (
@@ -30,6 +30,7 @@ func init() {
 // Event is an event
 type Event struct {
 	EventString string
+	Content     interface{}
 }
 
 func (e *Event) String() string {
@@ -44,7 +45,7 @@ type EventReceiver interface {
 type defaultEventReceiver struct{}
 
 func (der *defaultEventReceiver) Proceed(ev *Event) {
-	Logger.Println(ev.EventString)
+	Logger.Println(ev.EventString, ev.Content)
 }
 
 // NewNicoClient makes new http.Client with usersession
