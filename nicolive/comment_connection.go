@@ -86,28 +86,27 @@ Main -> event : disconnect
 @enduml
 */
 type CommentConnection struct {
-	isConnected bool
+	IsConnected bool
 	liveWaku    *LiveWaku
 	socket      net.Conn
+	ticket      string
+	svrTime     time.Time
+	svrTimeDiff time.Duration
 
-	ReconnectTimes    uint
-	ReconnectWaitTime time.Duration
-	reconnectN        uint
+	lastBlock int
 
-	commReadWriter bufio.ReadWriter
+	rw bufio.ReadWriter
 
-	connectReadMutex  sync.Mutex
-	connectWriteMutex sync.Mutex
-	termSig           chan bool
+	rMutex  sync.Mutex
+	wMutex  sync.Mutex
+	termSig chan bool
 }
 
 // NewCommentConnection returns a pointer to new CommentConnection
 func NewCommentConnection(l *LiveWaku) *CommentConnection {
 	return &CommentConnection{
-		liveWaku:          l,
-		ReconnectTimes:    3,
-		ReconnectWaitTime: time.Second,
-		termSig:           make(chan bool),
+		liveWaku: l,
+		termSig:  make(chan bool),
 	}
 }
 
@@ -125,38 +124,36 @@ func (cc *CommentConnection) open() {
 		return
 	}
 
-	cc.commReadWriter = bufio.ReadWriter{
+	cc.rw = bufio.ReadWriter{
 		Reader: bufio.NewReader(cc.socket),
 		Writer: bufio.NewWriter(cc.socket),
 	}
 
-	fmt.Fprintf(cc.commReadWriter,
+	fmt.Fprintf(cc.rw,
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
 		cc.liveWaku.CommentServer.Thread)
-	err = cc.commReadWriter.Flush()
+	err = cc.rw.Flush()
 	if err != nil {
 		Logger.Println(NicoErrFromStdErr(err))
 		return
 	}
-
-	cc.reconnectN = 0
 }
 
 // Connect Connect to nicolive and start receiving comment
 func (cc *CommentConnection) Connect() NicoError {
-	if cc.isConnected {
+	if cc.IsConnected {
 		return NicoErr(NicoErrOther, "already connected", "")
 	}
-	cc.isConnected = true
+	cc.IsConnected = true
 
-	cc.connectWriteMutex.Lock()
-	cc.connectReadMutex.Lock()
+	cc.wMutex.Lock()
+	cc.rMutex.Lock()
 
 	go func() {
 		cc.open()
 
-		cc.connectWriteMutex.Unlock()
-		cc.connectReadMutex.Unlock()
+		cc.wMutex.Unlock()
+		cc.rMutex.Unlock()
 	}()
 
 	go cc.receiveStream()
@@ -171,9 +168,9 @@ func (cc *CommentConnection) receiveStream() {
 		case <-cc.termSig:
 			return
 		default:
-			cc.connectReadMutex.Lock()
-			commxml, err := cc.commReadWriter.ReadString('\x00')
-			cc.connectReadMutex.Unlock()
+			cc.rMutex.Lock()
+			commxml, err := cc.rw.ReadString('\x00')
+			cc.rMutex.Unlock()
 			if err != nil {
 				Logger.Println(NicoErrFromStdErr(err))
 				continue
@@ -185,7 +182,30 @@ func (cc *CommentConnection) receiveStream() {
 			fmt.Println(commxml)
 
 			if strings.HasPrefix(commxml, "<thread ") {
-				fmt.Println("thread")
+				commxmlReader := strings.NewReader(commxml)
+
+				root, err := xmlpath.Parse(commxmlReader)
+				if err != nil {
+					Logger.Println(NicoErrFromStdErr(err))
+					continue
+				}
+
+				if v, ok := xmlpath.MustCompile("/thread/@last_res").String(root); ok {
+					lbl, _ := strconv.Atoi(v)
+					cc.lastBlock = lbl / 10
+				}
+				if v, ok := xmlpath.MustCompile("/thread/@ticket").String(root); ok {
+					cc.ticket = v
+				}
+				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(root); ok {
+					i, _ := strconv.ParseInt(v, 10, 64)
+					cc.svrTime = time.Unix(i, 0)
+					cc.svrTimeDiff = time.Now().Sub(cc.svrTime)
+				}
+
+				//livewaku->fetchPostKey(lastBlockNum, userSession);
+				//postkeyTimer->start(10000);
+
 				continue
 			}
 			if strings.HasPrefix(commxml, "<chat ") {
@@ -195,6 +215,7 @@ func (cc *CommentConnection) receiveStream() {
 				root, err := xmlpath.Parse(commxmlReader)
 				if err != nil {
 					Logger.Println(NicoErrFromStdErr(err))
+					continue
 				}
 
 				if v, ok := xmlpath.MustCompile("/chat").String(root); ok {
@@ -207,8 +228,8 @@ func (cc *CommentConnection) receiveStream() {
 					comment.Premium, _ = strconv.Atoi(v)
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@date").String(root); ok {
-					i, _ := strconv.Atoi(v)
-					comment.Date = time.Unix(int64(i), 0)
+					i, _ := strconv.ParseInt(v, 10, 64)
+					comment.Date = time.Unix(i, 0)
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@anonymity").String(root); ok {
 					comment.Anonymity, _ = strconv.ParseBool(v)
@@ -231,12 +252,12 @@ func (cc *CommentConnection) keepAlive() {
 		case <-cc.termSig:
 			return
 		case <-tick:
-			cc.connectWriteMutex.Lock()
-			err := cc.commReadWriter.WriteByte(0)
+			cc.wMutex.Lock()
+			err := cc.rw.WriteByte(0)
 			if err == nil {
-				err = cc.commReadWriter.Flush()
+				err = cc.rw.Flush()
 			}
-			cc.connectWriteMutex.Unlock()
+			cc.wMutex.Unlock()
 			if err != nil {
 				Logger.Println(NicoErrFromStdErr(err))
 				continue
@@ -254,7 +275,7 @@ func (cc *CommentConnection) close() {
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit
 func (cc *CommentConnection) Disconnect() NicoError {
-	if !cc.isConnected {
+	if !cc.IsConnected {
 		return NicoErr(NicoErrOther, "not connected yet", "")
 	}
 
@@ -263,7 +284,7 @@ func (cc *CommentConnection) Disconnect() NicoError {
 		cc.termSig <- true
 	}
 
-	cc.isConnected = false
+	cc.IsConnected = false
 	Logger.Println("CommentConnection disconnected")
 
 	return nil
