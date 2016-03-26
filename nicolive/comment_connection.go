@@ -3,6 +3,7 @@ package nicolive
 import (
 	"bufio"
 	"fmt"
+	"html"
 	"net"
 	"strconv"
 	"strings"
@@ -26,6 +27,7 @@ type Comment struct {
 	Premium   int
 	Anonymity bool
 	Comment   string
+	Mail      string
 }
 
 // CommentConnection is a struct to manage sending/receiving comments.
@@ -85,18 +87,18 @@ type CommentConnection struct {
 	liveWaku    *LiveWaku
 	socket      net.Conn
 	ticket      string
-	svrTime     time.Time
-	svrTimeD    time.Duration
-	openTime    time.Time
+	svrTm       time.Time
+	svrTmD      time.Duration
+	openTm      time.Time
 
 	lastBlock int
 
 	rw bufio.ReadWriter
 
-	keepAliveTm *time.Timer
-	postKeyTm   *time.Timer
-	wmu         sync.Mutex
-	termSig     chan bool
+	keepAliveTmr *time.Timer
+	postKeyTmr   *time.Timer
+	wmu          sync.Mutex
+	termc        chan bool
 }
 
 // NewCommentConnection returns a pointer to new CommentConnection
@@ -107,10 +109,10 @@ func NewCommentConnection(l *LiveWaku) *CommentConnection {
 	pkt.Stop()
 
 	return &CommentConnection{
-		liveWaku:    l,
-		termSig:     make(chan bool),
-		keepAliveTm: kat,
-		postKeyTm:   pkt,
+		liveWaku:     l,
+		termc:        make(chan bool),
+		keepAliveTmr: kat,
+		postKeyTmr:   pkt,
 	}
 }
 
@@ -146,7 +148,7 @@ func (cc *CommentConnection) open() {
 
 	cc.wmu.Unlock()
 
-	cc.openTime = time.Now()
+	cc.openTm = time.Now()
 	EvReceiver.Proceed(&Event{EventString: "comment connection opened"})
 }
 
@@ -158,7 +160,7 @@ func (cc *CommentConnection) Connect() NicoError {
 	cc.IsConnected = true
 
 	cc.open()
-	cc.keepAliveTm.Reset(keepAliveDuration)
+	cc.keepAliveTmr.Reset(keepAliveDuration)
 
 	go cc.receiveStream()
 	go cc.timer()
@@ -169,14 +171,14 @@ func (cc *CommentConnection) Connect() NicoError {
 func (cc *CommentConnection) receiveStream() {
 	for {
 		select {
-		case <-cc.termSig:
+		case <-cc.termc:
 			return
 		default:
 			commxml, err := cc.rw.ReadString('\x00')
 			if err != nil {
 				go cc.Disconnect()
 				Logger.Println(NicoErrFromStdErr(err))
-				<-cc.termSig
+				<-cc.termc
 				return
 			}
 
@@ -202,12 +204,12 @@ func (cc *CommentConnection) receiveStream() {
 				}
 				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
-					cc.svrTime = time.Unix(i, 0)
-					cc.svrTimeD = time.Now().Sub(cc.svrTime)
+					cc.svrTm = time.Unix(i, 0)
+					cc.svrTmD = time.Now().Sub(cc.svrTm)
 				}
 
 				// immediately update postkey and start the timer
-				cc.postKeyTm.Reset(0)
+				cc.postKeyTmr.Reset(0)
 
 				continue
 			}
@@ -225,26 +227,46 @@ func (cc *CommentConnection) receiveStream() {
 				var comment Comment
 
 				if v, ok := xmlpath.MustCompile("/chat").String(rt); ok {
-					comment.Comment = v
+					comment.Comment = html.UnescapeString(v)
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@no").String(rt); ok {
 					comment.No, _ = strconv.Atoi(v)
-				}
-				if v, ok := xmlpath.MustCompile("/chat/@premium").String(rt); ok {
-					comment.Premium, _ = strconv.Atoi(v)
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@date").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
 					comment.Date = time.Unix(i, 0)
 				}
+				if v, ok := xmlpath.MustCompile("/chat/@mail").String(rt); ok {
+					comment.Mail = v
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@user_id").String(rt); ok {
+					comment.UserID = v
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@premium").String(rt); ok {
+					comment.Premium, _ = strconv.Atoi(v)
+				}
 				if v, ok := xmlpath.MustCompile("/chat/@anonymity").String(rt); ok {
 					comment.Anonymity, _ = strconv.ParseBool(v)
+				}
+
+				blk := comment.No / 10
+				if blk > cc.lastBlock {
+					cc.lastBlock = blk
+					cc.postKeyTmr.Reset(0)
 				}
 
 				EvReceiver.Proceed(&Event{
 					EventString: "comment",
 					Content:     comment,
 				})
+
+				if comment.Comment == "/disconnect" &&
+					(comment.Premium>>1)%2 == 1 {
+
+					go cc.Disconnect()
+					<-cc.termc
+					return
+				}
 				continue
 			}
 		}
@@ -254,10 +276,10 @@ func (cc *CommentConnection) receiveStream() {
 func (cc *CommentConnection) timer() {
 	for {
 		select {
-		case <-cc.termSig:
+		case <-cc.termc:
 			return
-		case <-cc.keepAliveTm.C:
-			cc.keepAliveTm.Reset(keepAliveDuration)
+		case <-cc.keepAliveTmr.C:
+			cc.keepAliveTmr.Reset(keepAliveDuration)
 			cc.wmu.Lock()
 			err := cc.rw.WriteByte(0)
 			if err == nil {
@@ -267,11 +289,11 @@ func (cc *CommentConnection) timer() {
 			if err != nil {
 				go cc.Disconnect()
 				Logger.Println(NicoErrFromStdErr(err))
-				<-cc.termSig
+				<-cc.termc
 				return
 			}
-		case <-cc.postKeyTm.C:
-			cc.postKeyTm.Reset(postKeyDuration)
+		case <-cc.postKeyTmr.C:
+			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.liveWaku.FetchPostKey(cc.lastBlock)
 			if nerr != nil {
 				Logger.Println(nerr)
@@ -287,12 +309,12 @@ func (cc *CommentConnection) Disconnect() NicoError {
 		return NicoErr(NicoErrOther, "not connected yet", "")
 	}
 
-	cc.keepAliveTm.Stop()
-	cc.postKeyTm.Stop()
+	cc.keepAliveTmr.Stop()
+	cc.postKeyTmr.Stop()
 	cc.socket.Close()
 
 	for i := 0; i < numCommentConnectionRoutines; i++ {
-		cc.termSig <- true
+		cc.termc <- true
 	}
 
 	cc.IsConnected = false
