@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	numCommentConnectionGoRoutines = 2
+	numCommentConnectionRoutines = 2
+	keepAliveDuration            = time.Minute
+	postKeyDuration              = 10 * time.Second
 )
 
 // Comment is struct to hold a comment
@@ -37,36 +39,30 @@ actor User
 
 == Connecting ==
 User -> Main : Connect
-create "receiveStream()" as rs
-Main -> rs : lock and go
-create "keepAlive()" as kp
-Main -> kp : lock and go
 
-create "open()" as open
-Main -> open : go
-activate open
-
-open -> socket : dial
+Main -> socket : dial
 activate socket
 
-open -> rs : unlock
-destroy open
 note right
-    open returns no error
+    returns no error
     even if failed to connect
 end note
-activate rs
-open -> kp : unlock
-activate kp
 
-open -> event : open
+Main -> event : opened
+
+create "receiveStream()" as rs
+Main -> rs : go
+activate rs
+create "timer()" as tm
+Main -> tm : go
+activate tm
 
 
 loop
-...Wait for a comment or closing socket...
-rs -> event : comment
+...Wait for a message or closing socket...
+rs -> event : comment,\nconnect,\nsubmit status
 note left
-    wait for a comment
+    wait for a message
     even if connection error occured
 end note
 end
@@ -78,9 +74,8 @@ deactivate socket
 
 Main -> rs : termSig
 destroy rs
-Main -> kp : termSig
-destroy kp
-Main -> Main : close
+Main -> tm : termSig
+destroy tm
 
 Main -> event : disconnect
 @enduml
@@ -91,22 +86,31 @@ type CommentConnection struct {
 	socket      net.Conn
 	ticket      string
 	svrTime     time.Time
-	svrTimeDiff time.Duration
+	svrTimeD    time.Duration
+	openTime    time.Time
 
 	lastBlock int
 
 	rw bufio.ReadWriter
 
-	rMutex  sync.Mutex
-	wMutex  sync.Mutex
-	termSig chan bool
+	keepAliveTm *time.Timer
+	postKeyTm   *time.Timer
+	wmu         sync.Mutex
+	termSig     chan bool
 }
 
 // NewCommentConnection returns a pointer to new CommentConnection
 func NewCommentConnection(l *LiveWaku) *CommentConnection {
+	kat := time.NewTimer(keepAliveDuration)
+	kat.Stop()
+	pkt := time.NewTimer(postKeyDuration)
+	pkt.Stop()
+
 	return &CommentConnection{
-		liveWaku: l,
-		termSig:  make(chan bool),
+		liveWaku:    l,
+		termSig:     make(chan bool),
+		keepAliveTm: kat,
+		postKeyTm:   pkt,
 	}
 }
 
@@ -117,6 +121,8 @@ func (cc *CommentConnection) open() {
 	addrport := fmt.Sprintf("%s:%s",
 		cc.liveWaku.CommentServer.Addr,
 		cc.liveWaku.CommentServer.Port)
+
+	cc.wmu.Lock()
 
 	cc.socket, err = net.Dial("tcp", addrport)
 	if err != nil {
@@ -137,6 +143,11 @@ func (cc *CommentConnection) open() {
 		Logger.Println(NicoErrFromStdErr(err))
 		return
 	}
+
+	cc.wmu.Unlock()
+
+	cc.openTime = time.Now()
+	EvReceiver.Proceed(&Event{EventString: "comment connection opened"})
 }
 
 // Connect Connect to nicolive and start receiving comment
@@ -146,18 +157,11 @@ func (cc *CommentConnection) Connect() NicoError {
 	}
 	cc.IsConnected = true
 
-	cc.wMutex.Lock()
-	cc.rMutex.Lock()
-
-	go func() {
-		cc.open()
-
-		cc.wMutex.Unlock()
-		cc.rMutex.Unlock()
-	}()
+	cc.open()
+	cc.keepAliveTm.Reset(keepAliveDuration)
 
 	go cc.receiveStream()
-	go cc.keepAlive()
+	go cc.timer()
 
 	return nil
 }
@@ -168,70 +172,72 @@ func (cc *CommentConnection) receiveStream() {
 		case <-cc.termSig:
 			return
 		default:
-			cc.rMutex.Lock()
 			commxml, err := cc.rw.ReadString('\x00')
-			cc.rMutex.Unlock()
+			if err != nil {
+				go cc.Disconnect()
+				Logger.Println(NicoErrFromStdErr(err))
+				<-cc.termSig
+				return
+			}
+
+			// strip null char
+			commxml = commxml[:len(commxml)-1]
+
+			fmt.Println(commxml)
+
+			commxmlReader := strings.NewReader(commxml)
+			rt, err := xmlpath.Parse(commxmlReader)
 			if err != nil {
 				Logger.Println(NicoErrFromStdErr(err))
 				continue
 			}
 
-			// strip null char
-			commxml = commxml[0 : len(commxml)-1]
-
-			fmt.Println(commxml)
-
 			if strings.HasPrefix(commxml, "<thread ") {
-				commxmlReader := strings.NewReader(commxml)
-
-				root, err := xmlpath.Parse(commxmlReader)
-				if err != nil {
-					Logger.Println(NicoErrFromStdErr(err))
-					continue
-				}
-
-				if v, ok := xmlpath.MustCompile("/thread/@last_res").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/thread/@last_res").String(rt); ok {
 					lbl, _ := strconv.Atoi(v)
 					cc.lastBlock = lbl / 10
 				}
-				if v, ok := xmlpath.MustCompile("/thread/@ticket").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/thread/@ticket").String(rt); ok {
 					cc.ticket = v
 				}
-				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
 					cc.svrTime = time.Unix(i, 0)
-					cc.svrTimeDiff = time.Now().Sub(cc.svrTime)
+					cc.svrTimeD = time.Now().Sub(cc.svrTime)
 				}
 
-				//livewaku->fetchPostKey(lastBlockNum, userSession);
-				//postkeyTimer->start(10000);
+				// immediately update postkey and start the timer
+				cc.postKeyTm.Reset(0)
 
 				continue
 			}
+			if strings.HasPrefix(commxml, "<chat_result ") {
+				if v, ok := xmlpath.MustCompile("/chat_result/@status").String(rt); ok {
+					if v != "0" {
+						Logger.Println("comment submit error (chat_result status): " + v)
+						continue
+					}
+					EvReceiver.Proceed(&Event{EventString: "comment submitted"})
+				}
+				continue
+			}
 			if strings.HasPrefix(commxml, "<chat ") {
-				commxmlReader := strings.NewReader(commxml)
 				var comment Comment
 
-				root, err := xmlpath.Parse(commxmlReader)
-				if err != nil {
-					Logger.Println(NicoErrFromStdErr(err))
-					continue
-				}
-
-				if v, ok := xmlpath.MustCompile("/chat").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/chat").String(rt); ok {
 					comment.Comment = v
 				}
-				if v, ok := xmlpath.MustCompile("/chat/@no").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/chat/@no").String(rt); ok {
 					comment.No, _ = strconv.Atoi(v)
 				}
-				if v, ok := xmlpath.MustCompile("/chat/@premium").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/chat/@premium").String(rt); ok {
 					comment.Premium, _ = strconv.Atoi(v)
 				}
-				if v, ok := xmlpath.MustCompile("/chat/@date").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/chat/@date").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
 					comment.Date = time.Unix(i, 0)
 				}
-				if v, ok := xmlpath.MustCompile("/chat/@anonymity").String(root); ok {
+				if v, ok := xmlpath.MustCompile("/chat/@anonymity").String(rt); ok {
 					comment.Anonymity, _ = strconv.ParseBool(v)
 				}
 
@@ -245,31 +251,33 @@ func (cc *CommentConnection) receiveStream() {
 	}
 }
 
-func (cc *CommentConnection) keepAlive() {
-	tick := time.Tick(time.Minute)
+func (cc *CommentConnection) timer() {
 	for {
 		select {
 		case <-cc.termSig:
 			return
-		case <-tick:
-			cc.wMutex.Lock()
+		case <-cc.keepAliveTm.C:
+			cc.keepAliveTm.Reset(keepAliveDuration)
+			cc.wmu.Lock()
 			err := cc.rw.WriteByte(0)
 			if err == nil {
 				err = cc.rw.Flush()
 			}
-			cc.wMutex.Unlock()
+			cc.wmu.Unlock()
 			if err != nil {
+				go cc.Disconnect()
 				Logger.Println(NicoErrFromStdErr(err))
-				continue
+				<-cc.termSig
+				return
+			}
+		case <-cc.postKeyTm.C:
+			cc.postKeyTm.Reset(postKeyDuration)
+			nerr := cc.liveWaku.FetchPostKey(cc.lastBlock)
+			if nerr != nil {
+				Logger.Println(nerr)
 			}
 		}
 	}
-}
-
-// Close closes the connection
-// do not end go routines
-func (cc *CommentConnection) close() {
-	cc.socket.Close()
 }
 
 // Disconnect close and disconnect
@@ -279,8 +287,11 @@ func (cc *CommentConnection) Disconnect() NicoError {
 		return NicoErr(NicoErrOther, "not connected yet", "")
 	}
 
-	cc.close()
-	for i := 0; i < numCommentConnectionGoRoutines; i++ {
+	cc.keepAliveTm.Stop()
+	cc.postKeyTm.Stop()
+	cc.socket.Close()
+
+	for i := 0; i < numCommentConnectionRoutines; i++ {
 		cc.termSig <- true
 	}
 
