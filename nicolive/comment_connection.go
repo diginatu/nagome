@@ -87,7 +87,6 @@ type CommentConnection struct {
 	liveWaku    *LiveWaku
 	socket      net.Conn
 	ticket      string
-	svrTm       time.Time
 	svrTmD      time.Duration
 	openTm      time.Time
 
@@ -148,7 +147,6 @@ func (cc *CommentConnection) open() {
 
 	cc.wmu.Unlock()
 
-	cc.openTm = time.Now()
 	EvReceiver.Proceed(&Event{EventString: "comment connection opened"})
 }
 
@@ -204,8 +202,7 @@ func (cc *CommentConnection) receiveStream() {
 				}
 				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
-					cc.svrTm = time.Unix(i, 0)
-					cc.svrTmD = time.Now().Sub(cc.svrTm)
+					cc.svrTmD = time.Unix(i, 0).Sub(time.Now())
 				}
 
 				// immediately update postkey and start the timer
@@ -301,6 +298,53 @@ func (cc *CommentConnection) timer() {
 		}
 	}
 }
+
+// SendComment sends comment to current comment connection
+func (cc *CommentConnection) SendComment(text string, iyayo bool) {
+	if cc.liveWaku.PostKey == "" {
+		Logger.Println(NicoErrOther, "no postkey", "")
+		return
+	}
+
+	vpos := 100 * (time.Now().Add(cc.svrTmD).Unix() - cc.liveWaku.Stream.StartTime.Unix())
+
+	fmt.Println(vpos)
+}
+
+//void CommentConnection::sendComment(QString text, bool iyayo)
+//{
+//const auto startTime = livewaku->getStTime().toTime_t();
+//const auto nowTime = QDateTime::currentDateTime();
+
+//const QString& postkey = livewaku->getPostKey();
+//if (postkey.isEmpty()) {
+//emit error("sendComment", "no postKey in livewaku");
+//return;
+//}
+
+//QByteArray send;
+
+//const uint vpos = 100 * (serverTime.toTime_t() - startTime +
+//nowTime.toTime_t() - openTime.toTime_t());
+
+//send.append(QString("<chat thread=\"%1\" ticket=\"%2\" vpos=\"%3\" "
+//"postkey=\"%4\"%5 user_id=\"%6\"%7>%8</chat>")
+//.arg(livewaku->getThread())
+//.arg(ticket)
+//.arg(vpos)
+//.arg(postkey)
+//.arg(iyayo?" mail=\"184\"":"")
+//.arg(livewaku->getUserID())
+//.arg(livewaku->getUserPremium()?" premium=\"1\"":"")
+//.arg(text.toHtmlEscaped()));
+
+//send.append('\0');
+
+//if (socket->write(send) == -1) {
+//emit error("sendComment", socket->errorString());
+//return;
+//}
+//}
 
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit

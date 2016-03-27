@@ -175,7 +175,13 @@ func (l *LiveWaku) FetchPostKey(block int) NicoError {
 	if err != nil {
 		return NicoErrFromStdErr(err)
 	}
-	l.PostKey = string(allb[8:])
+
+	pk := string(allb[8:])
+	if pk == "" {
+		return NicoErr(NicoErrOther, "failed to get postkey", "")
+	}
+
+	l.PostKey = pk
 
 	return nil
 }

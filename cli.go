@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/diginatu/nagome/nicolive"
 )
@@ -32,31 +33,59 @@ func init() {
 }
 
 func mainProcess() {
+}
+
+func runCui() {
+	stdinReader := bufio.NewReader(os.Stdin)
+
 	var ac nicolive.Account
 	ac.Load(filepath.Join(App.SavePath, "userData.yml"))
-	//ac.Save(filepath.Join(App.SavePath, "userData.yml"))
 
-	//err = ac.Login()
+	//err := ac.Login()
 	//if err != nil {
 	//Logger.Fatalln(err)
 	//}
+	//ac.Save(filepath.Join(App.SavePath, "userData.yml"))
 
-	l := nicolive.LiveWaku{Account: &ac, BroadID: "lv257447124"}
+	var l nicolive.LiveWaku
+
+	for {
+		fmt.Println("input broad URL or ID :")
+		brdtx, err := stdinReader.ReadString('\n')
+		brdtx = brdtx[:len(brdtx)-1]
+		if err != nil || brdtx == "" {
+			return
+		}
+
+		brdRg := regexp.MustCompile("lv(\\d+)")
+		broadMch := brdRg.FindString(brdtx)
+		if err != nil {
+			fmt.Println("invalid text")
+			continue
+		}
+
+		l = nicolive.LiveWaku{Account: &ac, BroadID: broadMch}
+		break
+	}
+
 	nicoerr := l.FetchInformation()
 	if nicoerr != nil {
 		Logger.Fatalln(nicoerr)
 	}
 
-	commentconn := nicolive.NewCommentConnection(&l)
-	commentconn.Connect()
-
-	stdinReader := bufio.NewReader(os.Stdin)
+	commconn := nicolive.NewCommentConnection(&l)
+	commconn.Connect()
 
 	for {
 		text, err := stdinReader.ReadString('\n')
-		if err != nil || text == "close\n" {
-			commentconn.Disconnect()
+		text = text[:len(text)-1]
+		if err != nil || text == ":q" {
+			commconn.Disconnect()
 			return
+		}
+
+		if text != "" {
+			commconn.SendComment(text, false)
 		}
 	}
 }
@@ -91,5 +120,6 @@ func RunCli() {
 	defer file.Close()
 	Logger = log.New(file, "", log.Lshortfile|log.Ltime)
 
-	mainProcess()
+	//mainProcess()
+	runCui()
 }
