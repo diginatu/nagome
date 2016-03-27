@@ -50,7 +50,7 @@ func runCui() {
 	var l nicolive.LiveWaku
 
 	for {
-		fmt.Println("input broad URL or ID :")
+		fmt.Println("input broad URL or ID (or empty to quit) :")
 		brdtx, err := stdinReader.ReadString('\n')
 		brdtx = brdtx[:len(brdtx)-1]
 		if err != nil || brdtx == "" {
@@ -78,13 +78,16 @@ func runCui() {
 
 	for {
 		text, err := stdinReader.ReadString('\n')
-		text = text[:len(text)-1]
-		if err != nil || text == ":q" {
+		if err != nil {
 			commconn.Disconnect()
 			return
 		}
-
-		if text != "" {
+		text = text[:len(text)-1]
+		switch text {
+		case ":q":
+			commconn.Disconnect()
+			return
+		default:
 			commconn.SendComment(text, false)
 		}
 	}

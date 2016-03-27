@@ -88,7 +88,6 @@ type CommentConnection struct {
 	socket      net.Conn
 	ticket      string
 	svrTmD      time.Duration
-	openTm      time.Time
 
 	lastBlock int
 
@@ -247,6 +246,7 @@ func (cc *CommentConnection) receiveStream() {
 				}
 
 				blk := comment.No / 10
+				fmt.Println(blk)
 				if blk > cc.lastBlock {
 					cc.lastBlock = blk
 					cc.postKeyTmr.Reset(0)
@@ -301,42 +301,43 @@ func (cc *CommentConnection) timer() {
 
 // SendComment sends comment to current comment connection
 func (cc *CommentConnection) SendComment(text string, iyayo bool) {
+	if !cc.IsConnected {
+		Logger.Println(NicoErrOther, "not connected", "")
+		return
+	}
 	if cc.liveWaku.PostKey == "" {
 		Logger.Println(NicoErrOther, "no postkey", "")
 		return
 	}
 
-	vpos := 100 * (time.Now().Add(cc.svrTmD).Unix() - cc.liveWaku.Stream.StartTime.Unix())
+	vpos := 100 *
+		(time.Now().Add(cc.svrTmD).Unix() - cc.liveWaku.Stream.OpenTime.Unix())
 
-	fmt.Println(vpos)
+	var iyayos string
+	if iyayo {
+		iyayos = " mail=\"184\""
+	}
+	var prems string
+	if cc.liveWaku.User.IsPremium {
+		prems = " premium=\"1\""
+	}
+
+	sdcomm := fmt.Sprintf("<chat thread=\"%s\" ticket=\"%s\" "+
+		"vpos=\"%d\" postkey=\"%s\"%s user_id=\"%s\"%s>%s</chat>\x00",
+		cc.liveWaku.CommentServer.Thread,
+		cc.ticket,
+		vpos,
+		cc.liveWaku.PostKey,
+		iyayos,
+		cc.liveWaku.User.UserID,
+		prems,
+		html.EscapeString(text))
+
+	fmt.Println(sdcomm)
 }
 
 //void CommentConnection::sendComment(QString text, bool iyayo)
 //{
-//const auto startTime = livewaku->getStTime().toTime_t();
-//const auto nowTime = QDateTime::currentDateTime();
-
-//const QString& postkey = livewaku->getPostKey();
-//if (postkey.isEmpty()) {
-//emit error("sendComment", "no postKey in livewaku");
-//return;
-//}
-
-//QByteArray send;
-
-//const uint vpos = 100 * (serverTime.toTime_t() - startTime +
-//nowTime.toTime_t() - openTime.toTime_t());
-
-//send.append(QString("<chat thread=\"%1\" ticket=\"%2\" vpos=\"%3\" "
-//"postkey=\"%4\"%5 user_id=\"%6\"%7>%8</chat>")
-//.arg(livewaku->getThread())
-//.arg(ticket)
-//.arg(vpos)
-//.arg(postkey)
-//.arg(iyayo?" mail=\"184\"":"")
-//.arg(livewaku->getUserID())
-//.arg(livewaku->getUserPremium()?" premium=\"1\"":"")
-//.arg(text.toHtmlEscaped()));
 
 //send.append('\0');
 

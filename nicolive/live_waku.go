@@ -21,6 +21,7 @@ type LiveWaku struct {
 		OwnerID     string
 		OwnerName   string
 
+		OpenTime  time.Time
 		StartTime time.Time
 		EndTime   time.Time
 
@@ -30,7 +31,7 @@ type LiveWaku struct {
 	User struct {
 		UserID    string
 		Name      string
-		IsPremium int
+		IsPremium bool
 	}
 
 	CommentServer struct {
@@ -66,7 +67,7 @@ func (l *LiveWaku) FetchInformation() NicoError {
 	}
 
 	url := fmt.Sprintf(
-		"http://watch.live.nicovideo.jp/api/getplayerstatus?v=%s",
+		"http://watch.live.nicovideo.jp/api/getplayerstatus/%s",
 		l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
@@ -109,6 +110,10 @@ func (l *LiveWaku) FetchInformation() NicoError {
 	if v, ok := xmlpath.MustCompile("//stream/owner_name").String(root); ok {
 		l.Stream.OwnerName = v
 	}
+	if v, ok := xmlpath.MustCompile("//stream/open_time").String(root); ok {
+		i, _ := strconv.Atoi(v)
+		l.Stream.OpenTime = time.Unix(int64(i), 0)
+	}
 	if v, ok := xmlpath.MustCompile("//stream/start_time").String(root); ok {
 		i, _ := strconv.Atoi(v)
 		l.Stream.StartTime = time.Unix(int64(i), 0)
@@ -129,7 +134,7 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		l.User.Name = v
 	}
 	if v, ok := xmlpath.MustCompile("//user/is_premium").String(root); ok {
-		l.User.IsPremium, _ = strconv.Atoi(v)
+		l.User.IsPremium, _ = strconv.ParseBool(v)
 	}
 
 	// comment server
