@@ -21,13 +21,17 @@ const (
 
 // Comment is struct to hold a comment
 type Comment struct {
-	No        int
-	Date      time.Time
-	UserID    string
-	Premium   int
-	Anonymity bool
-	Comment   string
-	Mail      string
+	No          int
+	Date        time.Time
+	UserID      string
+	IsPremium   bool
+	IsCommand   bool
+	IsStaff     bool
+	IsAnonymity bool
+	Comment     string
+	Mail        string
+	Locale      string
+	Score       int
 }
 
 // CommentConnection is a struct to manage sending/receiving comments.
@@ -230,9 +234,13 @@ func (cc *CommentConnection) receiveStream() {
 				if v, ok := xmlpath.MustCompile("/chat/@no").String(rt); ok {
 					comment.No, _ = strconv.Atoi(v)
 				}
-				if v, ok := xmlpath.MustCompile("/chat/@date").String(rt); ok {
-					i, _ := strconv.ParseInt(v, 10, 64)
-					comment.Date = time.Unix(i, 0)
+				if d, ok := xmlpath.MustCompile("/chat/@date").String(rt); ok {
+					di, _ := strconv.ParseInt(d, 10, 64)
+					var udi int64
+					if ud, ok := xmlpath.MustCompile("/chat/@date_usec").String(rt); ok {
+						udi, _ = strconv.ParseInt(ud, 10, 64)
+					}
+					comment.Date = time.Unix(di, udi*1000)
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@mail").String(rt); ok {
 					comment.Mail = v
@@ -241,10 +249,21 @@ func (cc *CommentConnection) receiveStream() {
 					comment.UserID = v
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@premium").String(rt); ok {
-					comment.Premium, _ = strconv.Atoi(v)
+					i, _ := strconv.Atoi(v)
+					comment.IsPremium = i%2 == 1
+					i >>= 1
+					comment.IsCommand = i%2 == 1
+					i >>= 1
+					comment.IsStaff = i%2 == 1
 				}
 				if v, ok := xmlpath.MustCompile("/chat/@anonymity").String(rt); ok {
-					comment.Anonymity, _ = strconv.ParseBool(v)
+					comment.IsAnonymity, _ = strconv.ParseBool(v)
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@locale").String(rt); ok {
+					comment.Locale = v
+				}
+				if v, ok := xmlpath.MustCompile("/chat/@score").String(rt); ok {
+					comment.Score, _ = strconv.Atoi(v)
 				}
 
 				blk := comment.No / 10
@@ -258,9 +277,7 @@ func (cc *CommentConnection) receiveStream() {
 					Content:     comment,
 				})
 
-				if comment.Comment == "/disconnect" &&
-					(comment.Premium>>1)%2 == 1 {
-
+				if comment.IsCommand && comment.Comment == "/disconnect" {
 					go cc.Disconnect()
 					<-cc.termc
 					return
