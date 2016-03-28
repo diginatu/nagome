@@ -66,6 +66,8 @@ rs -> event : comment,\nconnect,\nsubmit status
 note left
     wait for a message
     even if connection error occured
+//send.append('\0');
+
 end note
 end
 
@@ -246,7 +248,6 @@ func (cc *CommentConnection) receiveStream() {
 				}
 
 				blk := comment.No / 10
-				fmt.Println(blk)
 				if blk > cc.lastBlock {
 					cc.lastBlock = blk
 					cc.postKeyTmr.Reset(0)
@@ -334,18 +335,17 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) {
 		html.EscapeString(text))
 
 	fmt.Println(sdcomm)
+
+	cc.wmu.Lock()
+	fmt.Fprint(cc.rw, sdcomm)
+	err := cc.rw.Flush()
+	if err != nil {
+		Logger.Println(NicoErrFromStdErr(err))
+		return
+	}
+	cc.wmu.Unlock()
+	cc.keepAliveTmr.Reset(keepAliveDuration)
 }
-
-//void CommentConnection::sendComment(QString text, bool iyayo)
-//{
-
-//send.append('\0');
-
-//if (socket->write(send) == -1) {
-//emit error("sendComment", socket->errorString());
-//return;
-//}
-//}
 
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit
