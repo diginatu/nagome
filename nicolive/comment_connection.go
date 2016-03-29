@@ -90,15 +90,14 @@ Main -> event : disconnect
 */
 type CommentConnection struct {
 	IsConnected bool
-	liveWaku    *LiveWaku
-	socket      net.Conn
-	ticket      string
-	svrTmD      time.Duration
 
-	lastBlock int
+	lv     *LiveWaku
+	sock   net.Conn
+	ticket string
+	svrDu  time.Duration
+	block  int
 
-	rw bufio.ReadWriter
-
+	rw           bufio.ReadWriter
 	keepAliveTmr *time.Timer
 	postKeyTmr   *time.Timer
 	wmu          sync.Mutex
@@ -113,7 +112,7 @@ func NewCommentConnection(l *LiveWaku) *CommentConnection {
 	pkt.Stop()
 
 	return &CommentConnection{
-		liveWaku:     l,
+		lv:           l,
 		termc:        make(chan bool),
 		keepAliveTmr: kat,
 		postKeyTmr:   pkt,
@@ -125,25 +124,25 @@ func (cc *CommentConnection) open() {
 	Logger.Println("CommentConnection opening")
 
 	addrport := fmt.Sprintf("%s:%s",
-		cc.liveWaku.CommentServer.Addr,
-		cc.liveWaku.CommentServer.Port)
+		cc.lv.CommentServer.Addr,
+		cc.lv.CommentServer.Port)
 
 	cc.wmu.Lock()
 
-	cc.socket, err = net.Dial("tcp", addrport)
+	cc.sock, err = net.Dial("tcp", addrport)
 	if err != nil {
 		Logger.Println(NicoErrFromStdErr(err))
 		return
 	}
 
 	cc.rw = bufio.ReadWriter{
-		Reader: bufio.NewReader(cc.socket),
-		Writer: bufio.NewWriter(cc.socket),
+		Reader: bufio.NewReader(cc.sock),
+		Writer: bufio.NewWriter(cc.sock),
 	}
 
 	fmt.Fprintf(cc.rw,
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
-		cc.liveWaku.CommentServer.Thread)
+		cc.lv.CommentServer.Thread)
 	err = cc.rw.Flush()
 	if err != nil {
 		Logger.Println(NicoErrFromStdErr(err))
@@ -188,10 +187,8 @@ func (cc *CommentConnection) receiveStream() {
 			// strip null char
 			commxml = commxml[:len(commxml)-1]
 
-			fmt.Println(commxml)
-
-			commxmlReader := strings.NewReader(commxml)
-			rt, err := xmlpath.Parse(commxmlReader)
+			commxmlr := strings.NewReader(commxml)
+			rt, err := xmlpath.Parse(commxmlr)
 			if err != nil {
 				Logger.Println(NicoErrFromStdErr(err))
 				continue
@@ -200,14 +197,14 @@ func (cc *CommentConnection) receiveStream() {
 			if strings.HasPrefix(commxml, "<thread ") {
 				if v, ok := xmlpath.MustCompile("/thread/@last_res").String(rt); ok {
 					lbl, _ := strconv.Atoi(v)
-					cc.lastBlock = lbl / 10
+					cc.block = lbl / 10
 				}
 				if v, ok := xmlpath.MustCompile("/thread/@ticket").String(rt); ok {
 					cc.ticket = v
 				}
 				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
-					cc.svrTmD = time.Unix(i, 0).Sub(time.Now())
+					cc.svrDu = time.Unix(i, 0).Sub(time.Now())
 				}
 
 				// immediately update postkey and start the timer
@@ -267,8 +264,8 @@ func (cc *CommentConnection) receiveStream() {
 				}
 
 				blk := comment.No / 10
-				if blk > cc.lastBlock {
-					cc.lastBlock = blk
+				if blk > cc.block {
+					cc.block = blk
 					cc.postKeyTmr.Reset(0)
 				}
 
@@ -309,7 +306,7 @@ func (cc *CommentConnection) timer() {
 			}
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
-			nerr := cc.liveWaku.FetchPostKey(cc.lastBlock)
+			nerr := cc.lv.FetchPostKey(cc.block)
 			if nerr != nil {
 				Logger.Println(nerr)
 			}
@@ -323,31 +320,35 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) {
 		Logger.Println(NicoErrOther, "not connected", "")
 		return
 	}
-	if cc.liveWaku.PostKey == "" {
+	if cc.lv.PostKey == "" {
 		Logger.Println(NicoErrOther, "no postkey", "")
+		return
+	}
+	if text == "" {
+		Logger.Println(NicoErrOther, "empty text", "")
 		return
 	}
 
 	vpos := 100 *
-		(time.Now().Add(cc.svrTmD).Unix() - cc.liveWaku.Stream.OpenTime.Unix())
+		(time.Now().Add(cc.svrDu).Unix() - cc.lv.Stream.OpenTime.Unix())
 
 	var iyayos string
 	if iyayo {
 		iyayos = " mail=\"184\""
 	}
 	var prems string
-	if cc.liveWaku.User.IsPremium {
+	if cc.lv.User.IsPremium {
 		prems = " premium=\"1\""
 	}
 
 	sdcomm := fmt.Sprintf("<chat thread=\"%s\" ticket=\"%s\" "+
 		"vpos=\"%d\" postkey=\"%s\"%s user_id=\"%s\"%s>%s</chat>\x00",
-		cc.liveWaku.CommentServer.Thread,
+		cc.lv.CommentServer.Thread,
 		cc.ticket,
 		vpos,
-		cc.liveWaku.PostKey,
+		cc.lv.PostKey,
 		iyayos,
-		cc.liveWaku.User.UserID,
+		cc.lv.User.UserID,
 		prems,
 		html.EscapeString(text))
 
@@ -373,7 +374,7 @@ func (cc *CommentConnection) Disconnect() NicoError {
 
 	cc.keepAliveTmr.Stop()
 	cc.postKeyTmr.Stop()
-	cc.socket.Close()
+	cc.sock.Close()
 
 	for i := 0; i < numCommentConnectionRoutines; i++ {
 		cc.termc <- true

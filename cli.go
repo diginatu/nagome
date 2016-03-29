@@ -52,14 +52,18 @@ func runCui() {
 	for {
 		fmt.Println("input broad URL or ID (or empty to quit) :")
 		brdtx, err := stdinReader.ReadString('\n')
-		brdtx = brdtx[:len(brdtx)-1]
-		if err != nil || brdtx == "" {
+		if err != nil || brdtx == "\n" {
 			return
 		}
+		brdtx = brdtx[:len(brdtx)-1]
 
-		brdRg := regexp.MustCompile("lv(\\d+)")
+		brdRg := regexp.MustCompile("(lv|co)\\d+")
 		broadMch := brdRg.FindString(brdtx)
 		if err != nil {
+			fmt.Println("invalid text")
+			continue
+		}
+		if broadMch == "" {
 			fmt.Println("invalid text")
 			continue
 		}
@@ -83,6 +87,7 @@ func runCui() {
 			return
 		}
 		text = text[:len(text)-1]
+
 		switch text {
 		case ":q":
 			commconn.Disconnect()
