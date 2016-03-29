@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"html"
+	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
@@ -306,12 +307,52 @@ func (cc *CommentConnection) timer() {
 			}
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
-			nerr := cc.lv.FetchPostKey(cc.block)
+			nerr := cc.FetchPostKey()
 			if nerr != nil {
 				Logger.Println(nerr)
 			}
 		}
 	}
+}
+
+// FetchPostKey gets postkey using getpostkey API
+func (cc *CommentConnection) FetchPostKey() NicoError {
+	if cc.lv.Account == nil {
+		return NicoErr(NicoErrOther, "no account",
+			"LiveWaku does not have an account")
+	}
+	if cc.lv.BroadID == "" {
+		return NicoErr(NicoErrOther, "no BroadID",
+			"BroadID is not set")
+	}
+
+	c, nicoerr := NewNicoClient(cc.lv.Account)
+	if nicoerr != nil {
+		return nicoerr
+	}
+
+	url := fmt.Sprintf(
+		"http://live.nicovideo.jp/api/getpostkey?thread=%s&block_no=%s",
+		cc.lv.CommentServer.Thread, cc.block)
+	res, err := c.Get(url)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+	defer res.Body.Close()
+
+	allb, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+
+	pk := string(allb[8:])
+	if pk == "" {
+		return NicoErr(NicoErrOther, "failed to get postkey", "")
+	}
+
+	cc.lv.PostKey = pk
+
+	return nil
 }
 
 // SendComment sends comment to current comment connection

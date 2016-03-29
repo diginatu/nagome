@@ -2,7 +2,6 @@ package nicolive
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -147,46 +146,6 @@ func (l *LiveWaku) FetchInformation() NicoError {
 	if v, ok := xmlpath.MustCompile("//ms/thread").String(root); ok {
 		l.CommentServer.Thread = v
 	}
-
-	return nil
-}
-
-// FetchPostKey gets postkey using getpostkey API
-func (l *LiveWaku) FetchPostKey(block int) NicoError {
-	if l.Account == nil {
-		return NicoErr(NicoErrOther, "no account",
-			"LiveWaku does not have an account")
-	}
-	if l.BroadID == "" {
-		return NicoErr(NicoErrOther, "no BroadID",
-			"BroadID is not set")
-	}
-
-	c, nicoerr := NewNicoClient(l.Account)
-	if nicoerr != nil {
-		return nicoerr
-	}
-
-	url := fmt.Sprintf(
-		"http://live.nicovideo.jp/api/getpostkey?thread=%s&block_no=%s",
-		l.CommentServer.Thread, block)
-	res, err := c.Get(url)
-	if err != nil {
-		return NicoErrFromStdErr(err)
-	}
-	defer res.Body.Close()
-
-	allb, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return NicoErrFromStdErr(err)
-	}
-
-	pk := string(allb[8:])
-	if pk == "" {
-		return NicoErr(NicoErrOther, "failed to get postkey", "")
-	}
-
-	l.PostKey = pk
 
 	return nil
 }
