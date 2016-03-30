@@ -15,6 +15,7 @@ import (
 var (
 	statusXMLPath    = xmlpath.MustCompile("//@status")
 	errorCodeXMLPath = xmlpath.MustCompile("//error/code")
+	errorDescXMLPath = xmlpath.MustCompile("//error/description")
 
 	// Logger is used in nicolive to output logs
 	Logger *log.Logger
@@ -51,7 +52,7 @@ func (der *defaultEventReceiver) Proceed(ev *Event) {
 // NewNicoClient makes new http.Client with usersession
 func NewNicoClient(a *Account) (*http.Client, NicoError) {
 	if a.Usersession == "" {
-		return nil, NicoErr(NicoErrOther, "no usersession", "usersession is empty in this accout")
+		return nil, NicoErr(NicoErrOther, "no usersession", "")
 	}
 
 	nicoURL, err := url.Parse("http://nicovideo.jp")

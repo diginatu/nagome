@@ -44,6 +44,11 @@ type LiveWaku struct {
 	OwnerCommentToken string
 }
 
+type heartbeat struct {
+	watchCount   string
+	commentCount string
+}
+
 // IsUserOwner returns whether the user own this broad
 func (l *LiveWaku) IsUserOwner() bool {
 	return l.Stream.OwnerID == l.User.UserID
@@ -83,10 +88,13 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		if v != "ok" {
 			if v, ok := errorCodeXMLPath.String(root); ok {
 				errorNum := NicoErrNicoLiveOther
-				if v == "closed" {
+				switch v {
+				case "closed":
 					errorNum = NicoErrClosed
+				case "notlogin":
+					errorNum = NicoErrNotLogin
 				}
-				return NicoErr(errorNum, v, "getplayerstatus error")
+				return NicoErr(errorNum, v, "")
 			}
 			return NicoErr(NicoErrOther, "FetchInformation unknown err",
 				"request failed with unknown error")
@@ -146,6 +154,59 @@ func (l *LiveWaku) FetchInformation() NicoError {
 	if v, ok := xmlpath.MustCompile("//ms/thread").String(root); ok {
 		l.CommentServer.Thread = v
 	}
+
+	return nil
+}
+
+// FetchHeartBeat gets watcher and comment count using heartbeat API
+func (l *LiveWaku) FetchHeartBeat() NicoError {
+	c, nicoerr := NewNicoClient(l.Account)
+	if nicoerr != nil {
+		return nicoerr
+	}
+
+	url := fmt.Sprintf(
+		"http://live.nicovideo.jp/api/heartbeat?v=%s",
+		l.BroadID)
+	res, err := c.Get(url)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+	defer res.Body.Close()
+
+	root, err := xmlpath.Parse(res.Body)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
+
+	if v, ok := statusXMLPath.String(root); ok {
+		if v != "ok" {
+			if v, ok := errorCodeXMLPath.String(root); ok {
+				errorNum := NicoErrNicoLiveOther
+				if v == "NOTLOGIN" {
+					errorNum = NicoErrNotLogin
+				}
+
+				var desc string
+				if v, ok := errorDescXMLPath.String(root); ok {
+					desc = v
+				}
+				return NicoErr(errorNum, v, desc)
+			}
+			return NicoErr(NicoErrOther, "unknown err",
+				"request failed with unknown error")
+		}
+	}
+
+	var hb heartbeat
+	// stream
+	if v, ok := xmlpath.MustCompile("/heartbeat/watchCount").String(root); ok {
+		hb.watchCount = v
+	}
+	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
+		hb.commentCount = v
+	}
+	EvReceiver.Proceed(&Event{EventString: "heartbeat", Content: hb})
 
 	return nil
 }

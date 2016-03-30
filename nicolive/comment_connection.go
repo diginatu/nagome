@@ -18,6 +18,7 @@ const (
 	numCommentConnectionRoutines = 2
 	keepAliveDuration            = time.Minute
 	postKeyDuration              = 10 * time.Second
+	heartbeatDuration            = 90 * time.Second
 )
 
 // Comment is struct to hold a comment
@@ -101,6 +102,7 @@ type CommentConnection struct {
 	rw           bufio.ReadWriter
 	keepAliveTmr *time.Timer
 	postKeyTmr   *time.Timer
+	heartbeatTmr *time.Timer
 	wmu          sync.Mutex
 	termc        chan bool
 }
@@ -111,12 +113,15 @@ func NewCommentConnection(l *LiveWaku) *CommentConnection {
 	kat.Stop()
 	pkt := time.NewTimer(postKeyDuration)
 	pkt.Stop()
+	hbt := time.NewTimer(heartbeatDuration)
+	hbt.Stop()
 
 	return &CommentConnection{
 		lv:           l,
 		termc:        make(chan bool),
 		keepAliveTmr: kat,
 		postKeyTmr:   pkt,
+		heartbeatTmr: hbt,
 	}
 }
 
@@ -210,6 +215,7 @@ func (cc *CommentConnection) receiveStream() {
 
 				// immediately update postkey and start the timer
 				cc.postKeyTmr.Reset(0)
+				cc.heartbeatTmr.Reset(0)
 
 				continue
 			}
@@ -308,6 +314,12 @@ func (cc *CommentConnection) timer() {
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.FetchPostKey()
+			if nerr != nil {
+				Logger.Println(nerr)
+			}
+		case <-cc.heartbeatTmr.C:
+			cc.heartbeatTmr.Reset(heartbeatDuration)
+			nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
 				Logger.Println(nerr)
 			}
@@ -415,6 +427,7 @@ func (cc *CommentConnection) Disconnect() NicoError {
 
 	cc.keepAliveTmr.Stop()
 	cc.postKeyTmr.Stop()
+	cc.heartbeatTmr.Stop()
 	cc.sock.Close()
 
 	for i := 0; i < numCommentConnectionRoutines; i++ {
