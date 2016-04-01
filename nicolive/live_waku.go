@@ -206,7 +206,7 @@ func (l *LiveWaku) FetchHeartBeat() NicoError {
 	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
 		hb.commentCount = v
 	}
-	EvReceiver.Proceed(&Event{EventString: "heartbeat", Content: hb})
+	EvReceiver.Proceed(&Event{Type: "heartbeat", Content: hb})
 
 	return nil
 }
