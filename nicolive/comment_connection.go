@@ -157,7 +157,7 @@ func (cc *CommentConnection) open() {
 
 	cc.wmu.Unlock()
 
-	EvReceiver.Proceed(&Event{Type: "comment connection opened"})
+	//EvReceiver.Proceed(&Event{Type: "comment connection opened"})
 }
 
 // Connect Connect to nicolive and start receiving comment
@@ -225,7 +225,7 @@ func (cc *CommentConnection) receiveStream() {
 						Logger.Println("comment submit error (chat_result status): " + v)
 						continue
 					}
-					EvReceiver.Proceed(&Event{Type: "comment submitted"})
+					//EvReceiver.Proceed(&Event{Type: "comment submitted"})
 				}
 				continue
 			}
@@ -276,10 +276,10 @@ func (cc *CommentConnection) receiveStream() {
 					cc.postKeyTmr.Reset(0)
 				}
 
-				EvReceiver.Proceed(&Event{
-					Type:    "comment",
-					Content: comment,
-				})
+				//EvReceiver.Proceed(&Event{
+				//Type:    "comment",
+				//Content: comment,
+				//})
 
 				if comment.IsCommand && comment.Comment == "/disconnect" {
 					go cc.Disconnect()

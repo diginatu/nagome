@@ -3,7 +3,6 @@
 package nicolive
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -27,29 +26,6 @@ var (
 func init() {
 	Logger = log.New(os.Stderr, "", log.Lshortfile|log.Ltime)
 	EvReceiver = &defaultEventReceiver{}
-}
-
-// Event is an event
-type Event struct {
-	Class   string
-	Type    string
-	Content interface{}
-	ID      int
-}
-
-func (e *Event) String() string {
-	return fmt.Sprintln(e.Type, e.Content)
-}
-
-// EventReceiver receive events and proceed
-type EventReceiver interface {
-	Proceed(*Event)
-}
-
-type defaultEventReceiver struct{}
-
-func (der *defaultEventReceiver) Proceed(ev *Event) {
-	Logger.Println(ev)
 }
 
 // NewNicoClient makes new http.Client with usersession
