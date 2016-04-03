@@ -10,7 +10,8 @@ type NicoErrNum int
 
 // Enum NicoErrNum
 const (
-	NicoErrOther NicoErrNum = iota - 1
+	NicoErrOther NicoErrNum = iota
+	NicoErrSendComment
 	NicoErrNicoLiveOther
 	NicoErrNotLogin
 	NicoErrClosed

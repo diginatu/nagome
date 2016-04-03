@@ -157,7 +157,12 @@ func (cc *CommentConnection) open() {
 
 	cc.wmu.Unlock()
 
-	//EvReceiver.Proceed(&Event{Type: "comment connection opened"})
+	EvReceiver.Proceed(&Event{
+		Class:   EventClassCommentConnection,
+		Type:    EventTypeOpen,
+		Content: nil,
+		ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+	})
 }
 
 // Connect Connect to nicolive and start receiving comment
@@ -185,7 +190,12 @@ func (cc *CommentConnection) receiveStream() {
 			commxml, err := cc.rw.ReadString('\x00')
 			if err != nil {
 				go cc.Disconnect()
-				Logger.Println(NicoErrFromStdErr(err))
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeErr,
+					Content: NicoErrFromStdErr(err),
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 				<-cc.termc
 				return
 			}
@@ -196,7 +206,12 @@ func (cc *CommentConnection) receiveStream() {
 			commxmlr := strings.NewReader(commxml)
 			rt, err := xmlpath.Parse(commxmlr)
 			if err != nil {
-				Logger.Println(NicoErrFromStdErr(err))
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeErr,
+					Content: NicoErrFromStdErr(err),
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 				continue
 			}
 
@@ -222,10 +237,20 @@ func (cc *CommentConnection) receiveStream() {
 			if strings.HasPrefix(commxml, "<chat_result ") {
 				if v, ok := xmlpath.MustCompile("/chat_result/@status").String(rt); ok {
 					if v != "0" {
-						Logger.Println("comment submit error (chat_result status): " + v)
+						EvReceiver.Proceed(&Event{
+							Class:   EventClassCommentConnection,
+							Type:    EventTypeErr,
+							Content: NicoErr(NicoErrNicoLiveOther, "comment send error (chat_result status)", v),
+							ID:      MakeEventID("", cc.lv.BroadID),
+						})
 						continue
 					}
-					//EvReceiver.Proceed(&Event{Type: "comment submitted"})
+					EvReceiver.Proceed(&Event{
+						Class:   EventClassCommentConnection,
+						Type:    EventTypeSend,
+						Content: nil,
+						ID:      MakeEventID("", cc.lv.BroadID),
+					})
 				}
 				continue
 			}
@@ -276,13 +301,23 @@ func (cc *CommentConnection) receiveStream() {
 					cc.postKeyTmr.Reset(0)
 				}
 
-				//EvReceiver.Proceed(&Event{
-				//Type:    "comment",
-				//Content: comment,
-				//})
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeGot,
+					Content: comment,
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 
 				if comment.IsCommand && comment.Comment == "/disconnect" {
 					go cc.Disconnect()
+
+					EvReceiver.Proceed(&Event{
+						Class:   EventClassCommentConnection,
+						Type:    EventTypeWakuEnd,
+						Content: *cc.lv,
+						ID:      MakeEventID("", cc.lv.BroadID),
+					})
+
 					<-cc.termc
 					return
 				}
@@ -370,15 +405,30 @@ func (cc *CommentConnection) FetchPostKey() NicoError {
 // SendComment sends comment to current comment connection
 func (cc *CommentConnection) SendComment(text string, iyayo bool) {
 	if !cc.IsConnected {
-		Logger.Println(NicoErrOther, "not connected", "")
+		EvReceiver.Proceed(&Event{
+			Class:   EventClassCommentConnection,
+			Type:    EventTypeErr,
+			Content: NicoErr(NicoErrSendComment, "not connected", ""),
+			ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+		})
 		return
 	}
 	if cc.lv.PostKey == "" {
-		Logger.Println(NicoErrOther, "no postkey", "")
+		EvReceiver.Proceed(&Event{
+			Class:   EventClassCommentConnection,
+			Type:    EventTypeErr,
+			Content: NicoErr(NicoErrSendComment, "no postkey in livewaku", ""),
+			ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+		})
 		return
 	}
 	if text == "" {
-		Logger.Println(NicoErrOther, "empty text", "")
+		EvReceiver.Proceed(&Event{
+			Class:   EventClassCommentConnection,
+			Type:    EventTypeErr,
+			Content: NicoErr(NicoErrSendComment, "empty text", ""),
+			ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+		})
 		return
 	}
 
@@ -435,7 +485,13 @@ func (cc *CommentConnection) Disconnect() NicoError {
 	}
 
 	cc.IsConnected = false
-	Logger.Println("CommentConnection disconnected")
+
+	EvReceiver.Proceed(&Event{
+		Class:   EventClassCommentConnection,
+		Type:    EventTypeClose,
+		Content: nil,
+		ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+	})
 
 	return nil
 }

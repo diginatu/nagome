@@ -8,6 +8,12 @@ import (
 	"gopkg.in/xmlpath.v2"
 )
 
+// Heartbeat is struct to hold result of heartbeat API
+type Heartbeat struct {
+	watchCount   string
+	commentCount string
+}
+
 // LiveWaku is a live broadcast(Waku) of Niconama
 type LiveWaku struct {
 	Account *Account
@@ -42,11 +48,6 @@ type LiveWaku struct {
 	PostKey           string
 	OwnerBroad        bool
 	OwnerCommentToken string
-}
-
-type heartbeat struct {
-	watchCount   string
-	commentCount string
 }
 
 // IsUserOwner returns whether the user own this broad
@@ -155,11 +156,26 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		l.CommentServer.Thread = v
 	}
 
+	EvReceiver.Proceed(&Event{
+		ID:      MakeEventID(l.Account.Mail, l.BroadID),
+		Class:   EventClassPlayerStatus,
+		Type:    EventTypeGot,
+		Content: l})
+
 	return nil
 }
 
 // FetchHeartBeat gets watcher and comment count using heartbeat API
 func (l *LiveWaku) FetchHeartBeat() NicoError {
+	if l.Account == nil {
+		return NicoErr(NicoErrOther, "no account",
+			"LiveWaku does not have an account")
+	}
+	if l.BroadID == "" {
+		return NicoErr(NicoErrOther, "no BroadID",
+			"BroadID is not set")
+	}
+
 	c, nicoerr := NewNicoClient(l.Account)
 	if nicoerr != nil {
 		return nicoerr
@@ -198,7 +214,7 @@ func (l *LiveWaku) FetchHeartBeat() NicoError {
 		}
 	}
 
-	var hb heartbeat
+	var hb Heartbeat
 	// stream
 	if v, ok := xmlpath.MustCompile("/heartbeat/watchCount").String(root); ok {
 		hb.watchCount = v
@@ -206,7 +222,11 @@ func (l *LiveWaku) FetchHeartBeat() NicoError {
 	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
 		hb.commentCount = v
 	}
-	//EvReceiver.Proceed(&Event{Type: "heartbeat", Content: hb})
+	EvReceiver.Proceed(&Event{
+		ID:      fmt.Sprintf("%s:%s", l.Account.Mail, l.BroadID),
+		Class:   EventClassHeartBeat,
+		Type:    EventTypeGot,
+		Content: hb})
 
 	return nil
 }
