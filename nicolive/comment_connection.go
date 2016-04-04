@@ -125,7 +125,7 @@ func NewCommentConnection(l *LiveWaku) *CommentConnection {
 	}
 }
 
-func (cc *CommentConnection) open() {
+func (cc *CommentConnection) open() NicoError {
 	var err error
 	Logger.Println("CommentConnection opening")
 
@@ -137,8 +137,7 @@ func (cc *CommentConnection) open() {
 
 	cc.sock, err = net.Dial("tcp", addrport)
 	if err != nil {
-		Logger.Println(NicoErrFromStdErr(err))
-		return
+		return NicoErrFromStdErr(err)
 	}
 
 	cc.rw = bufio.ReadWriter{
@@ -151,18 +150,12 @@ func (cc *CommentConnection) open() {
 		cc.lv.CommentServer.Thread)
 	err = cc.rw.Flush()
 	if err != nil {
-		Logger.Println(NicoErrFromStdErr(err))
-		return
+		return NicoErrFromStdErr(err)
 	}
 
 	cc.wmu.Unlock()
 
-	EvReceiver.Proceed(&Event{
-		Class:   EventClassCommentConnection,
-		Type:    EventTypeOpen,
-		Content: nil,
-		ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
-	})
+	return nil
 }
 
 // Connect Connect to nicolive and start receiving comment
@@ -172,7 +165,10 @@ func (cc *CommentConnection) Connect() NicoError {
 	}
 	cc.IsConnected = true
 
-	cc.open()
+	nerr := cc.open()
+	if nerr != nil {
+		return nerr
+	}
 	cc.keepAliveTmr.Reset(keepAliveDuration)
 
 	go cc.receiveStream()
@@ -231,6 +227,13 @@ func (cc *CommentConnection) receiveStream() {
 				// immediately update postkey and start the timer
 				cc.postKeyTmr.Reset(0)
 				cc.heartbeatTmr.Reset(0)
+
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeOpen,
+					Content: nil,
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 
 				continue
 			}
@@ -342,7 +345,12 @@ func (cc *CommentConnection) timer() {
 			cc.wmu.Unlock()
 			if err != nil {
 				go cc.Disconnect()
-				Logger.Println(NicoErrFromStdErr(err))
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeErr,
+					Content: NicoErr(NicoErrConnection, "keep alive", err.Error()),
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 				<-cc.termc
 				return
 			}

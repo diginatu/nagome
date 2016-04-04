@@ -12,6 +12,7 @@ type NicoErrNum int
 const (
 	NicoErrOther NicoErrNum = iota
 	NicoErrSendComment
+	NicoErrConnection
 	NicoErrNicoLiveOther
 	NicoErrNotLogin
 	NicoErrClosed
