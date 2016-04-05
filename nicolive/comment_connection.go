@@ -243,8 +243,8 @@ func (cc *CommentConnection) receiveStream() {
 						EvReceiver.Proceed(&Event{
 							Class:   EventClassCommentConnection,
 							Type:    EventTypeErr,
-							Content: NicoErr(NicoErrNicoLiveOther, "comment send error (chat_result status)", v),
-							ID:      MakeEventID("", cc.lv.BroadID),
+							Content: NicoErr(NicoErrSendComment, "comment send error (chat_result status)", v),
+							ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 						})
 						continue
 					}
@@ -252,7 +252,7 @@ func (cc *CommentConnection) receiveStream() {
 						Class:   EventClassCommentConnection,
 						Type:    EventTypeSend,
 						Content: nil,
-						ID:      MakeEventID("", cc.lv.BroadID),
+						ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 					})
 				}
 				continue
@@ -358,13 +358,23 @@ func (cc *CommentConnection) timer() {
 			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.FetchPostKey()
 			if nerr != nil {
-				Logger.Println(nerr)
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeErr,
+					Content: nerr,
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 			}
 		case <-cc.heartbeatTmr.C:
 			cc.heartbeatTmr.Reset(heartbeatDuration)
 			nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
-				Logger.Println(nerr)
+				EvReceiver.Proceed(&Event{
+					Class:   EventClassCommentConnection,
+					Type:    EventTypeErr,
+					Content: nerr,
+					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
+				})
 			}
 		}
 	}
@@ -411,33 +421,15 @@ func (cc *CommentConnection) FetchPostKey() NicoError {
 }
 
 // SendComment sends comment to current comment connection
-func (cc *CommentConnection) SendComment(text string, iyayo bool) {
+func (cc *CommentConnection) SendComment(text string, iyayo bool) NicoError {
 	if !cc.IsConnected {
-		EvReceiver.Proceed(&Event{
-			Class:   EventClassCommentConnection,
-			Type:    EventTypeErr,
-			Content: NicoErr(NicoErrSendComment, "not connected", ""),
-			ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
-		})
-		return
+		return NicoErr(NicoErrOther, "not connected", "")
 	}
 	if cc.lv.PostKey == "" {
-		EvReceiver.Proceed(&Event{
-			Class:   EventClassCommentConnection,
-			Type:    EventTypeErr,
-			Content: NicoErr(NicoErrSendComment, "no postkey in livewaku", ""),
-			ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
-		})
-		return
+		return NicoErr(NicoErrOther, "no postkey in livewaku", "")
 	}
 	if text == "" {
-		EvReceiver.Proceed(&Event{
-			Class:   EventClassCommentConnection,
-			Type:    EventTypeErr,
-			Content: NicoErr(NicoErrSendComment, "empty text", ""),
-			ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
-		})
-		return
+		NicoErr(NicoErrOther, "empty text", "")
 	}
 
 	vpos := 100 *
@@ -468,12 +460,13 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) {
 	cc.wmu.Lock()
 	fmt.Fprint(cc.rw, sdcomm)
 	err := cc.rw.Flush()
-	if err != nil {
-		Logger.Println(NicoErrFromStdErr(err))
-		return
-	}
 	cc.wmu.Unlock()
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
 	cc.keepAliveTmr.Reset(keepAliveDuration)
+
+	return nil
 }
 
 // Disconnect close and disconnect
