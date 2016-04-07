@@ -17,6 +17,9 @@ This is mainly used as a client and provides user interfaces.
 Message
 -------
 
+Message is sent by JSON or MessagePack.
+There is two type of Message, event and query.
+
 ### Event
 
  + domain (Nagome)
