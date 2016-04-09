@@ -156,12 +156,6 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		l.CommentServer.Thread = v
 	}
 
-	EvReceiver.Proceed(&Event{
-		ID:      MakeEventID(l.Account.Mail, l.BroadID),
-		Class:   EventClassPlayerStatus,
-		Type:    EventTypeGot,
-		Content: l})
-
 	return nil
 }
 
@@ -222,11 +216,6 @@ func (l *LiveWaku) FetchHeartBeat() NicoError {
 	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
 		hb.commentCount = v
 	}
-	EvReceiver.Proceed(&Event{
-		ID:      fmt.Sprintf("%s:%s", l.Account.Mail, l.BroadID),
-		Class:   EventClassHeartBeat,
-		Type:    EventTypeGot,
-		Content: hb})
 
 	return nil
 }

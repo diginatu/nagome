@@ -105,10 +105,11 @@ type CommentConnection struct {
 	heartbeatTmr *time.Timer
 	wmu          sync.Mutex
 	termc        chan bool
+	ev           EventReceiver
 }
 
 // NewCommentConnection returns a pointer to new CommentConnection
-func NewCommentConnection(l *LiveWaku) *CommentConnection {
+func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 	kat := time.NewTimer(keepAliveDuration)
 	kat.Stop()
 	pkt := time.NewTimer(postKeyDuration)
@@ -116,12 +117,17 @@ func NewCommentConnection(l *LiveWaku) *CommentConnection {
 	hbt := time.NewTimer(heartbeatDuration)
 	hbt.Stop()
 
+	if ev == nil {
+		ev = defaultEventReceiver{}
+	}
+
 	return &CommentConnection{
 		lv:           l,
 		termc:        make(chan bool),
 		keepAliveTmr: kat,
 		postKeyTmr:   pkt,
 		heartbeatTmr: hbt,
+		ev:           ev,
 	}
 }
 
@@ -186,11 +192,9 @@ func (cc *CommentConnection) receiveStream() {
 			commxml, err := cc.rw.ReadString('\x00')
 			if err != nil {
 				go cc.Disconnect()
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErrFromStdErr(err),
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 				<-cc.termc
 				return
@@ -202,11 +206,9 @@ func (cc *CommentConnection) receiveStream() {
 			commxmlr := strings.NewReader(commxml)
 			rt, err := xmlpath.Parse(commxmlr)
 			if err != nil {
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErrFromStdErr(err),
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 				continue
 			}
@@ -228,11 +230,9 @@ func (cc *CommentConnection) receiveStream() {
 				cc.postKeyTmr.Reset(0)
 				cc.heartbeatTmr.Reset(0)
 
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeOpen,
 					Content: nil,
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 
 				continue
@@ -240,19 +240,15 @@ func (cc *CommentConnection) receiveStream() {
 			if strings.HasPrefix(commxml, "<chat_result ") {
 				if v, ok := xmlpath.MustCompile("/chat_result/@status").String(rt); ok {
 					if v != "0" {
-						EvReceiver.Proceed(&Event{
-							Class:   EventClassCommentConnection,
+						cc.ev.Proceed(&Event{
 							Type:    EventTypeErr,
 							Content: NicoErr(NicoErrSendComment, "comment send error (chat_result status)", v),
-							ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 						})
 						continue
 					}
-					EvReceiver.Proceed(&Event{
-						Class:   EventClassCommentConnection,
+					cc.ev.Proceed(&Event{
 						Type:    EventTypeSend,
 						Content: nil,
-						ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 					})
 				}
 				continue
@@ -304,21 +300,17 @@ func (cc *CommentConnection) receiveStream() {
 					cc.postKeyTmr.Reset(0)
 				}
 
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeGot,
 					Content: comment,
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 
 				if comment.IsCommand && comment.Comment == "/disconnect" {
 					go cc.Disconnect()
 
-					EvReceiver.Proceed(&Event{
-						Class:   EventClassCommentConnection,
+					cc.ev.Proceed(&Event{
 						Type:    EventTypeWakuEnd,
 						Content: *cc.lv,
-						ID:      MakeEventID("", cc.lv.BroadID),
 					})
 
 					<-cc.termc
@@ -345,11 +337,9 @@ func (cc *CommentConnection) timer() {
 			cc.wmu.Unlock()
 			if err != nil {
 				go cc.Disconnect()
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErr(NicoErrConnection, "keep alive", err.Error()),
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 				<-cc.termc
 				return
@@ -358,22 +348,18 @@ func (cc *CommentConnection) timer() {
 			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.FetchPostKey()
 			if nerr != nil {
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 			}
 		case <-cc.heartbeatTmr.C:
 			cc.heartbeatTmr.Reset(heartbeatDuration)
 			nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
-				EvReceiver.Proceed(&Event{
-					Class:   EventClassCommentConnection,
+				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
-					ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 				})
 			}
 		}
@@ -487,11 +473,9 @@ func (cc *CommentConnection) Disconnect() NicoError {
 
 	cc.IsConnected = false
 
-	EvReceiver.Proceed(&Event{
-		Class:   EventClassCommentConnection,
+	cc.ev.Proceed(&Event{
 		Type:    EventTypeClose,
 		Content: nil,
-		ID:      MakeEventID(cc.lv.Account.Mail, cc.lv.BroadID),
 	})
 
 	return nil

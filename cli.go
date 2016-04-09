@@ -77,7 +77,7 @@ func runCui() {
 		Logger.Fatalln(nicoerr)
 	}
 
-	commconn := nicolive.NewCommentConnection(&l)
+	commconn := nicolive.NewCommentConnection(&l, nil)
 	commconn.Connect()
 
 	for {
