@@ -19,13 +19,10 @@ var (
 
 	// Logger is used in nicolive to output logs
 	Logger *log.Logger
-	// EvReceiver is EventReceiver used in nicolive
-	EvReceiver EventReceiver
 )
 
 func init() {
 	Logger = log.New(os.Stderr, "", log.Lshortfile|log.Ltime)
-	EvReceiver = &defaultEventReceiver{}
 }
 
 // NewNicoClient makes new http.Client with usersession

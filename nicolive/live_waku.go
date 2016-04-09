@@ -164,12 +164,10 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
 	var hb HeartbeatValue
 
 	if l.Account == nil {
-		return hb,
-			NicoErr(NicoErrOther, "no account", "LiveWaku does not have an account")
+		return hb, NicoErr(NicoErrOther, "no account", "LiveWaku does not have an account")
 	}
 	if l.BroadID == "" {
-		return hb,
-			NicoErr(NicoErrOther, "no BroadID", "BroadID is not set")
+		return hb, NicoErr(NicoErrOther, "no BroadID", "BroadID is not set")
 	}
 
 	c, nicoerr := NewNicoClient(l.Account)
@@ -205,8 +203,7 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
 				}
 				return hb, NicoErr(errorNum, v, desc)
 			}
-			return hb,
-				NicoErr(NicoErrOther, "unknown err", "request failed with unknown error")
+			return hb, NicoErr(NicoErrOther, "unknown err", "request failed with unknown error")
 		}
 	}
 
@@ -216,6 +213,10 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
 	}
 	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
 		hb.CommentCount = v
+	}
+
+	if hb.CommentCount == "" || hb.WatchCount == "" {
+		return hb, NicoErr(NicoErrOther, "unknown err", "could not get")
 	}
 
 	return hb, nil
