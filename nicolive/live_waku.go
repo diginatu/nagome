@@ -8,10 +8,10 @@ import (
 	"gopkg.in/xmlpath.v2"
 )
 
-// Heartbeat is struct to hold result of heartbeat API
-type Heartbeat struct {
-	watchCount   string
-	commentCount string
+// HeartbeatValue is struct to hold result of heartbeat API
+type HeartbeatValue struct {
+	WatchCount   string
+	CommentCount string
 }
 
 // LiveWaku is a live broadcast(Waku) of Niconama
@@ -160,19 +160,21 @@ func (l *LiveWaku) FetchInformation() NicoError {
 }
 
 // FetchHeartBeat gets watcher and comment count using heartbeat API
-func (l *LiveWaku) FetchHeartBeat() NicoError {
+func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
+	var hb HeartbeatValue
+
 	if l.Account == nil {
-		return NicoErr(NicoErrOther, "no account",
-			"LiveWaku does not have an account")
+		return hb,
+			NicoErr(NicoErrOther, "no account", "LiveWaku does not have an account")
 	}
 	if l.BroadID == "" {
-		return NicoErr(NicoErrOther, "no BroadID",
-			"BroadID is not set")
+		return hb,
+			NicoErr(NicoErrOther, "no BroadID", "BroadID is not set")
 	}
 
 	c, nicoerr := NewNicoClient(l.Account)
 	if nicoerr != nil {
-		return nicoerr
+		return hb, nicoerr
 	}
 
 	url := fmt.Sprintf(
@@ -180,13 +182,13 @@ func (l *LiveWaku) FetchHeartBeat() NicoError {
 		l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return hb, NicoErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return hb, NicoErrFromStdErr(err)
 	}
 
 	if v, ok := statusXMLPath.String(root); ok {
@@ -201,21 +203,20 @@ func (l *LiveWaku) FetchHeartBeat() NicoError {
 				if v, ok := errorDescXMLPath.String(root); ok {
 					desc = v
 				}
-				return NicoErr(errorNum, v, desc)
+				return hb, NicoErr(errorNum, v, desc)
 			}
-			return NicoErr(NicoErrOther, "unknown err",
-				"request failed with unknown error")
+			return hb,
+				NicoErr(NicoErrOther, "unknown err", "request failed with unknown error")
 		}
 	}
 
-	var hb Heartbeat
 	// stream
 	if v, ok := xmlpath.MustCompile("/heartbeat/watchCount").String(root); ok {
-		hb.watchCount = v
+		hb.WatchCount = v
 	}
 	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
-		hb.commentCount = v
+		hb.CommentCount = v
 	}
 
-	return nil
+	return hb, nil
 }

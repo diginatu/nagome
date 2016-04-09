@@ -352,16 +352,22 @@ func (cc *CommentConnection) timer() {
 					Type:    EventTypeErr,
 					Content: nerr,
 				})
+				continue
 			}
 		case <-cc.heartbeatTmr.C:
 			cc.heartbeatTmr.Reset(heartbeatDuration)
-			nerr := cc.lv.FetchHeartBeat()
+			hbv, nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
 				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
 				})
+				continue
 			}
+			cc.ev.Proceed(&Event{
+				Type:    EventTypeHeartBeatGot,
+				Content: hbv,
+			})
 		}
 	}
 }

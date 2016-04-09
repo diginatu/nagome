@@ -13,6 +13,7 @@ const (
 	EventTypeSend
 	EventTypeOpen
 	EventTypeClose
+	EventTypeHeartBeatGot
 )
 
 // Event is an event
