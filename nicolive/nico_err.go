@@ -2,7 +2,6 @@ package nicolive
 
 import (
 	"fmt"
-	"runtime"
 )
 
 // NicoErrNum is an Enum to represent Nico.Errnum
@@ -63,25 +62,12 @@ func (n NicoErrStruct) Where() string {
 // NicoErr returns NicoErr that format as the given info
 // and the code position.
 func NicoErr(errNum NicoErrNum, code string, description string) NicoError {
-	_, file, line, ok := runtime.Caller(1)
-	short := file
-	if !ok {
-		short = "???"
-		line = 0
-	} else {
-		for i := len(file) - 1; i > 0; i-- {
-			if file[i] == '/' {
-				short = file[i+1:]
-				break
-			}
-		}
-	}
-	where := fmt.Sprintf("%s:%d", short, line)
-
+	where := caller(2)
 	return &NicoErrStruct{errNum, code, description, where}
 }
 
 // NicoErrFromStdErr returns NicoErr converted from standard error.
 func NicoErrFromStdErr(e error) NicoError {
-	return NicoErr(NicoErrOther, "standard error", e.Error())
+	where := caller(2)
+	return &NicoErrStruct{NicoErrOther, "standard error", e.Error(), where}
 }

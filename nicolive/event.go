@@ -37,6 +37,8 @@ func (e *Event) String() string {
 		tys = "open"
 	case EventTypeClose:
 		tys = "close"
+	case EventTypeHeartBeatGot:
+		tys = "heatbeat"
 	}
 	return fmt.Sprintf("%s %s", tys, e.Content)
 }
@@ -49,5 +51,5 @@ type EventReceiver interface {
 type defaultEventReceiver struct{}
 
 func (der defaultEventReceiver) Proceed(ev *Event) {
-	Logger.Println(ev)
+	fmt.Println(caller(3), ":", ev)
 }

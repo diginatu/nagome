@@ -133,7 +133,6 @@ func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 
 func (cc *CommentConnection) open() NicoError {
 	var err error
-	Logger.Println("CommentConnection opening")
 
 	addrport := fmt.Sprintf("%s:%s",
 		cc.lv.CommentServer.Addr,

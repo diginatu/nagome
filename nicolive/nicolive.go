@@ -1,13 +1,13 @@
 // Package nicolive provides access way to NicoNama API,
-// corresponding structure and other features.
+// corresponding structures and other features.
 package nicolive
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
+	"runtime"
 
 	"gopkg.in/xmlpath.v2"
 )
@@ -16,13 +16,9 @@ var (
 	statusXMLPath    = xmlpath.MustCompile("//@status")
 	errorCodeXMLPath = xmlpath.MustCompile("//error/code")
 	errorDescXMLPath = xmlpath.MustCompile("//error/description")
-
-	// Logger is used in nicolive to output logs
-	Logger *log.Logger
 )
 
 func init() {
-	Logger = log.New(os.Stderr, "", log.Lshortfile|log.Ltime)
 }
 
 // NewNicoClient makes new http.Client with usersession
@@ -51,4 +47,21 @@ func NewNicoClient(a *Account) (*http.Client, NicoError) {
 		},
 	})
 	return &c, nil
+}
+
+func caller(sk int) string {
+	_, file, line, ok := runtime.Caller(sk)
+	short := file
+	if !ok {
+		short = "???"
+		line = 0
+	} else {
+		for i := len(file) - 1; i > 0; i-- {
+			if file[i] == '/' {
+				short = file[i+1:]
+				break
+			}
+		}
+	}
+	return fmt.Sprintf("%s:%d", short, line)
 }
