@@ -18,6 +18,7 @@ var (
 	printVersion  bool
 	printHelp     bool
 	debugToStderr bool
+	standAlone    bool
 )
 
 func init() {
@@ -28,11 +29,65 @@ func init() {
 	flag.BoolVar(&printHelp, "help", false, "Print this help.")
 	flag.BoolVar(&printVersion, "version", false, "Print version information.")
 	flag.BoolVar(&debugToStderr, "dbgtostd", false,
-		"Output debug info into stderr\n"+
-			"otherwise save to the log file in the save directory.")
+		`Output debug information to stderr.
+	Without this option, output to the log file in the save directory.`)
+	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (provides CUI).`)
 }
 
 func mainProcess() {
+	stdinReader := bufio.NewReader(os.Stdin)
+
+	var ac nicolive.Account
+	ac.Load(filepath.Join(App.SavePath, "userData.yml"))
+
+	var l nicolive.LiveWaku
+
+	for {
+		stdln, err := stdinReader.ReadString('\n')
+		if err != nil || stdln == "\n" {
+			return
+		}
+		stdln = stdln[:len(stdln)-1]
+
+		brdRg := regexp.MustCompile("(lv|co)\\d+")
+		broadMch := brdRg.FindString(stdln)
+		if err != nil {
+			fmt.Println("invalid text")
+			continue
+		}
+		if broadMch == "" {
+			fmt.Println("invalid text")
+			continue
+		}
+
+		l = nicolive.LiveWaku{Account: &ac, BroadID: broadMch}
+		break
+	}
+
+	nicoerr := l.FetchInformation()
+	if nicoerr != nil {
+		Logger.Fatalln(nicoerr)
+	}
+
+	commconn := nicolive.NewCommentConnection(&l, nil)
+	commconn.Connect()
+
+	for {
+		text, err := stdinReader.ReadString('\n')
+		if err != nil {
+			commconn.Disconnect()
+			return
+		}
+		text = text[:len(text)-1]
+
+		switch text {
+		case ":q":
+			commconn.Disconnect()
+			return
+		default:
+			commconn.SendComment(text, false)
+		}
+	}
 }
 
 func runCui() {
@@ -128,6 +183,10 @@ func RunCli() {
 	defer file.Close()
 	Logger = log.New(file, "", log.Lshortfile|log.Ltime)
 
-	//mainProcess()
-	runCui()
+	if standAlone {
+		runCui()
+		return
+	}
+
+	mainProcess()
 }
