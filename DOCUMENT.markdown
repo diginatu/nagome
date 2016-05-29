@@ -5,7 +5,7 @@ Plugin
 Nagome can have some plugins in the plugin folder, which is in the config directory.
 Plugins communicate with Nagome process using JSON or MessagePack in stdin/out or TCP connection.
 
-Also, one application may create Nagome process and be dealt as a plugin.
+Also, one application may create Nagome process and be dealt as a plugin. (--standAlone option disable this)
 This is mainly used as a client and provides user interfaces.
 
  + UI (also plugin)
@@ -25,7 +25,7 @@ A plugin should have corresponding directory and a plugin management file named 
  + [Nagome config]
    + plugins
      + plugin1
-        + ngmplg.yml
+        + plugin.yml
         + other files
 
 plugin.yml
@@ -58,7 +58,7 @@ Message is sent in JSON or MessagePack.
  + type
  + content
 
-An message sent from plugin resend to other plugins which is domain plugin or depend on it.
+An message sent from a plugin resend to other plugins which is domain plugin itself or depend on it.
 
 ### Example in JSON
 
@@ -66,14 +66,14 @@ Example of a comment message sent by nagome.
 
 ~~~ json
 {
-    "domain": "Nagome",
-    "func": "CommentConnection",
-    "type": "got",
-    "content": {
-        "date": "2016-04-10 14:11:39.823901 +0900 JST",
-        "user": "ユーザ",
-        "comment": "test",
-        "iyayo": false
+    "Domain": "Nagome",
+    "Func": "CommentConnection",
+    "Type": "got",
+    "Content": {
+        "Date": "2016-04-10 14:11:39.823901 +0900 JST",
+        "User": "ユーザ",
+        "Comment": "test",
+        "Iyayo": false
     }
 }
 ~~~
@@ -82,12 +82,12 @@ Example of a sending comment message sent by a plugin.
 
 ~~~ json
 {
-    "domain": "Nagome",
-    "func": "Query",
-    "type": "CommentSend",
-    "content": {
-        "comment": "test",
-        "iyayo": true
+    "Domain": "Nagome",
+    "Func": "Query",
+    "Type": "CommentSend",
+    "Content": {
+        "Comment": "test",
+        "Iyayo": true
     }
 }
 ~~~
