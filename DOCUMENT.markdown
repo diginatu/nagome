@@ -68,7 +68,7 @@ Example of a comment message sent by nagome.
 {
     "Domain": "Nagome",
     "Func": "CommentConnection",
-    "Type": "got",
+    "Command": "Got",
     "Content": {
         "Date": "2016-04-10 14:11:39.823901 +0900 JST",
         "User": "ユーザ",
@@ -84,7 +84,7 @@ Example of a sending comment message sent by a plugin.
 {
     "Domain": "Nagome",
     "Func": "Query",
-    "Type": "CommentSend",
+    "Command": "CommentSend",
     "Content": {
         "Comment": "test",
         "Iyayo": true

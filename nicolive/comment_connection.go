@@ -388,7 +388,7 @@ func (cc *CommentConnection) FetchPostKey() NicoError {
 	}
 
 	url := fmt.Sprintf(
-		"http://live.nicovideo.jp/api/getpostkey?thread=%s&block_no=%s",
+		"http://live.nicovideo.jp/api/getpostkey?thread=%s&block_no=%d",
 		cc.lv.CommentServer.Thread, cc.block)
 	res, err := c.Get(url)
 	if err != nil {

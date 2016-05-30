@@ -38,7 +38,7 @@ func (e *Event) String() string {
 	case EventTypeClose:
 		tys = "close"
 	case EventTypeHeartBeatGot:
-		tys = "heatbeat"
+		tys = "heatbeat got"
 	}
 	return fmt.Sprintf("%s %s", tys, e.Content)
 }

@@ -33,7 +33,7 @@ func init() {
 	flag.BoolVar(&debugToStderr, "dbgtostd", false,
 		`Output debug information to stderr.
 	Without this option, output to the log file in the save directory.`)
-	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (provides CUI).`)
+	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (CUI).`)
 }
 
 // RunCli processes flags and io
@@ -80,12 +80,6 @@ func standAloneMode() {
 	var ac nicolive.Account
 	ac.Load(filepath.Join(App.SavePath, "userData.yml"))
 
-	//err := ac.Login()
-	//if err != nil {
-	//Logger.Fatalln(err)
-	//}
-	//ac.Save(filepath.Join(App.SavePath, "userData.yml"))
-
 	var l nicolive.LiveWaku
 
 	for {
@@ -98,10 +92,6 @@ func standAloneMode() {
 
 		brdRg := regexp.MustCompile("(lv|co)\\d+")
 		broadMch := brdRg.FindString(brdtx)
-		if err != nil {
-			fmt.Println("invalid text")
-			continue
-		}
 		if broadMch == "" {
 			fmt.Println("invalid text")
 			continue
@@ -143,27 +133,76 @@ func clientMode() {
 	var ac nicolive.Account
 	ac.Load(filepath.Join(App.SavePath, "userData.yml"))
 
-	type Message struct {
-		Domain, Func, Type string
-		Content            json.RawMessage
-	}
-	type QueryReceive struct {
-		BroadID string
-	}
+	var l nicolive.LiveWaku
+	var commconn *nicolive.CommentConnection
+
 	dec := json.NewDecoder(stdinReader)
 	for {
 		var m Message
 		if err := dec.Decode(&m); err == io.EOF {
 			break
 		} else if err != nil {
-			Logger.Fatalln(err)
+			Logger.Println(err)
+			continue
 		}
 
-		var qr interface{}
-		qr = new(QueryReceive)
-		if err := json.Unmarshal(m.Content, qr); err != nil {
-			Logger.Fatalln("error:", err)
+		if m.Domain == "Nagome" {
+			switch m.Func {
+			case NagomeMess[FuncnBroadQuery].Funcn:
+				switch m.Command {
+				case NagomeMess[FuncnBroadQuery].Commands[CommBroadQueryConnect]:
+					var cm BroadConnect
+					if err := json.Unmarshal(m.Content, &cm); err != nil {
+						Logger.Println("error:", err)
+						continue
+					}
+
+					brdRg := regexp.MustCompile("(lv|co)\\d+")
+					broadMch := brdRg.FindString(cm.BroadID)
+					if broadMch == "" {
+						Logger.Println("invalid text")
+						continue
+					}
+
+					l = nicolive.LiveWaku{Account: &ac, BroadID: broadMch}
+
+					nicoerr := l.FetchInformation()
+					if nicoerr != nil {
+						Logger.Println(nicoerr)
+						continue
+					}
+
+					commconn = nicolive.NewCommentConnection(&l, nil)
+					nicoerr = commconn.Connect()
+					if nicoerr != nil {
+						Logger.Println(nicoerr)
+						continue
+					}
+
+					defer commconn.Disconnect()
+				default:
+					Logger.Println("invalid Command in message")
+				}
+			case NagomeMess[FuncnAccountQuery].Funcn:
+				switch m.Command {
+				case NagomeMess[FuncnAccountQuery].Commands[CommAccountLogin]:
+					err := ac.Login()
+					if err != nil {
+						Logger.Fatalln(err)
+						continue
+					}
+					Logger.Println("logged in")
+				case NagomeMess[FuncnAccountQuery].Commands[CommAccountSave]:
+					ac.Save(filepath.Join(App.SavePath, "userData.yml"))
+				case NagomeMess[FuncnAccountQuery].Commands[CommAccountLoad]:
+					ac.Load(filepath.Join(App.SavePath, "userData.yml"))
+				default:
+					Logger.Println("invalid Command in message")
+				}
+			default:
+				Logger.Println("invalid Func in message")
+			}
 		}
-		fmt.Printf("%s %s %s: %s\n", m.Domain, m.Func, m.Type, qr)
+
 	}
 }
