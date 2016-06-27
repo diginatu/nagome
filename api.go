@@ -2,53 +2,30 @@ package main
 
 import "encoding/json"
 
-// Index enum of NagomeMess
+// Func names in NagomeMess
 const (
-	FuncnBroadQuery int = iota
-	FuncnAccountQuery
-	FuncnComment
+	FuncnBroadQuery   string = "BroadQuery"
+	FuncnAccountQuery        = "AccountQuery"
+	FuncnComment             = "Comment"
 )
 
 // Index enum of BroadQuery
 const (
-	CommBroadQueryConnect int = iota
-	CommBroadQueryDisconnect
-	CommBroadQuerySendComment
+	CommBroadQueryConnect     string = "Connect"
+	CommBroadQueryDisconnect         = "Disconnect"
+	CommBroadQuerySendComment        = "SendComment"
 )
 
 // Index enum of Account
 const (
-	CommAccountLogin int = iota
-	CommAccountLoad
-	CommAccountSave
+	CommAccountLogin string = "Login"
+	CommAccountLoad         = "Load"
+	CommAccountSave         = "Save"
 )
 
 // Index enum of Comment
 const (
-	CommCommentGot int = iota
-)
-
-var (
-	// NagomeMess holds possible Funcs and commands in Message of Nagome Domain.
-	NagomeMess = [3]struct {
-		Funcn    string
-		Commands []string
-	}{
-		// Query (Plugin to Nagome)
-		{
-			"BroadQuery",
-			[]string{"Connect", "Disconnect", "SendComment"},
-		},
-		{
-			"AccountQuery",
-			[]string{"Login", "Load", "Save"},
-		},
-		// Event
-		{
-			"Comment",
-			[]string{"Got"},
-		},
-	}
+	CommCommentGot string = "Got"
 )
 
 // Message is base API struct for plugin
@@ -62,7 +39,7 @@ type Message struct {
 	Func string
 	// Command
 	Command string
-	// Elements of Content is depend on Domain, Func and Command
+	// Elements of Content is depend on Command
 	Content json.RawMessage
 }
 

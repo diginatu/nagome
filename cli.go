@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -21,6 +19,7 @@ var (
 	printHelp     bool
 	debugToStderr bool
 	standAlone    bool
+	runBgproc     bool
 )
 
 func init() {
@@ -34,6 +33,7 @@ func init() {
 		`Output debug information to stderr.
 	Without this option, output to the log file in the save directory.`)
 	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (CUI).`)
+	flag.BoolVar(&runBgproc, "bg", false, `Run as daemon. (use stdin/out as one connection to a plugin)`)
 }
 
 // RunCli processes flags and io
@@ -128,81 +128,28 @@ func standAloneMode() {
 }
 
 func clientMode() {
-	stdinReader := bufio.NewReader(os.Stdin)
+	var plugs []*plugin
+
+	if runBgproc {
+		stdinRw := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
+		var plug = plugin{
+			Name:        "main",
+			Description: "main plugin(UI)",
+			Version:     "0.0",
+			Rw:          stdinRw,
+		}
+		plugs = append(plugs, &plug)
+	}
 
 	var ac nicolive.Account
 	ac.Load(filepath.Join(App.SavePath, "userData.yml"))
 
 	var l nicolive.LiveWaku
-	var commconn *nicolive.CommentConnection
-
-	dec := json.NewDecoder(stdinReader)
-	for {
-		var m Message
-		if err := dec.Decode(&m); err == io.EOF {
-			break
-		} else if err != nil {
-			Logger.Println(err)
-			continue
-		}
-
-		if m.Domain == "Nagome" {
-			switch m.Func {
-			case NagomeMess[FuncnBroadQuery].Funcn:
-				switch m.Command {
-				case NagomeMess[FuncnBroadQuery].Commands[CommBroadQueryConnect]:
-					var cm BroadConnect
-					if err := json.Unmarshal(m.Content, &cm); err != nil {
-						Logger.Println("error:", err)
-						continue
-					}
-
-					brdRg := regexp.MustCompile("(lv|co)\\d+")
-					broadMch := brdRg.FindString(cm.BroadID)
-					if broadMch == "" {
-						Logger.Println("invalid text")
-						continue
-					}
-
-					l = nicolive.LiveWaku{Account: &ac, BroadID: broadMch}
-
-					nicoerr := l.FetchInformation()
-					if nicoerr != nil {
-						Logger.Println(nicoerr)
-						continue
-					}
-
-					commconn = nicolive.NewCommentConnection(&l, nil)
-					nicoerr = commconn.Connect()
-					if nicoerr != nil {
-						Logger.Println(nicoerr)
-						continue
-					}
-
-					defer commconn.Disconnect()
-				default:
-					Logger.Println("invalid Command in message")
-				}
-			case NagomeMess[FuncnAccountQuery].Funcn:
-				switch m.Command {
-				case NagomeMess[FuncnAccountQuery].Commands[CommAccountLogin]:
-					err := ac.Login()
-					if err != nil {
-						Logger.Fatalln(err)
-						continue
-					}
-					Logger.Println("logged in")
-				case NagomeMess[FuncnAccountQuery].Commands[CommAccountSave]:
-					ac.Save(filepath.Join(App.SavePath, "userData.yml"))
-				case NagomeMess[FuncnAccountQuery].Commands[CommAccountLoad]:
-					ac.Load(filepath.Join(App.SavePath, "userData.yml"))
-				default:
-					Logger.Println("invalid Command in message")
-				}
-			default:
-				Logger.Println("invalid Func in message")
-			}
-		}
-
+	var cmvw = commentViewer{
+		Ac:   &ac,
+		Cmm:  nicolive.NewCommentConnection(&l, nil),
+		Pgns: plugs,
 	}
+
+	cmvw.runCommentViewer()
 }
