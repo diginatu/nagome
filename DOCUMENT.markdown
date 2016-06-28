@@ -5,8 +5,8 @@ Plugin
 Nagome can have some plugins in the plugin folder, which is in the configuration directory.
 Plugins communicate with Nagome process using JSON or MessagePack in stdin/out or TCP connection.
 
-Also, one application may create Nagome process and be dealt as a plugin. (--standAlone option disable this)
-This is mainly used as a client and provides user interfaces.
+Also, one application may create Nagome process and be dealt as a plugin. (-bg option)
+This is mainly used as a client and the plugin provides user interfaces (UI plugin).
 
  + UI (UI plugin)
    + Nagome
@@ -31,7 +31,7 @@ A plugin should have corresponding directory and a plugin management file named 
 plugin.yml
 ----------
 
- + exec : Nagome runs this code at first when finish loading the plugin.
+ + exec : Nagome runs this code at first after loading the plugin.
  + method : {"tcp", "std"}
 
 ~~~ yaml
