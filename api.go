@@ -2,7 +2,24 @@ package main
 
 import "encoding/json"
 
+// Message is base API struct for plugin
+type Message struct {
+	// Domain that includes following commands
+	// ex. "Nagome"
+	Domain string
+	// Function
+	//
+	// Query
+	Func string
+	// Command
+	Command string
+	// Elements of Content is depend on Command
+	Content json.RawMessage
+}
+
 // Func names in NagomeMess
+// Query suffix means the Func is Query, which ask Nagome to do something.
+// Other Funcs are all Event.
 const (
 	FuncnBroadQuery   string = "BroadQuery"
 	FuncnAccountQuery        = "AccountQuery"
@@ -28,26 +45,17 @@ const (
 	CommCommentGot string = "Got"
 )
 
-// Message is base API struct for plugin
-type Message struct {
-	// Domain that includes following commands
-	// ex. "Nagome"
-	Domain string
-	// Function
-	//
-	// Query
-	Func string
-	// Command
-	Command string
-	// Elements of Content is depend on Command
-	Content json.RawMessage
-}
-
 // Contents
 //
 // Contents in the Message API
 
-// BroadConnect requests to start receiving new broadcast
-type BroadConnect struct {
+// CtBroadQueryConnect requests to start receiving new broadcast
+type CtBroadQueryConnect struct {
 	BroadID string
+}
+
+// CtBroadQuerySendComment requests to send comment
+type CtBroadQuerySendComment struct {
+	Text  string
+	Iyayo bool
 }

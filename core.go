@@ -6,6 +6,7 @@ import (
 	"io"
 	"path/filepath"
 	"regexp"
+	"sync"
 
 	"github.com/diginatu/nagome/nicolive"
 )
@@ -31,38 +32,46 @@ type commentViewer struct {
 }
 
 func (cv *commentViewer) runCommentViewer() error {
-	for i := 0; i < len(cv.Pgns); i++ {
-		Logger.Println(cv.Pgns[i].Name)
-		readPluginMes(cv, i)
+	var wg sync.WaitGroup
+
+	wg.Add(len(cv.Pgns))
+	for i, pg := range cv.Pgns {
+		Logger.Println(pg.Name)
+		go readPluginMes(cv, i, &wg)
 	}
 
+	wg.Wait()
 	return nil
 }
 
-func readPluginMes(cv *commentViewer, n int) error {
+func readPluginMes(cv *commentViewer, n int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
 	for {
 		var m Message
 		if err := dec.Decode(&m); err == io.EOF {
 			break
 		} else if err != nil {
-			Logger.Fatalln(err)
-			continue
+			Logger.Println(err)
+			return
 		}
 
 		if m.Domain == "Nagome" {
 			switch m.Func {
+
 			case FuncnBroadQuery:
 				switch m.Command {
+
 				case CommBroadQueryConnect:
-					var cm BroadConnect
-					if err := json.Unmarshal(m.Content, &cm); err != nil {
-						Logger.Println("error:", err)
+					var ct CtBroadQueryConnect
+					if err := json.Unmarshal(m.Content, &ct); err != nil {
+						Logger.Println("error in content:", err)
 						continue
 					}
 
 					brdRg := regexp.MustCompile("(lv|co)\\d+")
-					broadMch := brdRg.FindString(cm.BroadID)
+					broadMch := brdRg.FindString(ct.BroadID)
 					if broadMch == "" {
 						Logger.Println("invalid BroadID")
 						continue
@@ -84,9 +93,19 @@ func readPluginMes(cv *commentViewer, n int) error {
 					}
 
 					defer cv.Cmm.Disconnect()
+
+				case CommBroadQuerySendComment:
+					var ct CtBroadQuerySendComment
+					if err := json.Unmarshal(m.Content, &ct); err != nil {
+						Logger.Println("error in content:", err)
+						continue
+					}
+					cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+
 				default:
 					Logger.Println("invalid Command in received message")
 				}
+
 			case FuncnAccountQuery:
 				switch m.Command {
 				case CommAccountLogin:
@@ -96,18 +115,22 @@ func readPluginMes(cv *commentViewer, n int) error {
 						continue
 					}
 					Logger.Println("logged in")
+
 				case CommAccountSave:
 					cv.Ac.Save(filepath.Join(App.SavePath, "userData.yml"))
+
 				case CommAccountLoad:
 					cv.Ac.Load(filepath.Join(App.SavePath, "userData.yml"))
+
 				default:
 					Logger.Println("invalid Command in received message")
 				}
+
 			default:
 				Logger.Println("invalid Func in received message")
 			}
 		}
 	}
 
-	return nil
+	return
 }
