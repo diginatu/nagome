@@ -26,21 +26,21 @@ func (e *Event) String() string {
 	var tys string
 	switch e.Type {
 	case EventTypeErr:
-		tys = "error"
+		tys = "Err"
 	case EventTypeGot:
-		tys = "got"
+		tys = "Got"
 	case EventTypeWakuEnd:
-		tys = "waku ended"
+		tys = "WakuEnd"
 	case EventTypeSend:
-		tys = "send"
+		tys = "Send"
 	case EventTypeOpen:
-		tys = "open"
+		tys = "Open"
 	case EventTypeClose:
-		tys = "close"
+		tys = "Close"
 	case EventTypeHeartBeatGot:
-		tys = "heatbeat got"
+		tys = "HeatBeatGot"
 	}
-	return fmt.Sprintf("%s %s", tys, e.Content)
+	return fmt.Sprintf("Event {Type:%s %s}", tys, e.Content)
 }
 
 // EventReceiver receive events and proceed

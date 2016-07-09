@@ -118,7 +118,7 @@ func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 	hbt.Stop()
 
 	if ev == nil {
-		ev = defaultEventReceiver{}
+		ev = &defaultEventReceiver{}
 	}
 
 	return &CommentConnection{

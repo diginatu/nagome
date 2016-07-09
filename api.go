@@ -1,15 +1,16 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/diginatu/nagome/nicolive"
+)
 
 // Message is base API struct for plugin
 type Message struct {
-	// Domain that includes following commands
-	// ex. "Nagome"
+	// Domain that includes following parameters
 	Domain string
 	// Function
-	//
-	// Query
 	Func string
 	// Command
 	Command string
@@ -17,31 +18,34 @@ type Message struct {
 	Content json.RawMessage
 }
 
-// Func names in NagomeMess
-// Query suffix means the Func is Query, which ask Nagome to do something.
-// Other Funcs are all Event.
+// Dimain names
 const (
-	FuncnBroadQuery   string = "BroadQuery"
-	FuncnAccountQuery        = "AccountQuery"
-	FuncnComment             = "Comment"
+	DomainNagome string = "nagome"
 )
 
-// Index enum of BroadQuery
+// Func names
 const (
-	CommBroadQueryConnect     string = "Connect"
-	CommBroadQueryDisconnect         = "Disconnect"
-	CommBroadQuerySendComment        = "SendComment"
+	// Queries
+	FuncQueryBroad   string = "BroadQuery"
+	FuncQueryAccount        = "AccountQuery"
+
+	// Events
+	FuncComment = "Comment"
 )
 
-// Index enum of Account
+// Command names
 const (
-	CommAccountLogin string = "Login"
-	CommAccountLoad         = "Load"
-	CommAccountSave         = "Save"
-)
+	// QueryBroad
+	CommQueryBroadConnect     string = "Connect"
+	CommQueryBroadDisconnect         = "Disconnect"
+	CommQueryBroadSendComment        = "SendComment"
 
-// Index enum of Comment
-const (
+	// QueryAccount
+	CommQueryAccountLogin string = "Login"
+	CommQueryAccountLoad         = "Load"
+	CommQueryAccountSave         = "Save"
+
+	// Comment
 	CommCommentGot string = "Got"
 )
 
@@ -49,13 +53,16 @@ const (
 //
 // Contents in the Message API
 
-// CtBroadQueryConnect requests to start receiving new broadcast
-type CtBroadQueryConnect struct {
+// CtQueryBroadConnect requests to start receiving new broadcast
+type CtQueryBroadConnect struct {
 	BroadID string
 }
 
-// CtBroadQuerySendComment requests to send comment
-type CtBroadQuerySendComment struct {
+// CtQueryBroadSendComment requests to send comment
+type CtQueryBroadSendComment struct {
 	Text  string
 	Iyayo bool
 }
+
+// A CtCommentGot is a content of got comment
+type CtCommentGot nicolive.Comment

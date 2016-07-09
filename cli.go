@@ -12,6 +12,10 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
+const (
+	eventBufferSize = 5
+)
+
 var (
 	// Logger is logger in this app
 	Logger        *log.Logger
@@ -131,14 +135,16 @@ func clientMode() {
 	var plugs []*plugin
 
 	if runBgproc {
-		stdinRw := bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
-		var plug = plugin{
+		plug := &plugin{
 			Name:        "main",
 			Description: "main plugin(UI)",
 			Version:     "0.0",
-			Rw:          stdinRw,
+			Depends:     []string{"nagome"},
+			Rw: bufio.NewReadWriter(
+				bufio.NewReader(os.Stdin),
+				bufio.NewWriter(os.Stdout)),
 		}
-		plugs = append(plugs, &plug)
+		plugs = append(plugs, plug)
 	}
 
 	var ac nicolive.Account
@@ -149,6 +155,8 @@ func clientMode() {
 		Ac:   &ac,
 		Cmm:  nicolive.NewCommentConnection(&l, nil),
 		Pgns: plugs,
+		Evch: make(chan *Message, eventBufferSize),
+		Quit: make(chan struct{}),
 	}
 
 	cmvw.runCommentViewer()
