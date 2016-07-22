@@ -75,7 +75,7 @@ func (cv *commentViewer) runCommentViewer() {
 	numProcSendEvent := 5
 	wg.Add(numProcSendEvent)
 	for i := 0; i < numProcSendEvent; i++ {
-		go cv.sendEvent(i, &wg)
+		go cv.sendPluginEvent(i, &wg)
 	}
 
 	wg.Add(len(cv.Pgns))
@@ -95,9 +95,9 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
 	for {
-		var m Message
+		var m *Message
 		go func() {
-			if err := dec.Decode(&m); err == io.EOF {
+			if err := dec.Decode(m); err == io.EOF {
 				decoded <- false
 				return
 			} else if err != nil {
@@ -190,14 +190,19 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 					Logger.Println("invalid Command in received message")
 				}
 
+			case FuncComment:
+				cv.Evch <- m
+
 			default:
 				Logger.Println("invalid Func in received message")
 			}
+		} else {
+			cv.Evch <- m
 		}
 	}
 }
 
-func (cv *commentViewer) sendEvent(i int, wg *sync.WaitGroup) {
+func (cv *commentViewer) sendPluginEvent(i int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for {
