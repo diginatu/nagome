@@ -54,7 +54,7 @@ func (der commentEventEmit) Proceed(ev *nicolive.Event) {
 	der.cv.Evch <- &Message{
 		Domain:  DomainNagome,
 		Func:    FuncComment,
-		Command: CommCommentGot,
+		Command: CommAddComment,
 		Content: content,
 	}
 }
@@ -95,7 +95,7 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
 	for {
-		var m *Message
+		m := new(Message)
 		go func() {
 			if err := dec.Decode(m); err == io.EOF {
 				decoded <- false
@@ -175,7 +175,17 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 				case CommQueryAccountLogin:
 					err := cv.Ac.Login()
 					if err != nil {
-						Logger.Fatalln(err)
+						Logger.Println(err)
+						t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
+							CtUIDialog{
+								Type:        "warn",
+								Title:       "login error",
+								Description: err.Description(),
+							})
+						if err != nil {
+							Logger.Println(err)
+						}
+						cv.Evch <- t
 						continue
 					}
 					Logger.Println("logged in")
