@@ -13,6 +13,10 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
+const (
+	pluginFlashWaitDu time.Duration = 200 * time.Millisecond
+)
+
 type plugin struct {
 	Name        string
 	Description string
@@ -42,7 +46,7 @@ type commentEventEmit struct {
 	cv *commentViewer
 }
 
-func (der commentEventEmit) Proceed(ev *nicolive.Event) {
+func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
 	var content []byte
 
 	switch ev.Type {
@@ -76,6 +80,11 @@ func (cv *commentViewer) runCommentViewer() {
 	wg.Add(numProcSendEvent)
 	for i := 0; i < numProcSendEvent; i++ {
 		go cv.sendPluginEvent(i, &wg)
+	}
+
+	wg.Add(len(cv.Pgns))
+	for i := range cv.Pgns {
+		go cv.flushPluginIO(i, &wg)
 	}
 
 	wg.Add(len(cv.Pgns))
@@ -182,8 +191,10 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 								Title:       "login error",
 								Description: err.Description(),
 							})
+						Logger.Println(t)
 						if err != nil {
 							Logger.Println(err)
+							continue
 						}
 						cv.Evch <- t
 						continue
@@ -221,13 +232,28 @@ func (cv *commentViewer) sendPluginEvent(i int, wg *sync.WaitGroup) {
 			jmes, _ := json.Marshal(mes)
 			for _, plug := range cv.Pgns {
 				if plug.depend(mes.Domain) {
-					Logger.Println(i)
 					_, err := fmt.Fprintf(plug.Rw.Writer, "%d %s\n", i, jmes)
 					if err != nil {
 						Logger.Println(err)
+						continue
 					}
+					plug.FlushTm.Reset(pluginFlashWaitDu)
 				}
 			}
+		case <-cv.Quit:
+			return
+		}
+	}
+}
+
+func (cv *commentViewer) flushPluginIO(i int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for {
+		select {
+		case <-cv.Pgns[i].FlushTm.C:
+			Logger.Println("plugin ", i, " flushing")
+			cv.Pgns[i].Rw.Flush()
 		case <-cv.Quit:
 			return
 		}

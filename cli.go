@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/diginatu/nagome/nicolive"
 )
@@ -139,10 +140,11 @@ func clientMode() {
 			Name:        "main",
 			Description: "main plugin(UI)",
 			Version:     "0.0",
-			Depends:     []string{"nagome"},
+			Depends:     []string{DomainNagome},
 			Rw: bufio.NewReadWriter(
 				bufio.NewReader(os.Stdin),
 				bufio.NewWriter(os.Stdout)),
+			FlushTm: time.NewTimer(time.Hour),
 		}
 		plugs = append(plugs, plug)
 	}
