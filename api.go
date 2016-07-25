@@ -14,7 +14,7 @@ type Message struct {
 	Func string
 	// Command
 	Command string
-	// Elements of Content is depend on Command
+	// Elements type of Content is depend on witch Command is used
 	Content json.RawMessage
 }
 
@@ -62,6 +62,7 @@ const (
 	CommQueryBroadSendComment        = "SendComment"
 
 	// QueryAccount
+	CommQueryAccountSet   = "Set" // set the given content value as account values.
 	CommQueryAccountLogin = "Login"
 	CommQueryAccountLoad  = "Load"
 	CommQueryAccountSave  = "Save"
@@ -69,7 +70,7 @@ const (
 	// Events
 
 	// Comment
-	CommAddComment = "Got"
+	CommCommentAdd = "Add"
 
 	// Open
 	CommUIDialog = "Dialog"
@@ -79,19 +80,22 @@ const (
 //
 // Contents in the Message API
 
-// CtQueryBroadConnect requests to start receiving new broadcast
+// CtQueryBroadConnect is content of QueryBroadConnect
 type CtQueryBroadConnect struct {
 	BroadID string
 }
 
-// CtQueryBroadSendComment requests to send comment
+// CtQueryBroadSendComment is content of QueryBroadSendComment
 type CtQueryBroadSendComment struct {
 	Text  string
 	Iyayo bool
 }
 
-// A CtCommentGot is a content of got comment
-type CtCommentGot nicolive.Comment
+// CtQueryAccountSet is content of QueryAccountSet
+type CtQueryAccountSet nicolive.Account
+
+// A CtCommentAdd is a content of got comment
+type CtCommentAdd nicolive.Comment
 
 // CtUIDialog is content of dialog that nagome ask to open
 type CtUIDialog struct {

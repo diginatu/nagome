@@ -58,7 +58,7 @@ func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
 	der.cv.Evch <- &Message{
 		Domain:  DomainNagome,
 		Func:    FuncComment,
-		Command: CommAddComment,
+		Command: CommCommentAdd,
 		Content: content,
 	}
 }
@@ -181,6 +181,15 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 
 			case FuncQueryAccount:
 				switch m.Command {
+				case CommQueryAccountSet:
+					var ct CtQueryAccountSet
+					if err := json.Unmarshal(m.Content, &ct); err != nil {
+						Logger.Println("error in content:", err)
+						continue
+					}
+
+					nicoac := nicolive.Account(ct)
+					cv.Ac = &nicoac
 				case CommQueryAccountLogin:
 					err := cv.Ac.Login()
 					if err != nil {
