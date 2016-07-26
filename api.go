@@ -40,8 +40,8 @@ const (
 const (
 	// Queries
 
-	FuncQueryBroad   string = "BroadQuery"
-	FuncQueryAccount        = "AccountQuery"
+	FuncQueryBroad   string = "QueryBroad"
+	FuncQueryAccount        = "QueryAccount"
 
 	// Events
 

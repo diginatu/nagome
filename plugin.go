@@ -43,6 +43,8 @@ func (pl *plugin) depend(pln string) bool {
 
 func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer cv.Cmm.Disconnect()
+
 	decoded := make(chan bool)
 
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
@@ -73,104 +75,9 @@ func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
 			return
 		}
 
-		if m.Domain == "Nagome" {
-			switch m.Func {
-
-			case FuncQueryBroad:
-				switch m.Command {
-
-				case CommQueryBroadConnect:
-					var ct CtQueryBroadConnect
-					if err := json.Unmarshal(m.Content, &ct); err != nil {
-						Logger.Println("error in content:", err)
-						continue
-					}
-
-					brdRg := regexp.MustCompile("(lv|co)\\d+")
-					broadMch := brdRg.FindString(ct.BroadID)
-					if broadMch == "" {
-						Logger.Println("invalid BroadID")
-						continue
-					}
-
-					cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
-
-					nicoerr := cv.Lw.FetchInformation()
-					if nicoerr != nil {
-						Logger.Println(nicoerr)
-						continue
-					}
-
-					eventReceiver := &commentEventEmit{cv: cv}
-					cv.Cmm = nicolive.NewCommentConnection(cv.Lw, eventReceiver)
-					nicoerr = cv.Cmm.Connect()
-					if nicoerr != nil {
-						Logger.Println(nicoerr)
-						continue
-					}
-					defer cv.Cmm.Disconnect()
-
-				case CommQueryBroadSendComment:
-					var ct CtQueryBroadSendComment
-					if err := json.Unmarshal(m.Content, &ct); err != nil {
-						Logger.Println("error in content:", err)
-						continue
-					}
-					cv.Cmm.SendComment(ct.Text, ct.Iyayo)
-
-				default:
-					Logger.Println("invalid Command in received message")
-				}
-
-			case FuncQueryAccount:
-				switch m.Command {
-				case CommQueryAccountSet:
-					var ct CtQueryAccountSet
-					if err := json.Unmarshal(m.Content, &ct); err != nil {
-						Logger.Println("error in content:", err)
-						continue
-					}
-
-					nicoac := nicolive.Account(ct)
-					cv.Ac = &nicoac
-				case CommQueryAccountLogin:
-					err := cv.Ac.Login()
-					if err != nil {
-						Logger.Println(err)
-						t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
-							CtUIDialog{
-								Type:        "warn",
-								Title:       "login error",
-								Description: err.Description(),
-							})
-						Logger.Println(t)
-						if err != nil {
-							Logger.Println(err)
-							continue
-						}
-						cv.Evch <- t
-						continue
-					}
-					Logger.Println("logged in")
-
-				case CommQueryAccountSave:
-					cv.Ac.Save(filepath.Join(App.SavePath, "userData.yml"))
-
-				case CommQueryAccountLoad:
-					cv.Ac.Load(filepath.Join(App.SavePath, "userData.yml"))
-
-				default:
-					Logger.Println("invalid Command in received message")
-				}
-
-			case FuncComment:
-				cv.Evch <- m
-
-			default:
-				Logger.Println("invalid Func in received message")
-			}
-		} else {
-			cv.Evch <- m
+		nicoerr := processPluginMessage(cv, m)
+		if nicoerr != nil {
+			Logger.Println(nicoerr)
 		}
 	}
 }
@@ -184,7 +91,7 @@ func (cv *commentViewer) sendPluginEvent(i int, wg *sync.WaitGroup) {
 			jmes, _ := json.Marshal(mes)
 			for _, plug := range cv.Pgns {
 				if plug.depend(mes.Domain) {
-					_, err := fmt.Fprintf(plug.Rw.Writer, "%d %s\n", i, jmes)
+					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
 					if err != nil {
 						Logger.Println(err)
 						continue
@@ -195,6 +102,7 @@ func (cv *commentViewer) sendPluginEvent(i int, wg *sync.WaitGroup) {
 		case <-cv.Quit:
 			return
 		}
+
 	}
 }
 
@@ -210,4 +118,110 @@ func (cv *commentViewer) flushPluginIO(i int, wg *sync.WaitGroup) {
 			return
 		}
 	}
+}
+
+func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
+	Logger.Println(m)
+	if m.Domain == "Nagome" {
+		switch m.Func {
+
+		case FuncQueryBroad:
+			switch m.Command {
+
+			case CommQueryBroadConnect:
+				var ct CtQueryBroadConnect
+				if err := json.Unmarshal(m.Content, &ct); err != nil {
+					return nicolive.NicoErr(nicolive.NicoErrOther,
+						"JSON error in the content", err.Error())
+				}
+
+				brdRg := regexp.MustCompile("(lv|co)\\d+")
+				broadMch := brdRg.FindString(ct.BroadID)
+				if broadMch == "" {
+					// TODO: error dialog
+					return nicolive.NicoErr(nicolive.NicoErrOther,
+						"invalid BroadID", "no valid BroadID in the ID text")
+				}
+
+				cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
+
+				nicoerr := cv.Lw.FetchInformation()
+				if nicoerr != nil {
+					return nicoerr
+				}
+
+				eventReceiver := &commentEventEmit{cv: cv}
+				cv.Cmm = nicolive.NewCommentConnection(cv.Lw, eventReceiver)
+				nicoerr = cv.Cmm.Connect()
+				if nicoerr != nil {
+					return nicoerr
+				}
+
+			case CommQueryBroadSendComment:
+				var ct CtQueryBroadSendComment
+				if err := json.Unmarshal(m.Content, &ct); err != nil {
+					return nicolive.NicoErr(nicolive.NicoErrOther,
+						"JSON error in the content", err.Error())
+				}
+				cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+
+			default:
+				return nicolive.NicoErr(nicolive.NicoErrOther,
+					"Message", "invalid Command in received message")
+			}
+
+		case FuncQueryAccount:
+			switch m.Command {
+			case CommQueryAccountSet:
+				var ct CtQueryAccountSet
+				if err := json.Unmarshal(m.Content, &ct); err != nil {
+					return nicolive.NicoErr(nicolive.NicoErrOther,
+						"JSON error in the content", err.Error())
+				}
+
+				nicoac := nicolive.Account(ct)
+				cv.Ac = &nicoac
+			case CommQueryAccountLogin:
+				nicoerr := cv.Ac.Login()
+				if nicoerr != nil {
+					t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
+						CtUIDialog{
+							Type:        "warn",
+							Title:       "login error",
+							Description: nicoerr.Description(),
+						})
+					if err != nil {
+						return nicolive.NicoErr(nicolive.NicoErrOther,
+							"creating new Message", err.Error())
+					}
+					cv.Evch <- t
+
+					return nicoerr
+				}
+				Logger.Println("logged in")
+				// TODO: emit event
+
+			case CommQueryAccountSave:
+				cv.Ac.Save(filepath.Join(App.SavePath, "userData.yml"))
+
+			case CommQueryAccountLoad:
+				cv.Ac.Load(filepath.Join(App.SavePath, "userData.yml"))
+
+			default:
+				return nicolive.NicoErr(nicolive.NicoErrOther,
+					"Message", "invalid Command in received message")
+			}
+
+		case FuncComment:
+			cv.Evch <- m
+
+		default:
+			return nicolive.NicoErr(nicolive.NicoErrOther,
+				"Message", "invalid Func in received message")
+		}
+	} else {
+		cv.Evch <- m
+	}
+
+	return nil
 }
