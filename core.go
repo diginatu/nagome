@@ -42,21 +42,13 @@ type commentViewer struct {
 func (cv *commentViewer) runCommentViewer() {
 	var wg sync.WaitGroup
 
-	numProcSendEvent := 5
-	wg.Add(numProcSendEvent)
-	for i := 0; i < numProcSendEvent; i++ {
-		go cv.sendPluginEvent(i, &wg)
-	}
-
-	wg.Add(len(cv.Pgns))
-	for i := range cv.Pgns {
-		go cv.flushPluginIO(i, &wg)
-	}
+	wg.Add(1)
+	go cv.sendPluginEvent(&wg)
 
 	wg.Add(len(cv.Pgns))
 	for i, pg := range cv.Pgns {
 		Logger.Println(pg.Name)
-		go cv.readPluginMes(i, &wg)
+		go cv.eachPluginRw(i, &wg)
 	}
 
 	wg.Wait()

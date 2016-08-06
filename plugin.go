@@ -41,58 +41,75 @@ func (pl *plugin) depend(pln string) bool {
 	return f
 }
 
-func (cv *commentViewer) readPluginMes(n int, wg *sync.WaitGroup) {
+// eachPluginRw manages plugins IO. The number of its go routines is same as loaded plugins.
+func (cv *commentViewer) eachPluginRw(n int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer cv.Cmm.Disconnect()
 
-	decoded := make(chan bool)
-
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
-	for {
-		m := new(Message)
-		go func() {
-			if err := dec.Decode(m); err == io.EOF {
-				decoded <- false
-				return
-			} else if err != nil {
-				Logger.Println(err)
-				decoded <- false
+	mes := make(chan (*Message))
+
+	// Run decoder.  It puts a message into "mes".
+	go func() {
+		for {
+			m := new(Message)
+			if err := dec.Decode(m); err != nil {
+				if err != io.EOF {
+					// TODO: emit error
+					Logger.Println(err)
+				}
+				m = nil
+			}
+
+			select {
+			case mes <- m:
+			case <-cv.Quit:
 				return
 			}
-			decoded <- true
-		}()
+		}
+	}()
 
+	for {
 		select {
-		case st := <-decoded:
-			if !st {
+		// Process the message
+		case m := <-mes:
+			if m == nil {
 				// quit if UI plugin disconnect
 				if cv.Pgns[n].Name == "main" {
 					close(cv.Quit)
 				}
 				return
 			}
+
+			nicoerr := processPluginMessage(cv, m)
+			if nicoerr != nil {
+				Logger.Println(nicoerr)
+			}
+
+		// Flush plugin IO
+		case <-cv.Pgns[n].FlushTm.C:
+			Logger.Println("plugin ", n, " flushing")
+			cv.Pgns[n].Rw.Flush()
+
 		case <-cv.Quit:
 			return
-		}
-
-		nicoerr := processPluginMessage(cv, m)
-		if nicoerr != nil {
-			Logger.Println(nicoerr)
 		}
 	}
 }
 
-func (cv *commentViewer) sendPluginEvent(i int, wg *sync.WaitGroup) {
+func (cv *commentViewer) sendPluginEvent(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for {
 		select {
+
 		case mes := <-cv.Evch:
 			jmes, _ := json.Marshal(mes)
 			for _, plug := range cv.Pgns {
 				if plug.depend(mes.Domain) {
 					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
 					if err != nil {
+						// TODO: emit error
 						Logger.Println(err)
 						continue
 					}
@@ -103,20 +120,6 @@ func (cv *commentViewer) sendPluginEvent(i int, wg *sync.WaitGroup) {
 			return
 		}
 
-	}
-}
-
-func (cv *commentViewer) flushPluginIO(i int, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	for {
-		select {
-		case <-cv.Pgns[i].FlushTm.C:
-			Logger.Println("plugin ", i, " flushing")
-			cv.Pgns[i].Rw.Flush()
-		case <-cv.Quit:
-			return
-		}
 	}
 }
 
