@@ -14,18 +14,23 @@ type commentEventEmit struct {
 
 func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
 	var content []byte
+	var command string
 
 	switch ev.Type {
 	case nicolive.EventTypeGot:
 		content, _ = json.Marshal(ev.Content.(nicolive.Comment))
+		command = CommCommentAdd
 	default:
 		Logger.Println(ev.String())
 	}
-	der.cv.Evch <- &Message{
-		Domain:  DomainNagome,
-		Func:    FuncComment,
-		Command: CommCommentAdd,
-		Content: content,
+
+	if command != "" {
+		der.cv.Evch <- &Message{
+			Domain:  DomainNagome,
+			Func:    FuncComment,
+			Command: command,
+			Content: content,
+		}
 	}
 }
 
@@ -43,12 +48,12 @@ func (cv *commentViewer) runCommentViewer() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go cv.sendPluginEvent(&wg)
+	go sendPluginEvent(cv, &wg)
 
 	wg.Add(len(cv.Pgns))
 	for i, pg := range cv.Pgns {
 		Logger.Println(pg.Name)
-		go cv.eachPluginRw(i, &wg)
+		go eachPluginRw(cv, i, &wg)
 	}
 
 	wg.Wait()

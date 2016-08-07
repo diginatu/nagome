@@ -42,7 +42,7 @@ func (pl *plugin) depend(pln string) bool {
 }
 
 // eachPluginRw manages plugins IO. The number of its go routines is same as loaded plugins.
-func (cv *commentViewer) eachPluginRw(n int, wg *sync.WaitGroup) {
+func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer cv.Cmm.Disconnect()
 
@@ -97,14 +97,18 @@ func (cv *commentViewer) eachPluginRw(n int, wg *sync.WaitGroup) {
 	}
 }
 
-func (cv *commentViewer) sendPluginEvent(wg *sync.WaitGroup) {
+func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for {
 		select {
 
 		case mes := <-cv.Evch:
-			jmes, _ := json.Marshal(mes)
+			jmes, err := json.Marshal(mes)
+			if err != nil {
+				Logger.Println(err)
+				continue
+			}
 			for _, plug := range cv.Pgns {
 				if plug.depend(mes.Domain) {
 					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
@@ -124,7 +128,6 @@ func (cv *commentViewer) sendPluginEvent(wg *sync.WaitGroup) {
 }
 
 func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
-	Logger.Println(m)
 	if m.Domain == "Nagome" {
 		switch m.Func {
 
@@ -167,6 +170,9 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 						"JSON error in the content", err.Error())
 				}
 				cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+
+			case CommQueryBroadDisconnect:
+				cv.Cmm.Disconnect()
 
 			default:
 				return nicolive.NicoErr(nicolive.NicoErrOther,
