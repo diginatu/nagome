@@ -137,7 +137,7 @@ func clientMode() {
 
 	if runBgproc {
 		plug := &plugin{
-			Name:        "main",
+			Name:        pluginNameMain,
 			Description: "main plugin(UI)",
 			Version:     "0.0",
 			Depends:     []string{DomainNagome},

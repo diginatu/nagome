@@ -99,8 +99,13 @@ type CtCommentAdd nicolive.Comment
 
 // CtUIDialog is content of dialog that nagome ask to open
 type CtUIDialog struct {
-	// Type value is "info" or "warn"
-	Type        string
+	Type        string // select from below const string
 	Title       string
 	Description string
 }
+
+// type of CtUIDialog
+const (
+	CtUIDialogTypeInfo string = "Info"
+	CtUIDialogTypeWarn        = "Warn"
+)

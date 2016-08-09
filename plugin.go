@@ -15,6 +15,8 @@ import (
 
 const (
 	pluginFlashWaitDu time.Duration = 200 * time.Millisecond
+
+	pluginNameMain string = "main"
 )
 
 type plugin struct {
@@ -44,7 +46,6 @@ func (pl *plugin) depend(pln string) bool {
 // eachPluginRw manages plugins IO. The number of its go routines is same as loaded plugins.
 func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	defer cv.Cmm.Disconnect()
 
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
 	mes := make(chan (*Message))
@@ -75,15 +76,16 @@ func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 		case m := <-mes:
 			if m == nil {
 				// quit if UI plugin disconnect
-				if cv.Pgns[n].Name == "main" {
+				if cv.Pgns[n].Name == pluginNameMain {
 					close(cv.Quit)
 				}
 				return
 			}
 
+			Logger.Println("plugin message [", cv.Pgns[n].Name, "] : ", m)
 			nicoerr := processPluginMessage(cv, m)
 			if nicoerr != nil {
-				Logger.Println(nicoerr)
+				Logger.Println("plugin message error [", cv.Pgns[n].Name, "] : ", nicoerr)
 			}
 
 		// Flush plugin IO
@@ -114,6 +116,7 @@ func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
 					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
 					if err != nil {
 						// TODO: emit error
+
 						Logger.Println(err)
 						continue
 					}
@@ -144,9 +147,10 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 				brdRg := regexp.MustCompile("(lv|co)\\d+")
 				broadMch := brdRg.FindString(ct.BroadID)
 				if broadMch == "" {
-					// TODO: error dialog
+					cv.createEvNewDialog(CtUIDialogTypeWarn,
+						"invalid BroadID", "no valid BroadID found in the ID text")
 					return nicolive.NicoErr(nicolive.NicoErrOther,
-						"invalid BroadID", "no valid BroadID in the ID text")
+						"invalid BroadID", "no valid BroadID found in the ID text")
 				}
 
 				cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
@@ -193,22 +197,13 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 			case CommQueryAccountLogin:
 				nicoerr := cv.Ac.Login()
 				if nicoerr != nil {
-					t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
-						CtUIDialog{
-							Type:        "warn",
-							Title:       "login error",
-							Description: nicoerr.Description(),
-						})
-					if err != nil {
-						return nicolive.NicoErr(nicolive.NicoErrOther,
-							"creating new Message", err.Error())
-					}
-					cv.Evch <- t
-
+					cv.createEvNewDialog(CtUIDialogTypeWarn,
+						"login error", nicoerr.Description())
 					return nicoerr
 				}
 				Logger.Println("logged in")
-				// TODO: emit event
+				cv.createEvNewDialog(CtUIDialogTypeInfo,
+					"login succeeded", "login succeeded")
 
 			case CommQueryAccountSave:
 				cv.Ac.Save(filepath.Join(App.SavePath, "userData.yml"))

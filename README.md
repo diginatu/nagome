@@ -31,7 +31,6 @@ twitter : [@desineigh](https://twitter.com/desineigh)
 Task
 ----
 
- - [ ] easy way to create new error message
  - [ ] normal plugin support
  - [ ] TCP connection with plugins
 

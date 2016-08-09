@@ -45,6 +45,7 @@ type commentViewer struct {
 }
 
 func (cv *commentViewer) runCommentViewer() {
+	defer cv.Cmm.Disconnect()
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -59,4 +60,17 @@ func (cv *commentViewer) runCommentViewer() {
 	wg.Wait()
 
 	return
+}
+
+func (cv *commentViewer) createEvNewDialog(typ, title, desc string) {
+	t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
+		CtUIDialog{
+			Type:        typ,
+			Title:       title,
+			Description: desc,
+		})
+	if err != nil {
+		Logger.Println(err)
+	}
+	cv.Evch <- t
 }
