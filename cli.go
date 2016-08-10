@@ -155,11 +155,12 @@ func clientMode() {
 	var l nicolive.LiveWaku
 	var cmvw = commentViewer{
 		Ac:   &ac,
-		Cmm:  nicolive.NewCommentConnection(&l, nil),
 		Pgns: plugs,
 		Evch: make(chan *Message, eventBufferSize),
 		Quit: make(chan struct{}),
 	}
+	eventReceiver := &commentEventEmit{cv: &cmvw}
+	cmvw.Cmm = nicolive.NewCommentConnection(&l, eventReceiver)
 
 	cmvw.runCommentViewer()
 }

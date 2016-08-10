@@ -155,17 +155,24 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 
 				cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
 
-				nicoerr := cv.Lw.FetchInformation()
-				if nicoerr != nil {
+				if nicoerr := cv.Lw.FetchInformation(); nicoerr != nil {
 					return nicoerr
 				}
-
-				eventReceiver := &commentEventEmit{cv: cv}
-				cv.Cmm = nicolive.NewCommentConnection(cv.Lw, eventReceiver)
-				nicoerr = cv.Cmm.Connect()
-				if nicoerr != nil {
+				if cv.Cmm.IsConnected {
+					Logger.Println("Connected")
+					if nicoerr := cv.Cmm.Disconnect(); nicoerr != nil {
+						Logger.Println("discon err")
+						return nicoerr
+					}
+					Logger.Println("disconnected")
+				}
+				if nicoerr := cv.Cmm.SetLv(cv.Lw); nicoerr != nil {
 					return nicoerr
 				}
+				if nicoerr := cv.Cmm.Connect(); nicoerr != nil {
+					return nicoerr
+				}
+				Logger.Println("connecting")
 
 			case CommQueryBroadSendComment:
 				var ct CtQueryBroadSendComment

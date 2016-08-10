@@ -131,6 +131,17 @@ func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 	}
 }
 
+// SetLv sets lv with given pointer to LiveWaku
+func (cc *CommentConnection) SetLv(l *LiveWaku) NicoError {
+	if cc.IsConnected {
+		return NicoErr(NicoErrOther,
+			"connected", "lv can not be changed while connecting to the server")
+	}
+
+	cc.lv = l
+	return nil
+}
+
 func (cc *CommentConnection) open() NicoError {
 	var err error
 
@@ -150,9 +161,12 @@ func (cc *CommentConnection) open() NicoError {
 		Writer: bufio.NewWriter(cc.sock),
 	}
 
-	fmt.Fprintf(cc.rw,
+	_, err = fmt.Fprintf(cc.rw,
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
 		cc.lv.CommentServer.Thread)
+	if err != nil {
+		return NicoErrFromStdErr(err)
+	}
 	err = cc.rw.Flush()
 	if err != nil {
 		return NicoErrFromStdErr(err)
@@ -190,7 +204,9 @@ func (cc *CommentConnection) receiveStream() {
 		default:
 			commxml, err := cc.rw.ReadString('\x00')
 			if err != nil {
-				go cc.Disconnect()
+				if cc.IsConnected {
+					go cc.Disconnect()
+				}
 				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErrFromStdErr(err),
@@ -335,13 +351,11 @@ func (cc *CommentConnection) timer() {
 			}
 			cc.wmu.Unlock()
 			if err != nil {
-				go cc.Disconnect()
 				cc.ev.Proceed(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErr(NicoErrConnection, "keep alive", err.Error()),
 				})
-				<-cc.termc
-				return
+				continue
 			}
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
@@ -466,6 +480,7 @@ func (cc *CommentConnection) Disconnect() NicoError {
 	if !cc.IsConnected {
 		return NicoErr(NicoErrOther, "not connected yet", "")
 	}
+	cc.IsConnected = false
 
 	cc.keepAliveTmr.Stop()
 	cc.postKeyTmr.Stop()
@@ -475,8 +490,6 @@ func (cc *CommentConnection) Disconnect() NicoError {
 	for i := 0; i < numCommentConnectionRoutines; i++ {
 		cc.termc <- true
 	}
-
-	cc.IsConnected = false
 
 	cc.ev.Proceed(&Event{
 		Type:    EventTypeClose,
