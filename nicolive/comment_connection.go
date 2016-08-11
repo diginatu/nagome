@@ -428,13 +428,13 @@ func (cc *CommentConnection) FetchPostKey() NicoError {
 // SendComment sends comment to current comment connection
 func (cc *CommentConnection) SendComment(text string, iyayo bool) NicoError {
 	if !cc.IsConnected {
-		return NicoErr(NicoErrOther, "not connected", "")
+		return NicoErr(NicoErrOther, "not connected", "not connected")
 	}
 	if cc.lv.PostKey == "" {
-		return NicoErr(NicoErrOther, "no postkey in livewaku", "")
+		return NicoErr(NicoErrOther, "no postkey in livewaku", "no postkey in livewaku")
 	}
 	if text == "" {
-		NicoErr(NicoErrOther, "empty text", "")
+		return NicoErr(NicoErrOther, "empty text", "empty text")
 	}
 
 	vpos := 100 *

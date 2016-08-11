@@ -180,7 +180,11 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 					return nicolive.NicoErr(nicolive.NicoErrOther,
 						"JSON error in the content", err.Error())
 				}
-				cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+				nicoerr := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+				if nicoerr != nil {
+					cv.createEvNewDialog(CtUIDialogTypeWarn, nicoerr.Code(), nicoerr.Description())
+					return nicoerr
+				}
 
 			case CommQueryBroadDisconnect:
 				cv.Cmm.Disconnect()

@@ -18,19 +18,19 @@ Licence
 MIT Licence
 
 
-コンタクト
-----------
+Dependencies
+------------
 
-バグ報告はGithubのIssueにあげてください。
-
-直接コンタクトを取りたい場合、twitter アカウントからコンタクトが取れます。
-
-twitter : [@desineigh](https://twitter.com/desineigh)
+ + diginatu/nagome/nicolive : own package
+   - gopkg.in/xmlpath.v2 : LGPLv3
+   - gopkg.in/yaml.v2 : Apache Licence 2.0
 
 
-Task
-----
+Tasks
+-----
 
+ - [ ] simplify nicoerr
+ - [ ] translation function
  - [ ] normal plugin support
  - [ ] TCP connection with plugins
 
