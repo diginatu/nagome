@@ -24,21 +24,23 @@ var (
 	printHelp     bool
 	debugToStderr bool
 	standAlone    bool
-	runBgproc     bool
+	uiUseTCP      bool
+	uiPort        uint
 )
 
 func init() {
 	// set command line options
 	flag.StringVar(&App.SavePath, "savepath",
-		findUserConfigPath(), "Set <directory> to save directory.")
-	flag.BoolVar(&printHelp, "h", false, "Print this help.")
+		findUserConfigPath(), "Set <string> to save directory.")
 	flag.BoolVar(&printHelp, "help", false, "Print this help.")
+	flag.BoolVar(&printHelp, "h", false, "Print this help. (shorthand)")
 	flag.BoolVar(&printVersion, "version", false, "Print version information.")
 	flag.BoolVar(&debugToStderr, "dbgtostd", false,
 		`Output debug information to stderr.
-	Without this option, output to the log file in the save directory.`)
+	(in default, output to the log file in the save directory)`)
 	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (CUI).`)
-	flag.BoolVar(&runBgproc, "bg", false, `Run as daemon. (use stdin/out as one connection to a plugin)`)
+	flag.BoolVar(&uiUseTCP, "uitcp", false, `Use TCP connection for UI instead of stdin/out`)
+	flag.UintVar(&uiPort, "uiport", 8025, `Port to wait TCP server for UI. (see uitcp)`)
 }
 
 // RunCli processes flags and io
@@ -73,10 +75,10 @@ func RunCli() {
 
 	if standAlone {
 		standAloneMode()
-		return
+	} else {
+		clientMode()
 	}
 
-	clientMode()
 }
 
 func standAloneMode() {
@@ -135,7 +137,8 @@ func standAloneMode() {
 func clientMode() {
 	var plugs []*plugin
 
-	if runBgproc {
+	if uiUseTCP {
+	} else {
 		plug := &plugin{
 			Name:        pluginNameMain,
 			Description: "main plugin(UI)",
