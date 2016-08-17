@@ -22,7 +22,7 @@ type Account struct {
 	Usersession string `yaml:"usersession"`
 }
 
-func (a Account) String() string {
+func (a *Account) String() string {
 	i, l := 5, len(a.Mail)
 	if i > l {
 		i = l
@@ -31,7 +31,7 @@ func (a Account) String() string {
 }
 
 // Save save Account to a file
-func (a Account) Save(filePath string) error {
+func (a *Account) Save(filePath string) error {
 	d, err := yaml.Marshal(a)
 	if err != nil {
 		return err

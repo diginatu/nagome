@@ -19,21 +19,24 @@ type Message struct {
 }
 
 // NewMessage returns new Message with the given values.
-func NewMessage(dom, fun, com string, con interface{}) (m *Message, err error) {
+func NewMessage(dom, fun, com string, con interface{}) (*Message, error) {
 	conj, err := json.Marshal(con)
+	if err != nil {
+		return nil, err
+	}
 
-	m = &Message{
+	m := &Message{
 		Domain:  dom,
 		Func:    fun,
 		Command: com,
 		Content: conj,
 	}
-	return
+	return m, nil
 }
 
 // Dimain names
 const (
-	DomainNagome string = "Nagome"
+	DomainNagome string = "nagome"
 )
 
 // Func names

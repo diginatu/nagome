@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"sync"
 
 	"github.com/diginatu/nagome/nicolive"
@@ -21,7 +22,7 @@ func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
 		content, _ = json.Marshal(ev.Content.(nicolive.Comment))
 		command = CommCommentAdd
 	default:
-		Logger.Println(ev.String())
+		log.Println(ev.String())
 	}
 
 	if command != "" {
@@ -36,17 +37,21 @@ func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
 
 // A commentViewer is a pair of an Account and a LiveWaku.
 type commentViewer struct {
-	Ac   *nicolive.Account
-	Lw   *nicolive.LiveWaku
-	Cmm  *nicolive.CommentConnection
-	Pgns []*plugin
-	Evch chan *Message
-	Quit chan struct{}
+	Ac     *nicolive.Account
+	Lw     *nicolive.LiveWaku
+	Cmm    *nicolive.CommentConnection
+	Pgns   []*plugin
+	Evch   chan *Message
+	Quit   chan struct{}
+	addpgn chan *plugin
 }
 
-func (cv *commentViewer) runCommentViewer() {
+func (cv *commentViewer) Run() {
 	defer cv.Cmm.Disconnect()
 	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go cv.addPluginRoutine(&wg)
 
 	wg.Add(1)
 	go pluginTCPServer(cv, &wg)
@@ -56,7 +61,7 @@ func (cv *commentViewer) runCommentViewer() {
 
 	wg.Add(len(cv.Pgns))
 	for i, pg := range cv.Pgns {
-		Logger.Println(pg.Name)
+		log.Println(pg.Name)
 		go eachPluginRw(cv, i, &wg)
 	}
 
@@ -65,7 +70,23 @@ func (cv *commentViewer) runCommentViewer() {
 	return
 }
 
-func (cv *commentViewer) createEvNewDialog(typ, title, desc string) {
+func (cv *commentViewer) AddPlugin(p *plugin) {
+	cv.addpgn <- p
+}
+
+func (cv *commentViewer) addPluginRoutine(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		select {
+		case t := <-cv.addpgn:
+			cv.Pgns = append(cv.Pgns, t)
+		case <-cv.Quit:
+			return
+		}
+	}
+}
+
+func (cv *commentViewer) CreateEvNewDialog(typ, title, desc string) {
 	t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
 		CtUIDialog{
 			Type:        typ,
@@ -73,7 +94,7 @@ func (cv *commentViewer) createEvNewDialog(typ, title, desc string) {
 			Description: desc,
 		})
 	if err != nil {
-		Logger.Println(err)
+		log.Println(err)
 	}
 	cv.Evch <- t
 }

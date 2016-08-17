@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"sync"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -17,19 +21,41 @@ const (
 )
 
 type plugin struct {
-	Name        string
-	Description string
-	Version     string
-	Auther      string
-	Exec        string
-	Method      string
-	Nagomever   string
-	Depends     []string
-	Rw          *bufio.ReadWriter
-	FlushTm     *time.Timer
+	Name        string            `yaml:"name"`
+	Description string            `yaml:"description"`
+	Version     string            `yaml:"version"`
+	Author      string            `yaml:"author"`
+	Method      string            `yaml:"method"`
+	Exec        string            `yaml:"exec"`
+	Nagomever   string            `yaml:"nagomever"`
+	Depends     []string          `yaml:"depends"`
+	Rw          *bufio.ReadWriter `yaml:"-"`
+	flushTm     *time.Timer
+	enablc      chan struct{}
+	no          int
 }
 
-func (pl *plugin) depend(pln string) bool {
+func (pl *plugin) Init(no int) {
+	pl.flushTm = time.NewTimer(time.Hour)
+	pl.enablc = make(chan struct{})
+	pl.no = no
+}
+
+func (pl *plugin) Enable() {
+	if pl.no == 0 {
+		log.Printf("plugin \"%s\" is not initialized\n", pl.Name)
+		return
+	}
+	if pl.Name == "" {
+		log.Printf("plugin \"%s\" no name is set\n", pl.Name)
+		return
+	}
+	close(pl.enablc)
+
+	return
+}
+
+func (pl *plugin) Depend(pln string) bool {
 	f := false
 	for _, d := range pl.Depends {
 		if d == pln {
@@ -40,21 +66,31 @@ func (pl *plugin) depend(pln string) bool {
 	return f
 }
 
+func (pl *plugin) No() int {
+	return pl.no
+}
+
 // eachPluginRw manages plugins IO. The number of its go routines is same as loaded plugins.
 func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	dec := json.NewDecoder(cv.Pgns[n].Rw)
-	mes := make(chan (*Message))
+	// wait for being enabled
+	select {
+	case <-cv.Pgns[n].enablc:
+	case <-cv.Quit:
+		return
+	}
 
 	// Run decoder.  It puts a message into "mes".
+	dec := json.NewDecoder(cv.Pgns[n].Rw)
+	mes := make(chan (*Message))
 	go func() {
 		for {
 			m := new(Message)
 			if err := dec.Decode(m); err != nil {
 				if err != io.EOF {
 					// TODO: emit error
-					Logger.Println(err)
+					log.Println(err)
 				}
 				m = nil
 			}
@@ -79,15 +115,15 @@ func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 				return
 			}
 
-			Logger.Println("plugin message [", cv.Pgns[n].Name, "] : ", m)
+			log.Println("plugin message [", cv.Pgns[n].Name, "] : ", m)
 			nicoerr := processPluginMessage(cv, m)
 			if nicoerr != nil {
-				Logger.Println("plugin message error [", cv.Pgns[n].Name, "] : ", nicoerr)
+				log.Println("plugin message error [", cv.Pgns[n].Name, "] : ", nicoerr)
 			}
 
 		// Flush plugin IO
-		case <-cv.Pgns[n].FlushTm.C:
-			Logger.Println("plugin ", n, " flushing")
+		case <-cv.Pgns[n].flushTm.C:
+			log.Println("plugin ", n, " flushing")
 			cv.Pgns[n].Rw.Flush()
 
 		case <-cv.Quit:
@@ -105,19 +141,19 @@ func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
 		case mes := <-cv.Evch:
 			jmes, err := json.Marshal(mes)
 			if err != nil {
-				Logger.Println(err)
+				log.Println(err)
 				continue
 			}
 			for _, plug := range cv.Pgns {
-				if plug.depend(mes.Domain) {
+				if plug.Depend(mes.Domain) {
 					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
 					if err != nil {
 						// TODO: emit error
 
-						Logger.Println(err)
+						log.Println(err)
 						continue
 					}
-					plug.FlushTm.Reset(pluginFlashWaitDu)
+					plug.flushTm.Reset(pluginFlashWaitDu)
 				}
 			}
 		case <-cv.Quit:
@@ -131,11 +167,11 @@ func pluginTCPServer(cv *commentViewer, wg *sync.WaitGroup) {
 	defer wg.Done()
 	adr, err := net.ResolveTCPAddr("tcp", ":"+tcpPort)
 	if err != nil {
-		Logger.Panicln(err)
+		log.Panicln(err)
 	}
 	l, err := net.ListenTCP("tcp", adr)
 	if err != nil {
-		Logger.Panicln(err)
+		log.Panicln(err)
 	}
 	defer l.Close()
 
@@ -149,7 +185,7 @@ func pluginTCPServer(cv *commentViewer, wg *sync.WaitGroup) {
 				if ok && nerr.Timeout() && nerr.Temporary() {
 					continue
 				}
-				Logger.Println(err)
+				log.Println(err)
 				continue
 			}
 			wg.Add(1)
@@ -165,6 +201,7 @@ func handleTCPPlugin(c net.Conn, cv *commentViewer, wg *sync.WaitGroup) {
 	defer c.Close()
 
 	rw := bufio.NewReadWriter(bufio.NewReader(c), bufio.NewWriter(c))
+
 	for {
 		select {
 		default:
@@ -175,11 +212,46 @@ func handleTCPPlugin(c net.Conn, cv *commentViewer, wg *sync.WaitGroup) {
 				continue
 			}
 			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnected", "plugin disconnected")
+				log.Println(err)
 				return
 			}
-			Logger.Println(b)
+			log.Println(b)
 		case <-cv.Quit:
 			return
 		}
 	}
+}
+
+func loadPlugins(filePath string) error {
+	// TODO
+	return nil
+}
+
+func (pl *plugin) loadPlugin(filePath string) error {
+	d, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(d, pl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pl *plugin) savePlugin(filePath string) error {
+	d, err := yaml.Marshal(pl)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filePath, d, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"path/filepath"
 	"regexp"
 
@@ -25,7 +26,7 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 				brdRg := regexp.MustCompile("(lv|co)\\d+")
 				broadMch := brdRg.FindString(ct.BroadID)
 				if broadMch == "" {
-					cv.createEvNewDialog(CtUIDialogTypeWarn,
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn,
 						"invalid BroadID", "no valid BroadID found in the ID text")
 					return nicolive.NicoErr(nicolive.NicoErrOther,
 						"invalid BroadID", "no valid BroadID found in the ID text")
@@ -37,12 +38,12 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 					return nicoerr
 				}
 				if cv.Cmm.IsConnected {
-					Logger.Println("Connected")
+					log.Println("Connected")
 					if nicoerr := cv.Cmm.Disconnect(); nicoerr != nil {
-						Logger.Println("discon err")
+						log.Println("discon err")
 						return nicoerr
 					}
-					Logger.Println("disconnected")
+					log.Println("disconnected")
 				}
 				if nicoerr := cv.Cmm.SetLv(cv.Lw); nicoerr != nil {
 					return nicoerr
@@ -50,7 +51,7 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 				if nicoerr := cv.Cmm.Connect(); nicoerr != nil {
 					return nicoerr
 				}
-				Logger.Println("connecting")
+				log.Println("connecting")
 
 			case CommQueryBroadSendComment:
 				var ct CtQueryBroadSendComment
@@ -60,7 +61,7 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 				}
 				nicoerr := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
 				if nicoerr != nil {
-					cv.createEvNewDialog(CtUIDialogTypeWarn, nicoerr.Code(), nicoerr.Description())
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn, nicoerr.Code(), nicoerr.Description())
 					return nicoerr
 				}
 
@@ -86,12 +87,12 @@ func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
 			case CommQueryAccountLogin:
 				nicoerr := cv.Ac.Login()
 				if nicoerr != nil {
-					cv.createEvNewDialog(CtUIDialogTypeWarn,
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn,
 						"login error", nicoerr.Description())
 					return nicoerr
 				}
-				Logger.Println("logged in")
-				cv.createEvNewDialog(CtUIDialogTypeInfo,
+				log.Println("logged in")
+				cv.CreateEvNewDialog(CtUIDialogTypeInfo,
 					"login succeeded", "login succeeded")
 
 			case CommQueryAccountSave:
