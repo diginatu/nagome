@@ -25,7 +25,7 @@ var (
 	debugToStderr bool
 	standAlone    bool
 	uiUseTCP      bool
-	uiPort        uint
+	tcpPort       string
 )
 
 func init() {
@@ -34,13 +34,13 @@ func init() {
 		findUserConfigPath(), "Set <string> to save directory.")
 	flag.BoolVar(&printHelp, "help", false, "Print this help.")
 	flag.BoolVar(&printHelp, "h", false, "Print this help. (shorthand)")
-	flag.BoolVar(&printVersion, "version", false, "Print version information.")
+	flag.BoolVar(&printVersion, "v", false, "Print version information.")
 	flag.BoolVar(&debugToStderr, "dbgtostd", false,
 		`Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
 	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (CUI).`)
 	flag.BoolVar(&uiUseTCP, "uitcp", false, `Use TCP connection for UI instead of stdin/out`)
-	flag.UintVar(&uiPort, "uiport", 8025, `Port to wait TCP server for UI. (see uitcp)`)
+	flag.StringVar(&tcpPort, "p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
 }
 
 // RunCli processes flags and io

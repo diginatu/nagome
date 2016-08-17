@@ -49,6 +49,9 @@ func (cv *commentViewer) runCommentViewer() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
+	go pluginTCPServer(cv, &wg)
+
+	wg.Add(1)
 	go sendPluginEvent(cv, &wg)
 
 	wg.Add(len(cv.Pgns))
