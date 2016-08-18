@@ -83,6 +83,8 @@ func RunCli() {
 			Exec:    fmt.Sprintf("./%s {{port}} {{num}}", *mkplug),
 		}
 		pl.savePlugin(filepath.Join(p, "plugin.yml"))
+
+		fmt.Printf("Create your plugin in : %s\n", p)
 		os.Exit(0)
 	}
 

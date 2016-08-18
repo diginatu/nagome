@@ -30,14 +30,14 @@ type plugin struct {
 	Nagomever   string            `yaml:"nagomever"`
 	Depends     []string          `yaml:"depends"`
 	Rw          *bufio.ReadWriter `yaml:"-"`
+	Enablc      chan struct{}     `yaml:"-"`
 	flushTm     *time.Timer
-	enablc      chan struct{}
 	no          int
 }
 
 func (pl *plugin) Init(no int) {
 	pl.flushTm = time.NewTimer(time.Hour)
-	pl.enablc = make(chan struct{})
+	pl.Enablc = make(chan struct{})
 	pl.no = no
 }
 
@@ -50,7 +50,7 @@ func (pl *plugin) Enable() {
 		log.Printf("plugin \"%s\" no name is set\n", pl.Name)
 		return
 	}
-	close(pl.enablc)
+	close(pl.Enablc)
 
 	return
 }
@@ -76,7 +76,7 @@ func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 
 	// wait for being enabled
 	select {
-	case <-cv.Pgns[n].enablc:
+	case <-cv.Pgns[n].Enablc:
 	case <-cv.Quit:
 		return
 	}

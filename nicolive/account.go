@@ -45,7 +45,7 @@ func (a *Account) Save(filePath string) error {
 	return nil
 }
 
-// Load lead from a file and returns a pointer to Account
+// Load reads from a file and sets values
 func (a *Account) Load(filePath string) error {
 	d, err := ioutil.ReadFile(filePath)
 	if err != nil {
