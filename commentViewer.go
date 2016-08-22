@@ -2,7 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/diginatu/nagome/nicolive"
@@ -37,21 +43,21 @@ func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
 
 // A commentViewer is a pair of an Account and a LiveWaku.
 type commentViewer struct {
-	Ac     *nicolive.Account
-	Lw     *nicolive.LiveWaku
-	Cmm    *nicolive.CommentConnection
-	Pgns   []*plugin
-	Evch   chan *Message
-	Quit   chan struct{}
-	addpgn chan *plugin
+	Ac      *nicolive.Account
+	Lw      *nicolive.LiveWaku
+	Cmm     *nicolive.CommentConnection
+	Pgns    []*plugin
+	TCPPort string
+	Evch    chan *Message
+	Quit    chan struct{}
 }
 
 func (cv *commentViewer) Run() {
 	defer cv.Cmm.Disconnect()
-	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go cv.addPluginRoutine(&wg)
+	cv.loadPlugins()
+
+	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go pluginTCPServer(cv, &wg)
@@ -71,19 +77,56 @@ func (cv *commentViewer) Run() {
 }
 
 func (cv *commentViewer) AddPlugin(p *plugin) {
-	cv.addpgn <- p
+	cv.Pgns = append(cv.Pgns, p)
+	p.Init(len(cv.Pgns))
 }
 
-func (cv *commentViewer) addPluginRoutine(wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case t := <-cv.addpgn:
-			cv.Pgns = append(cv.Pgns, t)
-		case <-cv.Quit:
-			return
+func (cv *commentViewer) loadPlugins() error {
+	psPath := filepath.Join(App.SavePath, pluginDirName)
+
+	ds, err := ioutil.ReadDir(psPath)
+	if err != nil {
+		return err
+	}
+
+	for _, d := range ds {
+		if d.IsDir() {
+			fmt.Println(d.Name())
+			p := new(plugin)
+			pPath := filepath.Join(psPath, d.Name())
+			err = p.loadPlugin(filepath.Join(pPath, "plugin.yml"))
+			if err != nil {
+				log.Println("failed load plugin : ", d.Name())
+				log.Println(err)
+				continue
+			}
+
+			cv.AddPlugin(p)
+
+			for i := range p.Exec {
+				p.Exec[i] = strings.Replace(p.Exec[i], "{{path}}", pPath, -1)
+				p.Exec[i] = strings.Replace(p.Exec[i], "{{port}}", cv.TCPPort, -1)
+				p.Exec[i] = strings.Replace(p.Exec[i], "{{no}}", strconv.Itoa(p.No()), -1)
+			}
+
+			switch p.Method {
+			case pluginMethodTCP:
+				if len(p.Exec) > 1 {
+					cmd := exec.Command(p.Exec[0], p.Exec[1:]...)
+					err := cmd.Start()
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+			case pluginMethodStd:
+			default:
+			}
+
+			log.Println(p)
 		}
 	}
+
+	return nil
 }
 
 func (cv *commentViewer) CreateEvNewDialog(typ, title, desc string) {

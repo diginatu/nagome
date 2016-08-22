@@ -17,7 +17,9 @@ import (
 const (
 	pluginFlashWaitDu time.Duration = 200 * time.Millisecond
 
-	pluginNameMain string = "main"
+	pluginNameMain  string = "main"
+	pluginMethodTCP        = "tcp"
+	pluginMethodStd        = "std"
 )
 
 type plugin struct {
@@ -26,7 +28,7 @@ type plugin struct {
 	Version     string            `yaml:"version"`
 	Author      string            `yaml:"author"`
 	Method      string            `yaml:"method"`
-	Exec        string            `yaml:"exec"`
+	Exec        []string          `yaml:"exec"`
 	Nagomever   string            `yaml:"nagomever"`
 	Depends     []string          `yaml:"depends"`
 	Rw          *bufio.ReadWriter `yaml:"-"`
@@ -37,7 +39,7 @@ type plugin struct {
 
 func (pl *plugin) Init(no int) {
 	pl.flushTm = time.NewTimer(time.Hour)
-	pl.Enablc = make(chan struct{})
+	pl.Enablc = make(chan struct{}, 1)
 	pl.no = no
 }
 
@@ -50,7 +52,7 @@ func (pl *plugin) Enable() {
 		log.Printf("plugin \"%s\" no name is set\n", pl.Name)
 		return
 	}
-	close(pl.Enablc)
+	pl.Enablc <- struct{}{}
 
 	return
 }
@@ -89,8 +91,14 @@ func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 			m := new(Message)
 			if err := dec.Decode(m); err != nil {
 				if err != io.EOF {
-					// TODO: emit error
-					log.Println(err)
+					select {
+					// ignore if quitting
+					case <-cv.Quit:
+					default:
+						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin discconect",
+							fmt.Sprintf("plugin [%s] : connection desconnected", cv.Pgns[n].Name))
+						log.Println(err)
+					}
 				}
 				m = nil
 			}
@@ -165,7 +173,7 @@ func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
 
 func pluginTCPServer(cv *commentViewer, wg *sync.WaitGroup) {
 	defer wg.Done()
-	adr, err := net.ResolveTCPAddr("tcp", ":"+tcpPort)
+	adr, err := net.ResolveTCPAddr("tcp", ":"+cv.TCPPort)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -202,30 +210,35 @@ func handleTCPPlugin(c net.Conn, cv *commentViewer, wg *sync.WaitGroup) {
 
 	rw := bufio.NewReadWriter(bufio.NewReader(c), bufio.NewWriter(c))
 
-	for {
-		select {
-		default:
-			c.SetReadDeadline(time.Now().Add(time.Second))
-			b, _, err := rw.ReadLine()
-			nerr, ok := err.(net.Error)
-			if ok && nerr.Timeout() && nerr.Temporary() {
-				continue
-			}
-			if err != nil {
-				cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnected", "plugin disconnected")
-				log.Println(err)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			default:
+				dec := json.NewDecoder(rw)
+				var ct CtQueryPluginNo
+				err := dec.Decode(&ct)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				n := ct.No - 1
+				cv.Pgns[n].Rw = rw
+				cv.Pgns[n].Enable()
+				log.Println(cv.Pgns[n])
+				break
+
+			case <-cv.Quit:
 				return
 			}
-			log.Println(b)
-		case <-cv.Quit:
-			return
+			break
 		}
-	}
-}
 
-func loadPlugins(filePath string) error {
-	// TODO
-	return nil
+	}()
+
+	<-cv.Quit
 }
 
 func (pl *plugin) loadPlugin(filePath string) error {

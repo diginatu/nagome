@@ -83,6 +83,12 @@ const (
 //
 // Contents in the Message API
 
+// CtQueryPluginNo is content of QueryPluginNo
+// only for TCP at first time
+type CtQueryPluginNo struct {
+	No int
+}
+
 // CtQueryBroadConnect is content of QueryBroadConnect
 type CtQueryBroadConnect struct {
 	BroadID string

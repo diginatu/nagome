@@ -16,46 +16,39 @@ const (
 	eventBufferSize = 5
 	accountFileName = "account.yml"
 	logFileName     = "info.log"
-)
-
-var (
-	printVersion  bool
-	printHelp     bool
-	debugToStderr bool
-	standAlone    bool
-	uiUseTCP      bool
-	tcpPort       string
+	pluginDirName   = "plugin"
 )
 
 func init() {
-	// set command line options
-	flag.StringVar(&App.SavePath, "savepath",
-		findUserConfigPath(), "Set <string> to save directory.")
-	flag.BoolVar(&printHelp, "help", false, "Print this help.")
-	flag.BoolVar(&printHelp, "h", false, "Print this help. (shorthand)")
-	flag.BoolVar(&printVersion, "v", false, "Print version information.")
-	flag.BoolVar(&debugToStderr, "dbgtostd", false,
-		`Output debug information to stderr.
-	(in default, output to the log file in the save directory)`)
-	flag.BoolVar(&standAlone, "standalone", false, `Run in stand alone mode (CUI).`)
-	flag.BoolVar(&uiUseTCP, "uitcp", false, `Use TCP connection for UI instead of stdin/out`)
-	flag.StringVar(&tcpPort, "p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
 }
 
 // RunCli processes flags and io
 func RunCli() {
+	// set command line options
+	flag.StringVar(&App.SavePath, "savepath",
+		findUserConfigPath(), "Set <string> to save directory.")
+	tcpPort := flag.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
+	debugToStderr := flag.Bool("dbgtostd", false,
+		`Output debug information to stderr.
+	(in default, output to the log file in the save directory)`)
+	standAlone := flag.Bool("standalone", false, `Run in stand alone mode (CUI).`)
+	uiUseTCP := flag.Bool("uitcp", false, `Use TCP connection for UI instead of stdin/out`)
+	printHelp := flag.Bool("help", false, "Print this help.")
+	printHelp = flag.Bool("h", false, "Print this help. (shorthand)")
+	printVersion := flag.Bool("v", false, "Print version information.")
+
 	log.SetFlags(log.Lshortfile | log.Ltime)
 	mkplug := flag.String("makeplug", "", "Make new plugin template with given name.")
 
 	flag.Parse()
 
-	pluginPath := filepath.Join(App.SavePath, "plugin")
+	pluginPath := filepath.Join(App.SavePath, pluginDirName)
 
-	if printHelp {
+	if *printHelp {
 		flag.Usage()
 		os.Exit(0)
 	}
-	if printVersion {
+	if *printVersion {
 		fmt.Println(App.Name, " ", App.Version)
 		os.Exit(0)
 	}
@@ -65,10 +58,7 @@ func RunCli() {
 		// check if the directory already exists
 		_, err := os.Stat(p)
 		if err == nil {
-			log.Fatalln("Same name of plugin directory is already exists.")
-		}
-		if !os.IsNotExist(err) {
-			log.Fatalln(err)
+			log.Fatalln("Same name directory is already exists.")
 		}
 
 		if err := os.MkdirAll(p, 0777); err != nil {
@@ -80,7 +70,7 @@ func RunCli() {
 			Version: "1.0",
 			Depends: []string{DomainNagome},
 			Method:  "tcp",
-			Exec:    fmt.Sprintf("./%s {{port}} {{num}}", *mkplug),
+			Exec:    []string{"{{path}}/" + *mkplug, "{{port}}", "{{no}}"},
 		}
 		pl.savePlugin(filepath.Join(p, "plugin.yml"))
 
@@ -94,7 +84,7 @@ func RunCli() {
 
 	// set log
 	var file *os.File
-	if debugToStderr {
+	if *debugToStderr {
 		file = os.Stderr
 	} else {
 		var err error
@@ -106,10 +96,10 @@ func RunCli() {
 	defer file.Close()
 	log.SetOutput(file)
 
-	if standAlone {
+	if *standAlone {
 		standAloneMode()
 	} else {
-		clientMode()
+		clientMode(*uiUseTCP, tcpPort)
 	}
 
 }
@@ -167,7 +157,7 @@ func standAloneMode() {
 	}
 }
 
-func clientMode() {
+func clientMode(uiUseTCP bool, tcpPort *string) {
 	var plugs []*plugin
 
 	// add main plugin
@@ -200,10 +190,11 @@ func clientMode() {
 
 	var l nicolive.LiveWaku
 	var cv = commentViewer{
-		Ac:   &ac,
-		Pgns: plugs,
-		Evch: make(chan *Message, eventBufferSize),
-		Quit: make(chan struct{}),
+		Ac:      &ac,
+		Pgns:    plugs,
+		TCPPort: *tcpPort,
+		Evch:    make(chan *Message, eventBufferSize),
+		Quit:    make(chan struct{}),
 	}
 	eventReceiver := &commentEventEmit{cv: &cv}
 	cv.Cmm = nicolive.NewCommentConnection(&l, eventReceiver)
