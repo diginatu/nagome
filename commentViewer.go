@@ -108,8 +108,27 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 	switch ev.Type {
 	case nicolive.EventTypeGot:
-		content, _ = json.Marshal(ev.Content.(nicolive.Comment))
+		cm := ev.Content.(nicolive.Comment)
+		ct := CtCommentAdd{
+			No:            cm.No,
+			Date:          cm.Date,
+			UserID:        cm.UserID,
+			Comment:       cm.Comment,
+			IsPremium:     cm.IsPremium,
+			IsBroadcaster: cm.IsCommand,
+			IsStaff:       cm.IsStaff,
+			IsAnonymity:   cm.IsAnonymity,
+			Score:         cm.Score,
+		}
+		if cm.IsCommand {
+			ct.UserName = "Broadcaster"
+		} else {
+			ct.UserName = ""
+		}
+
+		content, _ = json.Marshal(ct)
 		command = CommCommentAdd
+
 	case nicolive.EventTypeErr:
 		log.Println(ev)
 		return

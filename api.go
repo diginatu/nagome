@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/diginatu/nagome/nicolive"
 )
@@ -104,7 +105,18 @@ type CtQueryBroadSendComment struct {
 type CtQueryAccountSet nicolive.Account
 
 // A CtCommentAdd is a content of got comment
-type CtCommentAdd nicolive.Comment
+type CtCommentAdd struct {
+	No            int
+	Date          time.Time
+	UserID        string
+	UserName      string
+	Comment       string // html format
+	IsPremium     bool
+	IsBroadcaster bool
+	IsStaff       bool
+	IsAnonymity   bool
+	Score         int
+}
 
 // CtUIDialog is content of dialog that nagome ask to open
 type CtUIDialog struct {
