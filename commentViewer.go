@@ -89,8 +89,6 @@ func (cv *CommentViewer) loadPlugins() error {
 			case pluginMethodStd:
 			default:
 			}
-
-			log.Println(p)
 		}
 	}
 

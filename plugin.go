@@ -229,7 +229,12 @@ func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
 				var ct CtQueryPluginNo
 				err := dec.Decode(&ct)
 				if err != nil {
-					log.Println(err)
+					// ignore if quitting
+					select {
+					case <-cv.Quit:
+					default:
+						log.Println(err)
+					}
 					close(errc)
 					return
 				}

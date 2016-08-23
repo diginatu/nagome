@@ -202,8 +202,14 @@ func (cc *CommentConnection) receiveStream() {
 		case <-cc.termc:
 			return
 		default:
+			cc.sock.SetReadDeadline(time.Now().Add(time.Second))
 			commxml, err := cc.rw.ReadString('\x00')
 			if err != nil {
+				nerr, ok := err.(net.Error)
+				if ok && nerr.Timeout() && nerr.Temporary() {
+					continue
+				}
+
 				if cc.IsConnected {
 					go cc.Disconnect()
 				}
@@ -485,11 +491,12 @@ func (cc *CommentConnection) Disconnect() NicoError {
 	cc.keepAliveTmr.Stop()
 	cc.postKeyTmr.Stop()
 	cc.heartbeatTmr.Stop()
-	cc.sock.Close()
 
 	for i := 0; i < numCommentConnectionRoutines; i++ {
 		cc.termc <- true
 	}
+
+	cc.sock.Close()
 
 	cc.ev.ProceedNicoEvent(&Event{
 		Type:    EventTypeClose,
