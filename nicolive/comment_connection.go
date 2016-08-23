@@ -207,7 +207,7 @@ func (cc *CommentConnection) receiveStream() {
 				if cc.IsConnected {
 					go cc.Disconnect()
 				}
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErrFromStdErr(err),
 				})
@@ -221,7 +221,7 @@ func (cc *CommentConnection) receiveStream() {
 			commxmlr := strings.NewReader(commxml)
 			rt, err := xmlpath.Parse(commxmlr)
 			if err != nil {
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErrFromStdErr(err),
 				})
@@ -245,7 +245,7 @@ func (cc *CommentConnection) receiveStream() {
 				cc.postKeyTmr.Reset(0)
 				cc.heartbeatTmr.Reset(0)
 
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeOpen,
 					Content: nil,
 				})
@@ -255,13 +255,13 @@ func (cc *CommentConnection) receiveStream() {
 			if strings.HasPrefix(commxml, "<chat_result ") {
 				if v, ok := xmlpath.MustCompile("/chat_result/@status").String(rt); ok {
 					if v != "0" {
-						cc.ev.Proceed(&Event{
+						cc.ev.ProceedNicoEvent(&Event{
 							Type:    EventTypeErr,
 							Content: NicoErr(NicoErrSendComment, "comment send error (chat_result status)", v),
 						})
 						continue
 					}
-					cc.ev.Proceed(&Event{
+					cc.ev.ProceedNicoEvent(&Event{
 						Type:    EventTypeSend,
 						Content: nil,
 					})
@@ -315,7 +315,7 @@ func (cc *CommentConnection) receiveStream() {
 					cc.postKeyTmr.Reset(0)
 				}
 
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeGot,
 					Content: comment,
 				})
@@ -323,7 +323,7 @@ func (cc *CommentConnection) receiveStream() {
 				if comment.IsCommand && comment.Comment == "/disconnect" {
 					go cc.Disconnect()
 
-					cc.ev.Proceed(&Event{
+					cc.ev.ProceedNicoEvent(&Event{
 						Type:    EventTypeWakuEnd,
 						Content: *cc.lv,
 					})
@@ -351,7 +351,7 @@ func (cc *CommentConnection) timer() {
 			}
 			cc.wmu.Unlock()
 			if err != nil {
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: NicoErr(NicoErrConnection, "keep alive", err.Error()),
 				})
@@ -361,7 +361,7 @@ func (cc *CommentConnection) timer() {
 			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.FetchPostKey()
 			if nerr != nil {
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
 				})
@@ -371,13 +371,13 @@ func (cc *CommentConnection) timer() {
 			cc.heartbeatTmr.Reset(heartbeatDuration)
 			hbv, nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
-				cc.ev.Proceed(&Event{
+				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
 				})
 				continue
 			}
-			cc.ev.Proceed(&Event{
+			cc.ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeHeartBeatGot,
 				Content: hbv,
 			})
@@ -491,7 +491,7 @@ func (cc *CommentConnection) Disconnect() NicoError {
 		cc.termc <- true
 	}
 
-	cc.ev.Proceed(&Event{
+	cc.ev.ProceedNicoEvent(&Event{
 		Type:    EventTypeClose,
 		Content: nil,
 	})

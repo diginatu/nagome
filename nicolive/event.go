@@ -45,11 +45,11 @@ func (e *Event) String() string {
 
 // EventReceiver receive events and proceed
 type EventReceiver interface {
-	Proceed(*Event)
+	ProceedNicoEvent(*Event)
 }
 
 type defaultEventReceiver struct{}
 
-func (der defaultEventReceiver) Proceed(ev *Event) {
+func (der defaultEventReceiver) ProceedNicoEvent(ev *Event) {
 	fmt.Println(caller(3), ":", ev)
 }

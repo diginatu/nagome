@@ -9,7 +9,7 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
-func processPluginMessage(cv *commentViewer, m *Message) nicolive.NicoError {
+func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 	if m.Domain == "Nagome" {
 		switch m.Func {
 

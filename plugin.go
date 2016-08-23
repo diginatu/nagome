@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -43,7 +42,7 @@ func (pl *plugin) Init(no int) {
 	pl.no = no
 }
 
-func (pl *plugin) Enable() {
+func (pl *plugin) Enable(cv *CommentViewer) {
 	if pl.no == 0 {
 		log.Printf("plugin \"%s\" is not initialized\n", pl.Name)
 		return
@@ -53,6 +52,9 @@ func (pl *plugin) Enable() {
 		return
 	}
 	pl.Enablc <- struct{}{}
+
+	cv.wg.Add(1)
+	go eachPluginRw(cv, pl.no-1)
 
 	return
 }
@@ -72,9 +74,9 @@ func (pl *plugin) No() int {
 	return pl.no
 }
 
-// eachPluginRw manages plugins IO. The number of its go routines is same as loaded plugins.
-func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
-	defer wg.Done()
+// eachPluginRw manages plugins IO. It is launched when a plugin is leaded.
+func eachPluginRw(cv *CommentViewer, n int) {
+	defer cv.wg.Done()
 
 	// wait for being enabled
 	select {
@@ -100,11 +102,15 @@ func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 						log.Println(err)
 					}
 				}
+				cv.Pgns[n].Rw = nil
 				m = nil
 			}
 
 			select {
 			case mes <- m:
+				if m == nil {
+					return
+				}
 			case <-cv.Quit:
 				return
 			}
@@ -140,8 +146,8 @@ func eachPluginRw(cv *commentViewer, n int, wg *sync.WaitGroup) {
 	}
 }
 
-func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
-	defer wg.Done()
+func sendPluginEvent(cv *CommentViewer) {
+	defer cv.wg.Done()
 
 	for {
 		select {
@@ -153,7 +159,7 @@ func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
 				continue
 			}
 			for _, plug := range cv.Pgns {
-				if plug.Depend(mes.Domain) {
+				if plug.Rw != nil && plug.Depend(mes.Domain) {
 					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
 					if err != nil {
 						// TODO: emit error
@@ -171,8 +177,9 @@ func sendPluginEvent(cv *commentViewer, wg *sync.WaitGroup) {
 	}
 }
 
-func pluginTCPServer(cv *commentViewer, wg *sync.WaitGroup) {
-	defer wg.Done()
+func pluginTCPServer(cv *CommentViewer) {
+	defer cv.wg.Done()
+
 	adr, err := net.ResolveTCPAddr("tcp", ":"+cv.TCPPort)
 	if err != nil {
 		log.Panicln(err)
@@ -196,23 +203,25 @@ func pluginTCPServer(cv *commentViewer, wg *sync.WaitGroup) {
 				log.Println(err)
 				continue
 			}
-			wg.Add(1)
-			go handleTCPPlugin(conn, cv, wg)
+			cv.wg.Add(1)
+			go handleTCPPlugin(conn, cv)
 		case <-cv.Quit:
 			return
 		}
 	}
 }
 
-func handleTCPPlugin(c net.Conn, cv *commentViewer, wg *sync.WaitGroup) {
-	defer wg.Done()
+func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
+	defer cv.wg.Done()
 	defer c.Close()
 
 	rw := bufio.NewReadWriter(bufio.NewReader(c), bufio.NewWriter(c))
 
-	wg.Add(1)
+	errc := make(chan struct{})
+
+	cv.wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer cv.wg.Done()
 		for {
 			select {
 			default:
@@ -221,13 +230,24 @@ func handleTCPPlugin(c net.Conn, cv *commentViewer, wg *sync.WaitGroup) {
 				err := dec.Decode(&ct)
 				if err != nil {
 					log.Println(err)
+					close(errc)
 					return
 				}
 
 				n := ct.No - 1
+				if n < 0 || n >= len(cv.Pgns) {
+					log.Println("received invalid plugin No.")
+					close(errc)
+					return
+				}
+				if cv.Pgns[n].Rw != nil {
+					log.Println("plugin is already connected")
+					close(errc)
+					return
+				}
 				cv.Pgns[n].Rw = rw
-				cv.Pgns[n].Enable()
-				log.Println(cv.Pgns[n])
+				cv.Pgns[n].Enable(cv)
+				log.Println("loaded plugin ", cv.Pgns[n])
 				break
 
 			case <-cv.Quit:
@@ -238,7 +258,11 @@ func handleTCPPlugin(c net.Conn, cv *commentViewer, wg *sync.WaitGroup) {
 
 	}()
 
-	<-cv.Quit
+	// wait for quitting or error in above go routine
+	select {
+	case <-errc:
+	case <-cv.Quit:
+	}
 }
 
 func (pl *plugin) loadPlugin(filePath string) error {

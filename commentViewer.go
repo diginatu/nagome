@@ -14,35 +14,8 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
-// commentEventEmit will receive comment events and emits commentViewer events.
-type commentEventEmit struct {
-	cv *commentViewer
-}
-
-func (der *commentEventEmit) Proceed(ev *nicolive.Event) {
-	var content []byte
-	var command string
-
-	switch ev.Type {
-	case nicolive.EventTypeGot:
-		content, _ = json.Marshal(ev.Content.(nicolive.Comment))
-		command = CommCommentAdd
-	default:
-		log.Println(ev.String())
-	}
-
-	if command != "" {
-		der.cv.Evch <- &Message{
-			Domain:  DomainNagome,
-			Func:    FuncComment,
-			Command: command,
-			Content: content,
-		}
-	}
-}
-
-// A commentViewer is a pair of an Account and a LiveWaku.
-type commentViewer struct {
+// A CommentViewer is a pair of an Account and a LiveWaku.
+type CommentViewer struct {
 	Ac      *nicolive.Account
 	Lw      *nicolive.LiveWaku
 	Cmm     *nicolive.CommentConnection
@@ -50,38 +23,33 @@ type commentViewer struct {
 	TCPPort string
 	Evch    chan *Message
 	Quit    chan struct{}
+	wg      sync.WaitGroup
 }
 
-func (cv *commentViewer) Run() {
+// Run run the CommentViewer and start connecting plugins
+func (cv *CommentViewer) Run() {
 	defer cv.Cmm.Disconnect()
 
 	cv.loadPlugins()
 
-	var wg sync.WaitGroup
+	cv.wg.Add(1)
+	go pluginTCPServer(cv)
 
-	wg.Add(1)
-	go pluginTCPServer(cv, &wg)
+	cv.wg.Add(1)
+	go sendPluginEvent(cv)
 
-	wg.Add(1)
-	go sendPluginEvent(cv, &wg)
-
-	wg.Add(len(cv.Pgns))
-	for i, pg := range cv.Pgns {
-		log.Println(pg.Name)
-		go eachPluginRw(cv, i, &wg)
-	}
-
-	wg.Wait()
+	cv.wg.Wait()
 
 	return
 }
 
-func (cv *commentViewer) AddPlugin(p *plugin) {
+// AddPlugin adds new plugin to Pgns
+func (cv *CommentViewer) AddPlugin(p *plugin) {
 	cv.Pgns = append(cv.Pgns, p)
 	p.Init(len(cv.Pgns))
 }
 
-func (cv *commentViewer) loadPlugins() error {
+func (cv *CommentViewer) loadPlugins() error {
 	psPath := filepath.Join(App.SavePath, pluginDirName)
 
 	ds, err := ioutil.ReadDir(psPath)
@@ -129,7 +97,33 @@ func (cv *commentViewer) loadPlugins() error {
 	return nil
 }
 
-func (cv *commentViewer) CreateEvNewDialog(typ, title, desc string) {
+// ProceedNicoEvent will receive events and emits it.
+func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
+	var content []byte
+	var command string
+
+	switch ev.Type {
+	case nicolive.EventTypeGot:
+		content, _ = json.Marshal(ev.Content.(nicolive.Comment))
+		command = CommCommentAdd
+	case nicolive.EventTypeErr:
+		log.Println(ev)
+		return
+	default:
+		log.Println(ev)
+		return
+	}
+
+	cv.Evch <- &Message{
+		Domain:  DomainNagome,
+		Func:    FuncComment,
+		Command: command,
+		Content: content,
+	}
+}
+
+// CreateEvNewDialog emits new event for ask UI to display dialog.
+func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
 	t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
 		CtUIDialog{
 			Type:        typ,

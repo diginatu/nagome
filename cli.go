@@ -158,7 +158,16 @@ func standAloneMode() {
 }
 
 func clientMode(uiUseTCP bool, tcpPort *string) {
-	var plugs []*plugin
+	var cv = CommentViewer{
+		Ac:      new(nicolive.Account),
+		TCPPort: *tcpPort,
+		Evch:    make(chan *Message, eventBufferSize),
+		Quit:    make(chan struct{}),
+	}
+	cv.Cmm = nicolive.NewCommentConnection(new(nicolive.LiveWaku), &cv)
+
+	// load account data
+	cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
 
 	// add main plugin
 	var plug *plugin
@@ -181,23 +190,9 @@ func clientMode(uiUseTCP bool, tcpPort *string) {
 				bufio.NewWriter(os.Stdout)),
 		}
 		plug.Init(1)
-		plug.Enable()
+		plug.Enable(&cv)
 	}
-	plugs = append(plugs, plug)
-
-	var ac nicolive.Account
-	ac.Load(filepath.Join(App.SavePath, accountFileName))
-
-	var l nicolive.LiveWaku
-	var cv = commentViewer{
-		Ac:      &ac,
-		Pgns:    plugs,
-		TCPPort: *tcpPort,
-		Evch:    make(chan *Message, eventBufferSize),
-		Quit:    make(chan struct{}),
-	}
-	eventReceiver := &commentEventEmit{cv: &cv}
-	cv.Cmm = nicolive.NewCommentConnection(&l, eventReceiver)
+	cv.Pgns = append(cv.Pgns, plug)
 
 	cv.Run()
 }

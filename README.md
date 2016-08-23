@@ -31,6 +31,9 @@ Tasks
 
  - [ ] simplify nicoerr
  - [ ] translation function
- - [ ] normal plugin support
- - [ ] TCP connection with plugins
+ - [ ] document (plugin)
+ - [ ] std connection with normal plugins
+ - [ ] function for NicoLive
+    - [ ] getting user name and storing
+    - [ ] alert connection
 
