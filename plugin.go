@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os/exec"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -268,6 +269,40 @@ func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
 	case <-errc:
 	case <-cv.Quit:
 	}
+}
+
+func handleSTDPlugin(p *plugin, cv *CommentViewer) {
+	defer cv.wg.Done()
+
+	if len(p.Exec) < 1 {
+		log.Printf("exec is not specified in plugin [%s]\n", p.Name)
+		return
+	}
+
+	cmd := exec.Command(p.Exec[0], p.Exec[1:]...)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer stdin.Close()
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer stdout.Close()
+	err = cmd.Start()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	p.Rw = bufio.NewReadWriter(bufio.NewReader(stdout), bufio.NewWriter(stdin))
+	p.Enable(cv)
+	log.Println("loaded plugin ", p)
+
+	<-cv.Quit
 }
 
 func (pl *plugin) loadPlugin(filePath string) error {

@@ -49,12 +49,13 @@ func (cv *CommentViewer) AddPlugin(p *plugin) {
 	p.Init(len(cv.Pgns))
 }
 
-func (cv *CommentViewer) loadPlugins() error {
+func (cv *CommentViewer) loadPlugins() {
 	psPath := filepath.Join(App.SavePath, pluginDirName)
 
 	ds, err := ioutil.ReadDir(psPath)
 	if err != nil {
-		return err
+		log.Println(err)
+		return
 	}
 
 	for _, d := range ds {
@@ -79,20 +80,25 @@ func (cv *CommentViewer) loadPlugins() error {
 
 			switch p.Method {
 			case pluginMethodTCP:
-				if len(p.Exec) > 1 {
+				if len(p.Exec) >= 1 {
 					cmd := exec.Command(p.Exec[0], p.Exec[1:]...)
 					err := cmd.Start()
 					if err != nil {
-						log.Fatal(err)
+						log.Println(err)
+						continue
 					}
 				}
 			case pluginMethodStd:
+				cv.wg.Add(1)
+				go handleSTDPlugin(p, cv)
 			default:
+				log.Printf("invalid method in plugin [%s]\n", p.Name)
+				continue
 			}
 		}
 	}
 
-	return nil
+	return
 }
 
 // ProceedNicoEvent will receive events and emits it.
