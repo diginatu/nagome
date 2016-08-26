@@ -135,7 +135,7 @@ func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 func (cc *CommentConnection) SetLv(l *LiveWaku) Error {
 	if cc.IsConnected {
 		return MakeError(ErrOther,
-			"connected", "lv can not be changed while connecting to the server")
+			"already connected.\nlv can not be changed while it's connected")
 	}
 
 	cc.lv = l
@@ -180,7 +180,7 @@ func (cc *CommentConnection) open() Error {
 // Connect Connect to nicolive and start receiving comment
 func (cc *CommentConnection) Connect() Error {
 	if cc.IsConnected {
-		return MakeError(ErrOther, "already connected", "")
+		return MakeError(ErrOther, "already connected")
 	}
 	cc.IsConnected = true
 
@@ -263,7 +263,7 @@ func (cc *CommentConnection) receiveStream() {
 					if v != "0" {
 						cc.ev.ProceedNicoEvent(&Event{
 							Type:    EventTypeErr,
-							Content: MakeError(ErrSendComment, "comment send error (chat_result status)", v),
+							Content: MakeError(ErrSendComment, "comment send error. chat_result status : "+v),
 						})
 						continue
 					}
@@ -359,7 +359,7 @@ func (cc *CommentConnection) timer() {
 			if err != nil {
 				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
-					Content: MakeError(ErrConnection, "keep alive", err.Error()),
+					Content: MakeError(ErrConnection, "keep alive : "+err.Error()),
 				})
 				continue
 			}
@@ -394,12 +394,10 @@ func (cc *CommentConnection) timer() {
 // FetchPostKey gets postkey using getpostkey API
 func (cc *CommentConnection) FetchPostKey() Error {
 	if cc.lv.Account == nil {
-		return MakeError(ErrOther, "no account",
-			"LiveWaku does not have an account")
+		return MakeError(ErrOther, "nil account in LiveWaku")
 	}
 	if cc.lv.BroadID == "" {
-		return MakeError(ErrOther, "no BroadID",
-			"BroadID is not set")
+		return MakeError(ErrOther, "BroadID is not set")
 	}
 
 	c, nicoerr := NewNicoClient(cc.lv.Account)
@@ -423,7 +421,7 @@ func (cc *CommentConnection) FetchPostKey() Error {
 
 	pk := string(allb[8:])
 	if pk == "" {
-		return MakeError(ErrOther, "failed to get postkey", "")
+		return MakeError(ErrOther, "failed to get postkey")
 	}
 
 	cc.lv.PostKey = pk
@@ -434,13 +432,13 @@ func (cc *CommentConnection) FetchPostKey() Error {
 // SendComment sends comment to current comment connection
 func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 	if !cc.IsConnected {
-		return MakeError(ErrOther, "not connected", "not connected")
+		return MakeError(ErrOther, "not connected")
 	}
 	if cc.lv.PostKey == "" {
-		return MakeError(ErrOther, "no postkey in livewaku", "no postkey in livewaku")
+		return MakeError(ErrOther, "no postkey in livewaku")
 	}
 	if text == "" {
-		return MakeError(ErrOther, "empty text", "empty text")
+		return MakeError(ErrOther, "empty text")
 	}
 
 	vpos := 100 *
@@ -484,7 +482,7 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 // terminate all goroutines and wait to exit
 func (cc *CommentConnection) Disconnect() Error {
 	if !cc.IsConnected {
-		return MakeError(ErrOther, "not connected yet", "")
+		return MakeError(ErrOther, "not connected yet")
 	}
 	cc.IsConnected = false
 

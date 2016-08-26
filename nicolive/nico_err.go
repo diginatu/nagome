@@ -53,7 +53,7 @@ func (n ErrStruct) Where() string {
 
 // MakeError returns Error that format as the given info
 // and the code position.
-func MakeError(errNum ErrNum, code string, description string) Error {
+func MakeError(errNum ErrNum, description string) Error {
 	where := caller(2)
 	return &ErrStruct{errNum, description, where}
 }

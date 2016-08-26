@@ -11,8 +11,6 @@ import (
 type Message struct {
 	// Domain that includes following parameters
 	Domain string
-	// Function
-	Func string
 	// Command
 	Command string
 	// Elements type of Content is depend on witch Command is used
@@ -20,7 +18,7 @@ type Message struct {
 }
 
 // NewMessage returns new Message with the given values.
-func NewMessage(dom, fun, com string, con interface{}) (*Message, error) {
+func NewMessage(dom, com string, con interface{}) (*Message, error) {
 	conj, err := json.Marshal(con)
 	if err != nil {
 		return nil, err
@@ -28,7 +26,6 @@ func NewMessage(dom, fun, com string, con interface{}) (*Message, error) {
 
 	m := &Message{
 		Domain:  dom,
-		Func:    fun,
 		Command: com,
 		Content: conj,
 	}
@@ -37,47 +34,31 @@ func NewMessage(dom, fun, com string, con interface{}) (*Message, error) {
 
 // Dimain names
 const (
-	DomainNagome string = "nagome"
-)
-
-// Func names
-const (
-	// Queries
-
-	FuncQueryBroad   string = "QueryBroad"
-	FuncQueryAccount        = "QueryAccount"
-
-	// Events
-
-	// FuncComment is about a comment connection for an account and a broadcast
-	FuncComment = "Comment"
-
-	// FuncOpen is an event (request) for UI
-	FuncUI = "UI"
+	DomainNagome  string = "nagome"
+	DomainQuery          = "nagome_query"
+	DomainComment        = "nagome_comment"
+	DomainUI             = "nagome_ui"
 )
 
 // Command names
 const (
-	// Queries
+	// DomainNagome
 
-	// QueryBroad
-	CommQueryBroadConnect     string = "Connect"
-	CommQueryBroadDisconnect         = "Disconnect"
-	CommQueryBroadSendComment        = "SendComment"
+	// DomainComment
+	CommCommentAdd = "Comment.Add"
 
-	// QueryAccount
-	CommQueryAccountSet   = "Set" // set the given content value as account values.
-	CommQueryAccountLogin = "Login"
-	CommQueryAccountLoad  = "Load"
-	CommQueryAccountSave  = "Save"
+	// DomainQuery
+	CommQueryBroadConnect     = "Broad.Connect"
+	CommQueryBroadDisconnect  = "Broad.Disconnect"
+	CommQueryBroadSendComment = "Broad.SendComment"
 
-	// Events
+	CommQueryAccountSet   = "Account.Set" // set the given content value as account values.
+	CommQueryAccountLogin = "Account.Login"
+	CommQueryAccountLoad  = "Account.Load"
+	CommQueryAccountSave  = "Account.Save"
 
-	// Comment
-	CommCommentAdd = "Add"
-
-	// Open
-	CommUIDialog = "Dialog"
+	// DomainUI
+	CommUIDialog string = "UI.Dialog"
 )
 
 // Contents

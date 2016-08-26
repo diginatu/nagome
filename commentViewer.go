@@ -139,7 +139,6 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 	cv.Evch <- &Message{
 		Domain:  DomainNagome,
-		Func:    FuncComment,
 		Command: command,
 		Content: content,
 	}
@@ -147,7 +146,7 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 // CreateEvNewDialog emits new event for ask UI to display dialog.
 func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
-	t, err := NewMessage(DomainNagome, FuncUI, CommUIDialog,
+	t, err := NewMessage(DomainNagome, CommUIDialog,
 		CtUIDialog{
 			Type:        typ,
 			Title:       title,

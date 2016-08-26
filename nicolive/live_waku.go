@@ -58,12 +58,10 @@ func (l *LiveWaku) IsUserOwner() bool {
 // FetchInformation gets information using getplayerstatus API
 func (l *LiveWaku) FetchInformation() Error {
 	if l.Account == nil {
-		return MakeError(ErrOther, "no account",
-			"LiveWaku does not have an account")
+		return MakeError(ErrOther, "nil Account in LiveWaku")
 	}
 	if l.BroadID == "" {
-		return MakeError(ErrOther, "no BroadID",
-			"BroadID is not set")
+		return MakeError(ErrOther, "BroadID is not set")
 	}
 
 	c, nicoerr := NewNicoClient(l.Account)
@@ -71,9 +69,7 @@ func (l *LiveWaku) FetchInformation() Error {
 		return nicoerr
 	}
 
-	url := fmt.Sprintf(
-		"http://watch.live.nicovideo.jp/api/getplayerstatus/%s",
-		l.BroadID)
+	url := fmt.Sprintf("http://watch.live.nicovideo.jp/api/getplayerstatus/%s", l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
 		return ErrFromStdErr(err)
@@ -95,10 +91,9 @@ func (l *LiveWaku) FetchInformation() Error {
 				case "notlogin":
 					errorNum = ErrNotLogin
 				}
-				return MakeError(errorNum, v, "")
+				return MakeError(errorNum, v)
 			}
-			return MakeError(ErrOther, "FetchInformation unknown err",
-				"request failed with unknown error")
+			return MakeError(ErrOther, "FetchInformation failed with unknown err")
 		}
 	}
 
@@ -164,10 +159,10 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, Error) {
 	var hb HeartbeatValue
 
 	if l.Account == nil {
-		return hb, MakeError(ErrOther, "no account", "LiveWaku does not have an account")
+		return hb, MakeError(ErrOther, "nil account in LiveWaku")
 	}
 	if l.BroadID == "" {
-		return hb, MakeError(ErrOther, "no BroadID", "BroadID is not set")
+		return hb, MakeError(ErrOther, "BroadID is not set")
 	}
 
 	c, nicoerr := NewNicoClient(l.Account)
@@ -201,9 +196,9 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, Error) {
 				if v, ok := errorDescXMLPath.String(root); ok {
 					desc = v
 				}
-				return hb, MakeError(errorNum, v, desc)
+				return hb, MakeError(errorNum, v+desc)
 			}
-			return hb, MakeError(ErrOther, "unknown err", "request failed with unknown error")
+			return hb, MakeError(ErrOther, "request failed with unknown error")
 		}
 	}
 
@@ -216,7 +211,7 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, Error) {
 	}
 
 	if hb.CommentCount == "" || hb.WatchCount == "" {
-		return hb, MakeError(ErrOther, "unknown err", "could not get")
+		return hb, MakeError(ErrOther, "heartbeat : unknown err")
 	}
 
 	return hb, nil

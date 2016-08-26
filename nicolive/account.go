@@ -68,8 +68,7 @@ func (a *Account) Login() Error {
 // LoginImpl is implementation of Login.
 func (a *Account) LoginImpl(addr, baseAddr string) Error {
 	if a.Mail == "" || a.Pass == "" {
-		return MakeError(ErrOther,
-			"invalid account info", "mail or pass is not set")
+		return MakeError(ErrOther, "invalid account : mail or pass is not set")
 	}
 
 	jar, err := cookiejar.New(nil)
@@ -101,5 +100,5 @@ func (a *Account) LoginImpl(addr, baseAddr string) Error {
 		}
 	}
 
-	return MakeError(ErrOther, "login error", "failed log in to niconico")
+	return MakeError(ErrOther, "failed log in to niconico")
 }
