@@ -75,6 +75,34 @@ func (pl *plugin) No() int {
 	return pl.no
 }
 
+func (pl *plugin) loadPlugin(filePath string) error {
+	d, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.Unmarshal(d, pl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pl *plugin) savePlugin(filePath string) error {
+	d, err := yaml.Marshal(pl)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filePath, d, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // eachPluginRw manages plugins IO. It is launched when a plugin is leaded.
 func eachPluginRw(cv *CommentViewer, n int) {
 	defer cv.wg.Done()
@@ -303,32 +331,4 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 	log.Println("loaded plugin ", p)
 
 	<-cv.Quit
-}
-
-func (pl *plugin) loadPlugin(filePath string) error {
-	d, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.Unmarshal(d, pl)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (pl *plugin) savePlugin(filePath string) error {
-	d, err := yaml.Marshal(pl)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(filePath, d, 0600)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

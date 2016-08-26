@@ -56,13 +56,13 @@ func (l *LiveWaku) IsUserOwner() bool {
 }
 
 // FetchInformation gets information using getplayerstatus API
-func (l *LiveWaku) FetchInformation() NicoError {
+func (l *LiveWaku) FetchInformation() Error {
 	if l.Account == nil {
-		return NicoErr(NicoErrOther, "no account",
+		return MakeError(ErrOther, "no account",
 			"LiveWaku does not have an account")
 	}
 	if l.BroadID == "" {
-		return NicoErr(NicoErrOther, "no BroadID",
+		return MakeError(ErrOther, "no BroadID",
 			"BroadID is not set")
 	}
 
@@ -76,28 +76,28 @@ func (l *LiveWaku) FetchInformation() NicoError {
 		l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 
 	if v, ok := statusXMLPath.String(root); ok {
 		if v != "ok" {
 			if v, ok := errorCodeXMLPath.String(root); ok {
-				errorNum := NicoErrNicoLiveOther
+				errorNum := ErrNicoLiveOther
 				switch v {
 				case "closed":
-					errorNum = NicoErrClosed
+					errorNum = ErrClosed
 				case "notlogin":
-					errorNum = NicoErrNotLogin
+					errorNum = ErrNotLogin
 				}
-				return NicoErr(errorNum, v, "")
+				return MakeError(errorNum, v, "")
 			}
-			return NicoErr(NicoErrOther, "FetchInformation unknown err",
+			return MakeError(ErrOther, "FetchInformation unknown err",
 				"request failed with unknown error")
 		}
 	}
@@ -160,14 +160,14 @@ func (l *LiveWaku) FetchInformation() NicoError {
 }
 
 // FetchHeartBeat gets watcher and comment count using heartbeat API
-func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
+func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, Error) {
 	var hb HeartbeatValue
 
 	if l.Account == nil {
-		return hb, NicoErr(NicoErrOther, "no account", "LiveWaku does not have an account")
+		return hb, MakeError(ErrOther, "no account", "LiveWaku does not have an account")
 	}
 	if l.BroadID == "" {
-		return hb, NicoErr(NicoErrOther, "no BroadID", "BroadID is not set")
+		return hb, MakeError(ErrOther, "no BroadID", "BroadID is not set")
 	}
 
 	c, nicoerr := NewNicoClient(l.Account)
@@ -180,30 +180,30 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
 		l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
-		return hb, NicoErrFromStdErr(err)
+		return hb, ErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
-		return hb, NicoErrFromStdErr(err)
+		return hb, ErrFromStdErr(err)
 	}
 
 	if v, ok := statusXMLPath.String(root); ok {
 		if v != "ok" {
 			if v, ok := errorCodeXMLPath.String(root); ok {
-				errorNum := NicoErrNicoLiveOther
+				errorNum := ErrNicoLiveOther
 				if v == "NOTLOGIN" {
-					errorNum = NicoErrNotLogin
+					errorNum = ErrNotLogin
 				}
 
 				var desc string
 				if v, ok := errorDescXMLPath.String(root); ok {
 					desc = v
 				}
-				return hb, NicoErr(errorNum, v, desc)
+				return hb, MakeError(errorNum, v, desc)
 			}
-			return hb, NicoErr(NicoErrOther, "unknown err", "request failed with unknown error")
+			return hb, MakeError(ErrOther, "unknown err", "request failed with unknown error")
 		}
 	}
 
@@ -216,7 +216,7 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, NicoError) {
 	}
 
 	if hb.CommentCount == "" || hb.WatchCount == "" {
-		return hb, NicoErr(NicoErrOther, "unknown err", "could not get")
+		return hb, MakeError(ErrOther, "unknown err", "could not get")
 	}
 
 	return hb, nil

@@ -29,10 +29,11 @@ Dependencies
 Tasks
 -----
 
- - [ ] simplify nicoerr
+ - [ ] change domain of comment connection and query message
  - [ ] translation function
  - [ ] document (plugin)
  - [ ] function for NicoLive
     - [ ] getting user name and storing
     - [ ] alert connection
+    - [ ] get new Waku
 

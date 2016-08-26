@@ -4,70 +4,62 @@ import (
 	"fmt"
 )
 
-// NicoErrNum is an Enum to represent Nico.Errnum
-type NicoErrNum int
+// ErrNum is an Enum to represent error number to identify.
+type ErrNum int
 
-// Enum NicoErrNum
+// Enum ErrNum
 const (
-	NicoErrOther NicoErrNum = iota
-	NicoErrSendComment
-	NicoErrConnection
-	NicoErrNicoLiveOther
-	NicoErrNotLogin
-	NicoErrClosed
+	ErrOther ErrNum = iota
+	ErrSendComment
+	ErrConnection
+	ErrNicoLiveOther
+	ErrNotLogin
+	ErrClosed
 )
 
-// NicoError is error interface in nicolive
-type NicoError interface {
-	Code() string
-	Description() string
-	Where() string
+// Error is error interface in nicolive
+type Error interface {
+	No() ErrNum          // for identifying by application  (ie. select messages to the user)
+	Description() string // messages for debug information
+	Where() string       // where the error occurred
+	Error() string
 }
 
-// NicoErrStruct is an error struct in nicolive
-type NicoErrStruct struct {
-	errnum      NicoErrNum
-	code        string
-	description string
-	where       string
+// ErrStruct is an error struct in nicolive
+type ErrStruct struct {
+	no    ErrNum
+	desc  string
+	where string
 }
 
-func (n NicoErrStruct) Error() string {
-	if n.description == "" {
-		return fmt.Sprintf("[%s] %s", n.where, n.code)
-	}
-	return fmt.Sprintf("[%s] %s : %s", n.where, n.code, n.description)
+func (n ErrStruct) Error() string {
+	return fmt.Sprintf("[%s] %s", n.where, n.desc)
 }
 
-// ErrorNum returns errorNum
-func (n NicoErrStruct) ErrorNum() NicoErrNum {
-	return n.errnum
-}
-
-// Code returns code
-func (n NicoErrStruct) Code() string {
-	return n.code
+// No returns errorNum
+func (n ErrStruct) No() ErrNum {
+	return n.no
 }
 
 // Description returns description
-func (n NicoErrStruct) Description() string {
-	return n.description
+func (n ErrStruct) Description() string {
+	return n.desc
 }
 
 // Where returns where
-func (n NicoErrStruct) Where() string {
+func (n ErrStruct) Where() string {
 	return n.where
 }
 
-// NicoErr returns NicoErr that format as the given info
+// MakeError returns Error that format as the given info
 // and the code position.
-func NicoErr(errNum NicoErrNum, code string, description string) NicoError {
+func MakeError(errNum ErrNum, code string, description string) Error {
 	where := caller(2)
-	return &NicoErrStruct{errNum, code, description, where}
+	return &ErrStruct{errNum, description, where}
 }
 
-// NicoErrFromStdErr returns NicoErr converted from standard error.
-func NicoErrFromStdErr(e error) NicoError {
+// ErrFromStdErr returns Error converted from standard error.
+func ErrFromStdErr(e error) Error {
 	where := caller(2)
-	return &NicoErrStruct{NicoErrOther, "standard error", e.Error(), where}
+	return &ErrStruct{ErrOther, e.Error(), where}
 }

@@ -19,9 +19,6 @@ const (
 	pluginDirName   = "plugin"
 )
 
-func init() {
-}
-
 // RunCli processes flags and io
 func RunCli() {
 	// set command line options

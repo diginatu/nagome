@@ -9,7 +9,7 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
-func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
+func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 	if m.Domain == "Nagome" {
 		switch m.Func {
 
@@ -19,7 +19,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 			case CommQueryBroadConnect:
 				var ct CtQueryBroadConnect
 				if err := json.Unmarshal(m.Content, &ct); err != nil {
-					return nicolive.NicoErr(nicolive.NicoErrOther,
+					return nicolive.MakeError(nicolive.ErrOther,
 						"JSON error in the content", err.Error())
 				}
 
@@ -28,7 +28,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 				if broadMch == "" {
 					cv.CreateEvNewDialog(CtUIDialogTypeWarn,
 						"invalid BroadID", "no valid BroadID found in the ID text")
-					return nicolive.NicoErr(nicolive.NicoErrOther,
+					return nicolive.MakeError(nicolive.ErrOther,
 						"invalid BroadID", "no valid BroadID found in the ID text")
 				}
 
@@ -56,12 +56,13 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 			case CommQueryBroadSendComment:
 				var ct CtQueryBroadSendComment
 				if err := json.Unmarshal(m.Content, &ct); err != nil {
-					return nicolive.NicoErr(nicolive.NicoErrOther,
+					return nicolive.MakeError(nicolive.ErrOther,
 						"JSON error in the content", err.Error())
 				}
 				nicoerr := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
 				if nicoerr != nil {
-					cv.CreateEvNewDialog(CtUIDialogTypeWarn, nicoerr.Code(), nicoerr.Description())
+					// TODO: make dialog from nicolive.Error
+					//cv.CreateEvNewDialog(CtUIDialogTypeWarn, nicoerr.Code(), nicoerr.Description())
 					return nicoerr
 				}
 
@@ -69,7 +70,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 				cv.Cmm.Disconnect()
 
 			default:
-				return nicolive.NicoErr(nicolive.NicoErrOther,
+				return nicolive.MakeError(nicolive.ErrOther,
 					"Message", "invalid Command in received message")
 			}
 
@@ -78,7 +79,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 			case CommQueryAccountSet:
 				var ct CtQueryAccountSet
 				if err := json.Unmarshal(m.Content, &ct); err != nil {
-					return nicolive.NicoErr(nicolive.NicoErrOther,
+					return nicolive.MakeError(nicolive.ErrOther,
 						"JSON error in the content", err.Error())
 				}
 
@@ -102,7 +103,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 				cv.Ac.Load(filepath.Join(App.SavePath, "userData.yml"))
 
 			default:
-				return nicolive.NicoErr(nicolive.NicoErrOther,
+				return nicolive.MakeError(nicolive.ErrOther,
 					"Message", "invalid Command in received message")
 			}
 
@@ -110,7 +111,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.NicoError {
 			cv.Evch <- m
 
 		default:
-			return nicolive.NicoErr(nicolive.NicoErrOther,
+			return nicolive.MakeError(nicolive.ErrOther,
 				"Message", "invalid Func in received message")
 		}
 	} else {

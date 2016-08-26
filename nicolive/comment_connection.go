@@ -132,9 +132,9 @@ func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 }
 
 // SetLv sets lv with given pointer to LiveWaku
-func (cc *CommentConnection) SetLv(l *LiveWaku) NicoError {
+func (cc *CommentConnection) SetLv(l *LiveWaku) Error {
 	if cc.IsConnected {
-		return NicoErr(NicoErrOther,
+		return MakeError(ErrOther,
 			"connected", "lv can not be changed while connecting to the server")
 	}
 
@@ -142,7 +142,7 @@ func (cc *CommentConnection) SetLv(l *LiveWaku) NicoError {
 	return nil
 }
 
-func (cc *CommentConnection) open() NicoError {
+func (cc *CommentConnection) open() Error {
 	var err error
 
 	addrport := fmt.Sprintf("%s:%s",
@@ -153,7 +153,7 @@ func (cc *CommentConnection) open() NicoError {
 
 	cc.sock, err = net.Dial("tcp", addrport)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 
 	cc.rw = bufio.ReadWriter{
@@ -165,11 +165,11 @@ func (cc *CommentConnection) open() NicoError {
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
 		cc.lv.CommentServer.Thread)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	err = cc.rw.Flush()
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 
 	cc.wmu.Unlock()
@@ -178,9 +178,9 @@ func (cc *CommentConnection) open() NicoError {
 }
 
 // Connect Connect to nicolive and start receiving comment
-func (cc *CommentConnection) Connect() NicoError {
+func (cc *CommentConnection) Connect() Error {
 	if cc.IsConnected {
-		return NicoErr(NicoErrOther, "already connected", "")
+		return MakeError(ErrOther, "already connected", "")
 	}
 	cc.IsConnected = true
 
@@ -215,7 +215,7 @@ func (cc *CommentConnection) receiveStream() {
 				}
 				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
-					Content: NicoErrFromStdErr(err),
+					Content: ErrFromStdErr(err),
 				})
 				<-cc.termc
 				return
@@ -229,7 +229,7 @@ func (cc *CommentConnection) receiveStream() {
 			if err != nil {
 				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
-					Content: NicoErrFromStdErr(err),
+					Content: ErrFromStdErr(err),
 				})
 				continue
 			}
@@ -263,7 +263,7 @@ func (cc *CommentConnection) receiveStream() {
 					if v != "0" {
 						cc.ev.ProceedNicoEvent(&Event{
 							Type:    EventTypeErr,
-							Content: NicoErr(NicoErrSendComment, "comment send error (chat_result status)", v),
+							Content: MakeError(ErrSendComment, "comment send error (chat_result status)", v),
 						})
 						continue
 					}
@@ -359,7 +359,7 @@ func (cc *CommentConnection) timer() {
 			if err != nil {
 				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
-					Content: NicoErr(NicoErrConnection, "keep alive", err.Error()),
+					Content: MakeError(ErrConnection, "keep alive", err.Error()),
 				})
 				continue
 			}
@@ -392,13 +392,13 @@ func (cc *CommentConnection) timer() {
 }
 
 // FetchPostKey gets postkey using getpostkey API
-func (cc *CommentConnection) FetchPostKey() NicoError {
+func (cc *CommentConnection) FetchPostKey() Error {
 	if cc.lv.Account == nil {
-		return NicoErr(NicoErrOther, "no account",
+		return MakeError(ErrOther, "no account",
 			"LiveWaku does not have an account")
 	}
 	if cc.lv.BroadID == "" {
-		return NicoErr(NicoErrOther, "no BroadID",
+		return MakeError(ErrOther, "no BroadID",
 			"BroadID is not set")
 	}
 
@@ -412,18 +412,18 @@ func (cc *CommentConnection) FetchPostKey() NicoError {
 		cc.lv.CommentServer.Thread, cc.block)
 	res, err := c.Get(url)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	allb, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 
 	pk := string(allb[8:])
 	if pk == "" {
-		return NicoErr(NicoErrOther, "failed to get postkey", "")
+		return MakeError(ErrOther, "failed to get postkey", "")
 	}
 
 	cc.lv.PostKey = pk
@@ -432,15 +432,15 @@ func (cc *CommentConnection) FetchPostKey() NicoError {
 }
 
 // SendComment sends comment to current comment connection
-func (cc *CommentConnection) SendComment(text string, iyayo bool) NicoError {
+func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 	if !cc.IsConnected {
-		return NicoErr(NicoErrOther, "not connected", "not connected")
+		return MakeError(ErrOther, "not connected", "not connected")
 	}
 	if cc.lv.PostKey == "" {
-		return NicoErr(NicoErrOther, "no postkey in livewaku", "no postkey in livewaku")
+		return MakeError(ErrOther, "no postkey in livewaku", "no postkey in livewaku")
 	}
 	if text == "" {
-		return NicoErr(NicoErrOther, "empty text", "empty text")
+		return MakeError(ErrOther, "empty text", "empty text")
 	}
 
 	vpos := 100 *
@@ -473,7 +473,7 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) NicoError {
 	err := cc.rw.Flush()
 	cc.wmu.Unlock()
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	cc.keepAliveTmr.Reset(keepAliveDuration)
 
@@ -482,9 +482,9 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) NicoError {
 
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit
-func (cc *CommentConnection) Disconnect() NicoError {
+func (cc *CommentConnection) Disconnect() Error {
 	if !cc.IsConnected {
-		return NicoErr(NicoErrOther, "not connected yet", "")
+		return MakeError(ErrOther, "not connected yet", "")
 	}
 	cc.IsConnected = false
 

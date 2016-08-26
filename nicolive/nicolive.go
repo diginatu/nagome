@@ -22,19 +22,19 @@ func init() {
 }
 
 // NewNicoClient makes new http.Client with usersession
-func NewNicoClient(a *Account) (*http.Client, NicoError) {
+func NewNicoClient(a *Account) (*http.Client, Error) {
 	if a.Usersession == "" {
-		return nil, NicoErr(NicoErrOther, "no usersession", "")
+		return nil, MakeError(ErrOther, "no usersession", "")
 	}
 
 	nicoURL, err := url.Parse("http://nicovideo.jp")
 	if err != nil {
-		return nil, NicoErrFromStdErr(err)
+		return nil, ErrFromStdErr(err)
 	}
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return nil, NicoErrFromStdErr(err)
+		return nil, ErrFromStdErr(err)
 	}
 	c := http.Client{Jar: jar}
 	c.Jar.SetCookies(nicoURL, []*http.Cookie{

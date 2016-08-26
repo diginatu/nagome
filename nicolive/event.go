@@ -9,10 +9,10 @@ type EventTypeNum int
 const (
 	EventTypeErr EventTypeNum = iota
 	EventTypeGot
-	EventTypeWakuEnd
 	EventTypeSend
 	EventTypeOpen
 	EventTypeClose
+	EventTypeWakuEnd
 	EventTypeHeartBeatGot
 )
 

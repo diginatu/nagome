@@ -61,20 +61,20 @@ func (a *Account) Load(filePath string) error {
 }
 
 // Login log in to niconico and update Usersession
-func (a *Account) Login() NicoError {
+func (a *Account) Login() Error {
 	return a.LoginImpl(loginAddr, usersessionBaseAddr)
 }
 
 // LoginImpl is implementation of Login.
-func (a *Account) LoginImpl(addr, baseAddr string) NicoError {
+func (a *Account) LoginImpl(addr, baseAddr string) Error {
 	if a.Mail == "" || a.Pass == "" {
-		return NicoErr(NicoErrOther,
+		return MakeError(ErrOther,
 			"invalid account info", "mail or pass is not set")
 	}
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	cl := http.Client{Jar: jar}
 
@@ -84,13 +84,13 @@ func (a *Account) LoginImpl(addr, baseAddr string) NicoError {
 	}
 	resp, err := cl.PostForm(addr, params)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	defer resp.Body.Close()
 
 	nicoURL, err := url.Parse(baseAddr)
 	if err != nil {
-		return NicoErrFromStdErr(err)
+		return ErrFromStdErr(err)
 	}
 	for _, ck := range cl.Jar.Cookies(nicoURL) {
 		if ck.Name == "user_session" {
@@ -101,5 +101,5 @@ func (a *Account) LoginImpl(addr, baseAddr string) NicoError {
 		}
 	}
 
-	return NicoErr(NicoErrOther, "login error", "failed log in to niconico")
+	return MakeError(ErrOther, "login error", "failed log in to niconico")
 }
