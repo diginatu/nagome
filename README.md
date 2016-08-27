@@ -30,7 +30,7 @@ Dependencies
 Tasks
 -----
 
- - [ ] filter function as domain name
+ - [ ] log from plugins
  - [ ] translation function
  - [ ] document (plugin)
  - [ ] function for NicoLive

@@ -108,8 +108,8 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 	switch ev.Type {
 	case nicolive.EventTypeGot:
-		cm := ev.Content.(nicolive.Comment)
-		ct := CtCommentAdd{
+		cm, _ := ev.Content.(nicolive.Comment)
+		ct := CtCommentGot{
 			No:            cm.No,
 			Date:          cm.Date,
 			UserID:        cm.UserID,
@@ -127,8 +127,25 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 		}
 
 		dom = DomainComment
-		com = CommCommentAdd
+		com = CommCommentGot
 		con, _ = json.Marshal(ct)
+
+	case nicolive.EventTypeOpen:
+		dom = DomainNagome
+		com = CommNagomeOpen
+
+	case nicolive.EventTypeClose:
+		dom = DomainNagome
+		com = CommNagomeClose
+
+	case nicolive.EventTypeHeartBeatGot:
+		dom = DomainNagome
+		com = CommNagomeBroadInfo
+		con, _ = json.Marshal(ev.Content)
+
+	case nicolive.EventTypeSend:
+		dom = DomainNagome
+		com = CommNagomeSend
 
 	case nicolive.EventTypeErr:
 		log.Println(ev)

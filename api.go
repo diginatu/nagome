@@ -47,9 +47,13 @@ const (
 // Command names
 const (
 	// DomainNagome
+	CommNagomeOpen      = "Nagome.Open"
+	CommNagomeClose     = "Nagome.Close"
+	CommNagomeBroadInfo = "Nagome.BroadInfo"
+	CommNagomeSend      = "Nagome.Send"
 
 	// DomainComment
-	CommCommentAdd = "Comment.Add"
+	CommCommentGot = "Comment.Got"
 
 	// DomainQuery
 	CommQueryBroadConnect     = "Broad.Connect"
@@ -75,6 +79,9 @@ type CtQueryPluginNo struct {
 	No int
 }
 
+// CtNagomeBroadInfo is content of NagomeBroadInfo
+type CtNagomeBroadInfo nicolive.HeartbeatValue
+
 // CtQueryBroadConnect is content of QueryBroadConnect
 type CtQueryBroadConnect struct {
 	BroadID string
@@ -89,8 +96,8 @@ type CtQueryBroadSendComment struct {
 // CtQueryAccountSet is content of QueryAccountSet
 type CtQueryAccountSet nicolive.Account
 
-// A CtCommentAdd is a content of got comment
-type CtCommentAdd struct {
+// A CtCommentGot is a content of got comment
+type CtCommentGot struct {
 	No            int
 	Date          time.Time
 	UserID        string

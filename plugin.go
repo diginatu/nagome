@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	pluginFlashWaitDu time.Duration = 100 * time.Millisecond
+	pluginFlashWaitDu time.Duration = 50 * time.Millisecond
 
 	pluginNameMain  string = "main"
 	pluginMethodTCP        = "tcp"
@@ -174,13 +174,12 @@ func eachPluginRw(cv *CommentViewer, n int) {
 				return
 			}
 
-			log.Println("plugin message [", cv.Pgns[n].Name, "] : ", m)
+			log.Printf("plugin message [%s] : %v", cv.Pgns[n].Name, m)
 
 			cv.Evch <- m
 
 		// Flush plugin IO
 		case <-cv.Pgns[n].flushTm.C:
-			log.Println("plugin ", n, " flushing")
 			cv.Pgns[n].Rw.Flush()
 
 		case <-cv.Quit:
@@ -196,9 +195,19 @@ func sendPluginEvent(cv *CommentViewer) {
 	readLoop:
 		select {
 		case mes := <-cv.Evch:
-			jmes, err := json.Marshal(mes)
+			var jmes []byte
+			var err error
+			if mes.Content == nil {
+				jmes, err = json.Marshal(struct {
+					Domain  string
+					Command string
+				}{mes.Domain, mes.Command})
+			} else {
+				jmes, err = json.Marshal(mes)
+			}
 			if err != nil {
 				log.Println(err)
+				log.Println(mes)
 				continue
 			}
 
