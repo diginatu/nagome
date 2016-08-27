@@ -86,10 +86,10 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 			"login succeeded", "login succeeded")
 
 	case CommQueryAccountLoad:
-		cv.Ac.Load(filepath.Join(App.SavePath, "userData.yml"))
+		cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
 
 	case CommQueryAccountSave:
-		cv.Ac.Save(filepath.Join(App.SavePath, "userData.yml"))
+		cv.Ac.Save(filepath.Join(App.SavePath, accountFileName))
 
 	default:
 		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command")
