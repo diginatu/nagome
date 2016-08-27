@@ -11,7 +11,6 @@ import (
 
 func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 	if m.Domain != DomainQuery {
-		cv.Evch <- m
 		return nil
 	}
 

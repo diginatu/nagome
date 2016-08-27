@@ -15,6 +15,8 @@ type Message struct {
 	Command string
 	// Elements type of Content is depend on witch Command is used
 	Content json.RawMessage
+
+	prgno int
 }
 
 // NewMessage returns new Message with the given values.
@@ -38,6 +40,8 @@ const (
 	DomainQuery          = "nagome_query"
 	DomainComment        = "nagome_comment"
 	DomainUI             = "nagome_ui"
+
+	FilterSuffix = "@filter"
 )
 
 // Command names

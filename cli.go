@@ -173,7 +173,7 @@ func clientMode(uiUseTCP bool, tcpPort *string) {
 			Name:        pluginNameMain,
 			Description: "main plugin (UI with TCP connection)",
 			Version:     "0.0",
-			Depends:     []string{DomainNagome},
+			Depends:     []string{DomainNagome, DomainComment, DomainUI},
 		}
 		plug.Init(1)
 	} else {
@@ -181,7 +181,7 @@ func clientMode(uiUseTCP bool, tcpPort *string) {
 			Name:        pluginNameMain,
 			Description: "main plugin (UI with stdin/out connection)",
 			Version:     "0.0",
-			Depends:     []string{DomainNagome},
+			Depends:     []string{DomainNagome, DomainComment, DomainUI},
 			Rw: bufio.NewReadWriter(
 				bufio.NewReader(os.Stdin),
 				bufio.NewWriter(os.Stdout)),
