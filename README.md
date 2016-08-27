@@ -21,6 +21,7 @@ MIT Licence
 Dependencies
 ------------
 
+ + gopkg.in/yaml.v2 : Apache Licence 2.0
  + diginatu/nagome/nicolive : own package
    - gopkg.in/xmlpath.v2 : LGPLv3
    - gopkg.in/yaml.v2 : Apache Licence 2.0
@@ -29,7 +30,7 @@ Dependencies
 Tasks
 -----
 
- - [ ] change domain of comment connection and query message
+ - [ ] filter function as domain name
  - [ ] translation function
  - [ ] document (plugin)
  - [ ] function for NicoLive

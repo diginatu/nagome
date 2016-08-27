@@ -103,8 +103,8 @@ func (cv *CommentViewer) loadPlugins() {
 
 // ProceedNicoEvent will receive events and emits it.
 func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
-	var content []byte
-	var command string
+	var con []byte
+	var dom, com string
 
 	switch ev.Type {
 	case nicolive.EventTypeGot:
@@ -126,8 +126,9 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 			ct.UserName = ""
 		}
 
-		content, _ = json.Marshal(ct)
-		command = CommCommentAdd
+		dom = DomainComment
+		com = CommCommentAdd
+		con, _ = json.Marshal(ct)
 
 	case nicolive.EventTypeErr:
 		log.Println(ev)
@@ -138,9 +139,9 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 	}
 
 	cv.Evch <- &Message{
-		Domain:  DomainNagome,
-		Command: command,
-		Content: content,
+		Domain:  dom,
+		Command: com,
+		Content: con,
 	}
 }
 
