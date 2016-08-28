@@ -10,11 +10,11 @@ import (
 // Message is base API struct for plugin
 type Message struct {
 	// Domain that includes following parameters
-	Domain string
+	Domain string `json:"domain"`
 	// Command
-	Command string
+	Command string `json:"command"`
 	// Elements type of Content is depend on witch Command is used
-	Content json.RawMessage
+	Content json.RawMessage `json:"content,omitempty"`
 
 	prgno int
 }

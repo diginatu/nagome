@@ -182,9 +182,7 @@ func clientMode(uiUseTCP bool, tcpPort *string) {
 			Description: "main plugin (UI with stdin/out connection)",
 			Version:     "0.0",
 			Depends:     []string{DomainNagome, DomainComment, DomainUI},
-			Rw: bufio.NewReadWriter(
-				bufio.NewReader(os.Stdin),
-				bufio.NewWriter(os.Stdout)),
+			Rw:          bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout)),
 		}
 		plug.Init(1)
 		plug.Enable(&cv)

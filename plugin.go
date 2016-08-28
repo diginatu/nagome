@@ -140,8 +140,8 @@ func eachPluginRw(cv *CommentViewer, n int) {
 					// ignore if quitting
 					case <-cv.Quit:
 					default:
-						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin discconect",
-							fmt.Sprintf("plugin [%s] : connection desconnected", cv.Pgns[n].Name))
+						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnect",
+							fmt.Sprintf("plugin [%s] : connection disconnected", cv.Pgns[n].Name))
 						log.Println(err)
 					}
 				}
@@ -169,9 +169,10 @@ func eachPluginRw(cv *CommentViewer, n int) {
 			if m == nil {
 				// quit if UI plugin disconnect
 				if cv.Pgns[n].Name == pluginNameMain {
+					cv.Cmm.Disconnect()
 					close(cv.Quit)
 				}
-				return
+				continue
 			}
 
 			log.Printf("plugin message [%s] : %v", cv.Pgns[n].Name, m)
@@ -183,6 +184,7 @@ func eachPluginRw(cv *CommentViewer, n int) {
 			cv.Pgns[n].Rw.Flush()
 
 		case <-cv.Quit:
+			cv.Pgns[n].Rw = nil
 			return
 		}
 	}
@@ -195,16 +197,7 @@ func sendPluginEvent(cv *CommentViewer) {
 	readLoop:
 		select {
 		case mes := <-cv.Evch:
-			var jmes []byte
-			var err error
-			if mes.Content == nil {
-				jmes, err = json.Marshal(struct {
-					Domain  string
-					Command string
-				}{mes.Domain, mes.Command})
-			} else {
-				jmes, err = json.Marshal(mes)
-			}
+			jmes, err := json.Marshal(mes)
 			if err != nil {
 				log.Println(err)
 				log.Println(mes)
@@ -212,6 +205,7 @@ func sendPluginEvent(cv *CommentViewer) {
 			}
 
 			// filter
+
 			// Messages from filter plugin will not send same plugin.
 			var st int
 			if strings.HasSuffix(mes.Domain, FilterSuffix) {
@@ -226,6 +220,8 @@ func sendPluginEvent(cv *CommentViewer) {
 					if err != nil {
 						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
 						log.Println(err)
+
+						plug.Rw = nil
 						continue
 					}
 					plug.flushTm.Reset(pluginFlashWaitDu)
@@ -240,6 +236,8 @@ func sendPluginEvent(cv *CommentViewer) {
 					if err != nil {
 						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
 						log.Println(err)
+
+						plug.Rw = nil
 						continue
 					}
 					plug.flushTm.Reset(pluginFlashWaitDu)
