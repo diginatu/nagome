@@ -31,9 +31,10 @@ Tasks
 -----
 
  - [ ] log from plugins
+ - [ ] plugin on/off
  - [ ] translation function
  - [ ] document (plugin)
- - [ ] functions for NicoLive
+ - [ ] function for NicoLive
     - [ ] getting user name and storing
     - [ ] alert connection
     - [ ] get new Waku

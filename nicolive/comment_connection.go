@@ -339,6 +339,12 @@ func (cc *CommentConnection) receiveStream() {
 				}
 				continue
 			}
+
+			cc.ev.ProceedNicoEvent(&Event{
+				Type:    EventTypeErr,
+				Content: MakeError(ErrSendComment, "unknown stream : "+commxml),
+			})
+
 		}
 	}
 }

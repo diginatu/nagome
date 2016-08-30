@@ -51,6 +51,8 @@ const (
 	CommNagomeClose     = "Nagome.Close"
 	CommNagomeBroadInfo = "Nagome.BroadInfo"
 	CommNagomeSend      = "Nagome.Send"
+	CommNagomeEnabled   = "Nagome.Enabled"
+	CommNagomeDisabled  = "Nagome.Disabled"
 
 	// DomainComment
 	CommCommentGot = "Comment.Got"

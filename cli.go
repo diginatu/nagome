@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	eventBufferSize = 5
+	eventBufferSize = 100
 	accountFileName = "account.yml"
 	logFileName     = "info.log"
 	pluginDirName   = "plugin"
@@ -185,7 +185,7 @@ func clientMode(uiUseTCP bool, tcpPort *string) {
 			Rw:          bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout)),
 		}
 		plug.Init(1)
-		plug.Enable(&cv)
+		plug.Start(&cv)
 	}
 	cv.Pgns = append(cv.Pgns, plug)
 

@@ -33,18 +33,19 @@ type plugin struct {
 	Nagomever   string            `yaml:"nagomever"`
 	Depends     []string          `yaml:"depends"`
 	Rw          *bufio.ReadWriter `yaml:"-"`
-	Enablc      chan struct{}     `yaml:"-"`
+	Startc      chan struct{}     `yaml:"-"`
 	flushTm     *time.Timer
 	no          int
+	isEnable    bool
 }
 
 func (pl *plugin) Init(no int) {
 	pl.flushTm = time.NewTimer(time.Hour)
-	pl.Enablc = make(chan struct{}, 1)
+	pl.Startc = make(chan struct{}, 1)
 	pl.no = no
 }
 
-func (pl *plugin) Enable(cv *CommentViewer) {
+func (pl *plugin) Start(cv *CommentViewer) {
 	if pl.no == 0 {
 		log.Printf("plugin \"%s\" is not initialized\n", pl.Name)
 		return
@@ -53,12 +54,61 @@ func (pl *plugin) Enable(cv *CommentViewer) {
 		log.Printf("plugin \"%s\" no name is set\n", pl.Name)
 		return
 	}
-	pl.Enablc <- struct{}{}
+	if pl.Rw == nil {
+		log.Printf("plugin \"%s\" no rw\n", pl.Name)
+		return
+	}
+	if pl.isEnable {
+		return
+	}
+	pl.Enable()
+
+	pl.Startc <- struct{}{}
 
 	cv.wg.Add(1)
 	go eachPluginRw(cv, pl.no-1)
+}
 
-	return
+func (pl *plugin) Enable() {
+	if pl.isEnable {
+		return
+	}
+	pl.isEnable = true
+
+	// send message
+	jmes, err := json.Marshal(Message{
+		Domain:  DomainNagome,
+		Command: CommNagomeEnabled,
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fmt.Printf("%s\n", jmes)
+	pl.flushTm.Reset(0)
+}
+
+func (pl *plugin) Disable() {
+	if !pl.isEnable {
+		return
+	}
+	pl.isEnable = false
+
+	// send message
+	jmes, err := json.Marshal(Message{
+		Domain:  DomainNagome,
+		Command: CommNagomeDisabled,
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fmt.Printf("%s\n", jmes)
+	pl.flushTm.Reset(0)
+}
+
+func (pl *plugin) IsEnable() bool {
+	return pl.isEnable
 }
 
 func (pl *plugin) DependFilter(pln string) bool {
@@ -121,7 +171,7 @@ func eachPluginRw(cv *CommentViewer, n int) {
 
 	// wait for being enabled
 	select {
-	case <-cv.Pgns[n].Enablc:
+	case <-cv.Pgns[n].Startc:
 	case <-cv.Quit:
 		return
 	}
@@ -129,10 +179,11 @@ func eachPluginRw(cv *CommentViewer, n int) {
 	// Run decoder.  It puts a message into "mes".
 	dec := json.NewDecoder(cv.Pgns[n].Rw)
 	mes := make(chan (*Message))
+	cv.wg.Add(1)
 	go func() {
+		defer cv.wg.Done()
 		for {
 			m := new(Message)
-
 			err := dec.Decode(m)
 			if err != nil {
 				if err != io.EOF {
@@ -163,6 +214,15 @@ func eachPluginRw(cv *CommentViewer, n int) {
 	}()
 
 	for {
+		if !cv.Pgns[n].IsEnable() {
+			// wait for being enabled
+			select {
+			case <-cv.Pgns[n].Startc:
+			case <-cv.Quit:
+				return
+			}
+		}
+
 		select {
 		// Process the message
 		case m := <-mes:
@@ -175,9 +235,11 @@ func eachPluginRw(cv *CommentViewer, n int) {
 				continue
 			}
 
-			log.Printf("plugin message [%s] : %v", cv.Pgns[n].Name, m)
-
-			cv.Evch <- m
+			// ignore if plugin is not enabled
+			if cv.Pgns[n].IsEnable() {
+				log.Printf("plugin message [%s] : %v", cv.Pgns[n].Name, m)
+				cv.Evch <- m
+			}
 
 		// Flush plugin IO
 		case <-cv.Pgns[n].flushTm.C:
@@ -332,7 +394,7 @@ func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
 					return
 				}
 				cv.Pgns[n].Rw = rw
-				cv.Pgns[n].Enable(cv)
+				cv.Pgns[n].Start(cv)
 				log.Println("loaded plugin ", cv.Pgns[n])
 				break
 
@@ -379,7 +441,7 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 	}
 
 	p.Rw = bufio.NewReadWriter(bufio.NewReader(stdout), bufio.NewWriter(stdin))
-	p.Enable(cv)
+	p.Start(cv)
 	log.Println("loaded plugin ", p)
 
 	<-cv.Quit
