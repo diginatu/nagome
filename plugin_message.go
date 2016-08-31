@@ -90,6 +90,14 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 	case CommQueryAccountSave:
 		cv.Ac.Save(filepath.Join(App.SavePath, accountFileName))
 
+	case CommQueryLogPrint:
+		var ct CtQueryLogPrint
+		if err := json.Unmarshal(m.Content, &ct); err != nil {
+			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+		}
+
+		log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno-1].Name, ct.Text)
+
 	default:
 		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command")
 	}

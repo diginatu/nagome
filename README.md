@@ -31,7 +31,6 @@ Tasks
 -----
 
  - [ ] log from plugins
- - [ ] plugin on/off
  - [ ] translation function
  - [ ] document (plugin)
  - [ ] function for NicoLive

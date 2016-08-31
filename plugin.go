@@ -369,7 +369,7 @@ func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
 			select {
 			default:
 				dec := json.NewDecoder(rw)
-				var ct CtQueryPluginNo
+				var ct CtPluginNo
 				err := dec.Decode(&ct)
 				if err != nil {
 					// ignore if quitting

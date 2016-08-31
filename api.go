@@ -7,6 +7,12 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
+// CtPluginNo is a content for telling plugin number to Nagome.
+// TCP plugins should send this only at first time.
+type CtPluginNo struct {
+	No int
+}
+
 // Message is base API struct for plugin
 type Message struct {
 	// Domain that includes following parameters
@@ -41,6 +47,9 @@ const (
 	DomainComment        = "nagome_comment"
 	DomainUI             = "nagome_ui"
 
+	// Adding this suffix to the end of domain name in "depends" in your plugin.yml enables filtering messages by the plugin.
+	// If there is a plugin that depends filtering domain, Nagome will send messages that is in the domain to only this plugin.
+	// This can used for even NagomeQuery but
 	FilterSuffix = "@filter"
 )
 
@@ -51,23 +60,30 @@ const (
 	CommNagomeClose     = "Nagome.Close"
 	CommNagomeBroadInfo = "Nagome.BroadInfo"
 	CommNagomeSend      = "Nagome.Send"
-	CommNagomeEnabled   = "Nagome.Enabled"
-	CommNagomeDisabled  = "Nagome.Disabled"
+	// sent when the plugin is enabled/disabled.
+	// These message is send to only plugin that is enabled or disabled.  Can not be filtered.
+	CommNagomeEnabled  = "Nagome.Enabled"
+	CommNagomeDisabled = "Nagome.Disabled"
 
 	// DomainComment
+	// This domain is for only sending comments
 	CommCommentGot = "Comment.Got"
 
 	// DomainQuery
+	// Query from plugin to Nagome
 	CommQueryBroadConnect     = "Broad.Connect"
 	CommQueryBroadDisconnect  = "Broad.Disconnect"
 	CommQueryBroadSendComment = "Broad.SendComment"
 
-	CommQueryAccountSet   = "Account.Set" // set the given content value as account values.
-	CommQueryAccountLogin = "Account.Login"
+	CommQueryAccountSet   = "Account.Set"   // set the given content value as account values.
+	CommQueryAccountLogin = "Account.Login" // login and set the user session to account.
 	CommQueryAccountLoad  = "Account.Load"
 	CommQueryAccountSave  = "Account.Save"
 
+	CommQueryLogPrint = "Log.Print" // print string using logger of Nagome
+
 	// DomainUI
+	// Event to be processed by UI plugin
 	CommUIDialog string = "UI.Dialog"
 )
 
@@ -75,30 +91,29 @@ const (
 //
 // Contents in the Message API
 
-// CtQueryPluginNo is content of QueryPluginNo
-// only for TCP at first time
-type CtQueryPluginNo struct {
-	No int
-}
-
-// CtNagomeBroadInfo is content of NagomeBroadInfo
+// CtNagomeBroadInfo is a content of CommNagomeBroadInfo
 type CtNagomeBroadInfo nicolive.HeartbeatValue
 
-// CtQueryBroadConnect is content of QueryBroadConnect
+// CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
 	BroadID string
 }
 
-// CtQueryBroadSendComment is content of QueryBroadSendComment
+// CtQueryBroadSendComment is a content of CommQueryBroadSendComment
 type CtQueryBroadSendComment struct {
 	Text  string
 	Iyayo bool
 }
 
-// CtQueryAccountSet is content of QueryAccountSet
+// CtQueryAccountSet is a content of CommQueryAccountSet
 type CtQueryAccountSet nicolive.Account
 
-// A CtCommentGot is a content of got comment
+// CtQueryLogPrint is a content of CommQueryLogPrint
+type CtQueryLogPrint struct {
+	Text string
+}
+
+// A CtCommentGot is a content of CommCommentGot
 type CtCommentGot struct {
 	No            int
 	Date          time.Time
@@ -112,7 +127,7 @@ type CtCommentGot struct {
 	Score         int
 }
 
-// CtUIDialog is content of dialog that nagome ask to open
+// CtUIDialog is a content of CommUIDialog
 type CtUIDialog struct {
 	Type        string // select from below const string
 	Title       string
