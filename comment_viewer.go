@@ -111,7 +111,6 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 			No:            cm.No,
 			Date:          cm.Date,
 			UserID:        cm.UserID,
-			Comment:       cm.Comment,
 			IsPremium:     cm.IsPremium,
 			IsBroadcaster: cm.IsCommand,
 			IsStaff:       cm.IsStaff,
@@ -123,6 +122,8 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 		} else {
 			ct.UserName = ""
 		}
+
+		ct.Comment = strings.Replace(cm.Comment, "\n", "<br>", -1)
 
 		dom = DomainComment
 		com = CommCommentGot
