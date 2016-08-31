@@ -84,7 +84,7 @@ func (pl *plugin) Enable() {
 		log.Println(err)
 		return
 	}
-	fmt.Printf("%s\n", jmes)
+	fmt.Fprintf(pl.Rw, "%s\n", jmes)
 	pl.flushTm.Reset(0)
 }
 
@@ -103,7 +103,7 @@ func (pl *plugin) Disable() {
 		log.Println(err)
 		return
 	}
-	fmt.Printf("%s\n", jmes)
+	fmt.Fprintf(pl.Rw, "%s\n", jmes)
 	pl.flushTm.Reset(0)
 }
 

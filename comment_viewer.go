@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -60,7 +59,6 @@ func (cv *CommentViewer) loadPlugins() {
 
 	for _, d := range ds {
 		if d.IsDir() {
-			fmt.Println(d.Name())
 			p := new(plugin)
 			pPath := filepath.Join(psPath, d.Name())
 			err = p.loadPlugin(filepath.Join(pPath, "plugin.yml"))
