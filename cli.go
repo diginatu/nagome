@@ -130,7 +130,7 @@ func standAloneMode() {
 
 	nicoerr := l.FetchInformation()
 	if nicoerr != nil {
-		log.Fatalln(nicoerr)
+		log.Fatalln(nicoerr.Error())
 	}
 
 	commconn := nicolive.NewCommentConnection(&l, nil)
