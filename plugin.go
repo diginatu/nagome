@@ -77,8 +77,8 @@ func (pl *plugin) Enable() {
 
 	// send message
 	jmes, err := json.Marshal(Message{
-		Domain:  DomainNagome,
-		Command: CommNagomeEnabled,
+		Domain:  DomainDirect,
+		Command: CommDirectEnabled,
 	})
 	if err != nil {
 		log.Println(err)
@@ -96,8 +96,8 @@ func (pl *plugin) Disable() {
 
 	// send message
 	jmes, err := json.Marshal(Message{
-		Domain:  DomainNagome,
-		Command: CommNagomeDisabled,
+		Domain:  DomainDirect,
+		Command: CommDirectDisabled,
 	})
 	if err != nil {
 		log.Println(err)
@@ -114,7 +114,7 @@ func (pl *plugin) IsEnable() bool {
 func (pl *plugin) DependFilter(pln string) bool {
 	f := false
 	for _, d := range pl.Depends {
-		if d == pln+FilterSuffix {
+		if d == pln+DomainFilterSuffix {
 			f = true
 			break
 		}
@@ -270,8 +270,8 @@ func sendPluginEvent(cv *CommentViewer) {
 
 			// Messages from filter plugin will not send same plugin.
 			var st int
-			if strings.HasSuffix(mes.Domain, FilterSuffix) {
-				mes.Domain = strings.TrimSuffix(mes.Domain, FilterSuffix)
+			if strings.HasSuffix(mes.Domain, DomainFilterSuffix) {
+				mes.Domain = strings.TrimSuffix(mes.Domain, DomainFilterSuffix)
 				st = mes.prgno + 1
 			}
 			for i := st; i < len(cv.Pgns); i++ {
@@ -368,29 +368,41 @@ func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
 		for {
 			select {
 			default:
-				dec := json.NewDecoder(rw)
-				var ct CtPluginNo
-				err := dec.Decode(&ct)
-				if err != nil {
+				errf := func(s interface{}) {
 					// ignore if quitting
 					select {
 					case <-cv.Quit:
 					default:
-						log.Println(err)
+						log.Println(s)
 					}
 					close(errc)
+				}
+
+				dec := json.NewDecoder(rw)
+				m := new(Message)
+				err := dec.Decode(m)
+				if err != nil {
+					errf(err)
+					return
+				}
+				if m.Domain != DomainDirect || m.Command != CommDirectNo {
+					errf("send Direct.No message at first")
+					return
+				}
+
+				var ct CtDirectNo
+				if err := json.Unmarshal(m.Content, &ct); err != nil {
+					errf(err)
 					return
 				}
 
 				n := ct.No - 1
 				if n < 0 || n >= len(cv.Pgns) {
-					log.Println("received invalid plugin No.")
-					close(errc)
+					errf("received invalid plugin No.")
 					return
 				}
 				if cv.Pgns[n].Rw != nil {
-					log.Println("plugin is already connected")
-					close(errc)
+					errf("plugin is already connected")
 					return
 				}
 				cv.Pgns[n].Rw = rw

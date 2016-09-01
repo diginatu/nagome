@@ -7,12 +7,6 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
-// CtPluginNo is a content for telling plugin number to Nagome.
-// TCP plugins should send this only at first time.
-type CtPluginNo struct {
-	No int
-}
-
 // Message is base API struct for plugin
 type Message struct {
 	// Domain that includes following parameters
@@ -46,11 +40,12 @@ const (
 	DomainQuery          = "nagome_query"
 	DomainComment        = "nagome_comment"
 	DomainUI             = "nagome_ui"
+	DomainDirect         = "nagome_direct" // DomainDirect is special domain.
 
-	// Adding this suffix to the end of domain name in "depends" in your plugin.yml enables filtering messages by the plugin.
-	// If there is a plugin that depends filtering domain, Nagome will send messages that is in the domain to only this plugin.
+	// Adding DomainFilterSuffix to the end of domain name in "depends" in your plugin.yml enables filtering messages by the plugin.
+	// If there is a plugin that depends on filtering domain, Nagome will send messages that is in the domain to only this plugin.
 	// This can used for even NagomeQuery but
-	FilterSuffix = "@filter"
+	DomainFilterSuffix = "@filter"
 )
 
 // Command names
@@ -60,10 +55,6 @@ const (
 	CommNagomeClose     = "Nagome.Close"
 	CommNagomeBroadInfo = "Nagome.BroadInfo"
 	CommNagomeSend      = "Nagome.Send"
-	// sent when the plugin is enabled/disabled.
-	// These message is send to only plugin that is enabled or disabled.  Can not be filtered.
-	CommNagomeEnabled  = "Nagome.Enabled"
-	CommNagomeDisabled = "Nagome.Disabled"
 
 	// DomainComment
 	// This domain is for only sending comments
@@ -85,6 +76,12 @@ const (
 	// DomainUI
 	// Event to be processed by UI plugin
 	CommUIDialog string = "UI.Dialog"
+
+	// DomainDirect
+	// It's messages is sent between a plugin and Nagome.  Can not be filtered.
+	CommDirectEnabled  = "Direct.Enabled"  // sent when the plugin is enabled.
+	CommDirectDisabled = "Direct.Disabled" // sent when the plugin is disabled.
+	CommDirectNo       = "Direct.No"       // tell plugin number to Nagome when the connection started.  (TCP at first time only)
 )
 
 // Contents
@@ -139,3 +136,8 @@ const (
 	CtUIDialogTypeInfo string = "Info"
 	CtUIDialogTypeWarn        = "Warn"
 )
+
+// CtDirectNo is a content for CommDirectNo
+type CtDirectNo struct {
+	No int
+}

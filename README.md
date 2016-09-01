@@ -22,7 +22,7 @@ Dependencies
 ------------
 
  + gopkg.in/yaml.v2 : Apache Licence 2.0
- + diginatu/nagome/nicolive : own package
+ + diginatu/nagome/nicolive
    - gopkg.in/xmlpath.v2 : LGPLv3
    - gopkg.in/yaml.v2 : Apache Licence 2.0
 
@@ -30,7 +30,7 @@ Dependencies
 Tasks
 -----
 
- - [ ] log from plugins
+ - [ ] add broadcast info to open message
  - [ ] translation function
  - [ ] document (plugin)
  - [ ] function for NicoLive
