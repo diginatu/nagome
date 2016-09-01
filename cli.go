@@ -107,6 +107,11 @@ func standAloneMode() {
 	var ac nicolive.Account
 	ac.Load(filepath.Join(App.SavePath, accountFileName))
 
+	nicoerr := ac.Login()
+	if nicoerr != nil {
+		log.Fatailln(nicoerr.Error())
+	}
+
 	var l nicolive.LiveWaku
 
 	for {
@@ -128,7 +133,7 @@ func standAloneMode() {
 		break
 	}
 
-	nicoerr := l.FetchInformation()
+	nicoerr = l.FetchInformation()
 	if nicoerr != nil {
 		log.Fatalln(nicoerr)
 	}
