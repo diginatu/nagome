@@ -28,7 +28,7 @@ func RunCli() {
 	debugToStderr := flag.Bool("dbgtostd", false,
 		`Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
-	standAlone := flag.Bool("standalone", false, `Run in stand alone mode (CUI).`)
+	standAlone := flag.Bool("standalone", false, `[For debugging only] write your code in standAloneMode().`)
 	uiUseTCP := flag.Bool("uitcp", false, `Use TCP connection for UI instead of stdin/out`)
 	printHelp := flag.Bool("help", false, "Print this help.")
 	printHelp = flag.Bool("h", false, "Print this help. (shorthand)")
