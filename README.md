@@ -30,7 +30,7 @@ Dependencies
 Tasks
 -----
 
- - [ ] add broadcast info to open message
+ - [ ] add broadcast info to the message open
  - [ ] translation function
  - [ ] document (plugin)
  - [ ] function for NicoLive

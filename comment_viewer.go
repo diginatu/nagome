@@ -111,6 +111,7 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 			No:            cm.No,
 			Date:          cm.Date,
 			UserID:        cm.UserID,
+			Raw:           cm.Comment,
 			IsPremium:     cm.IsPremium,
 			IsBroadcaster: cm.IsCommand,
 			IsStaff:       cm.IsStaff,

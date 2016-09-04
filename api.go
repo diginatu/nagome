@@ -116,6 +116,7 @@ type CtCommentGot struct {
 	Date          time.Time
 	UserID        string
 	UserName      string
+	Raw           string // raw comment text
 	Comment       string // html format
 	IsPremium     bool
 	IsBroadcaster bool
