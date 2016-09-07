@@ -164,7 +164,7 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 // CreateEvNewDialog emits new event for ask UI to display dialog.
 func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
-	t, err := NewMessage(DomainNagome, CommUIDialog,
+	t, err := NewMessage(DomainUI, CommUIDialog,
 		CtUIDialog{
 			Type:        typ,
 			Title:       title,
