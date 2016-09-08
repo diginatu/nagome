@@ -3,38 +3,43 @@ Nagome
 
 [![Circle CI](https://circleci.com/gh/diginatu/nagome.svg?style=svg)](https://circleci.com/gh/diginatu/nagome)
 
-Advanced NicoLive Comment Viewer written in go
+Advanced NicoLive Comment Viewer written in go.
 
-Nagome はアドバンストでクロスプラットフォームなニコニコ生放送用 コメントビューア（ニコ生 コメビュ）です。
+Nagome has no UI but API to communicate with plugins.
+So it doesn't depend on platforms and still its look.
+You can make various UI like native desktop app on any platform, modern app on the browser, even as Vim plugin.
+It can be also used for daemon like a bot.
 
-[Viqo](https://github.com/diginatu/Viqo) よりさらに自由なコメビュを目指しています。
+Installation
+------------
 
-UIを分離し、UIのインターフェースを提供するのが特徴です。
+Assume you have the go developing environment.
 
+~~~ sh
+go get https://github.com/diginatu/nagome
+~~~
 
 Licence
 -------
 
-MIT Licence
-
+[MIT Licence](LICENSE)
 
 Dependencies
 ------------
 
- + gopkg.in/yaml.v2 : Apache Licence 2.0
- + diginatu/nagome/nicolive
-   - gopkg.in/xmlpath.v2 : LGPLv3
-   - gopkg.in/yaml.v2 : Apache Licence 2.0
-
++   gopkg.in/yaml.v2 : Apache Licence 2.0
++   diginatu/nagome/nicolive
+    -   gopkg.in/xmlpath.v2 : LGPLv3
+    -   gopkg.in/yaml.v2 : Apache Licence 2.0
 
 Tasks
 -----
 
- - [ ] add broadcast info to the message open
- - [ ] translation function
- - [ ] document (plugin)
- - [ ] function for NicoLive
-    - [ ] getting user name and storing
-    - [ ] alert connection
-    - [ ] get new Waku
++   [ ] add broadcast info to the message open
++   [ ] translation function
++   [ ] document (plugin)
++   [ ] function for NicoLive
+    -   [ ] getting user name and storing
+    -   [ ] alert connection
+    -   [ ] get new Waku
 
