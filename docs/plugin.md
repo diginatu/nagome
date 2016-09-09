@@ -22,6 +22,11 @@ Typically, it is used to a plugin that provides user interface.
 Nagome will quit if the connection of main plugin is closed.
 Main plugin executes Nagome process and passes settings via command line options.
 
+#### Attention when you make a UI plugin
+
++   Depend on the Domain "nagome_ui" and use all events as you can.
++   Do not use --dbgtostd command line option when you distribute it so users can see the log later.
+
 ### Normal plugin
 
 Normal plugins is placed in Plugins directory in Nagome configure directory.
