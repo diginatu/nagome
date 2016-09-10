@@ -24,29 +24,29 @@ const (
 )
 
 type plugin struct {
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Version     string            `yaml:"version"`
-	Author      string            `yaml:"author"`
-	Method      string            `yaml:"method"`
-	Exec        []string          `yaml:"exec"`
-	Nagomever   string            `yaml:"nagomever"`
-	Depends     []string          `yaml:"depends"`
-	Rw          *bufio.ReadWriter `yaml:"-"`
-	Startc      chan struct{}     `yaml:"-"`
+	Name        string            `yaml:"name"        json:"name"`
+	Description string            `yaml:"description" json:"description"`
+	Version     string            `yaml:"version"     json:"version"`
+	Author      string            `yaml:"author"      json:"author"`
+	Method      string            `yaml:"method"      json:"method"`
+	Exec        []string          `yaml:"exec"        json:"-"`
+	Nagomever   string            `yaml:"nagomever"   json:"-"`
+	Depends     []string          `yaml:"depends"     json:"depends"`
+	No          int               `yaml:"-"           json:"no"`
+	Rw          *bufio.ReadWriter `yaml:"-"           json:"-"`
+	Startc      chan struct{}     `yaml:"-"           json:"-"`
 	flushTm     *time.Timer
-	no          int
 	isEnable    bool
 }
 
 func (pl *plugin) Init(no int) {
 	pl.flushTm = time.NewTimer(time.Hour)
 	pl.Startc = make(chan struct{}, 1)
-	pl.no = no
+	pl.No = no
 }
 
 func (pl *plugin) Start(cv *CommentViewer) {
-	if pl.no == 0 {
+	if pl.No == 0 {
 		log.Printf("plugin \"%s\" is not initialized\n", pl.Name)
 		return
 	}
@@ -66,7 +66,7 @@ func (pl *plugin) Start(cv *CommentViewer) {
 	pl.Startc <- struct{}{}
 
 	cv.wg.Add(1)
-	go eachPluginRw(cv, pl.no-1)
+	go eachPluginRw(cv, pl.No-1)
 }
 
 func (pl *plugin) Enable() {
@@ -131,10 +131,6 @@ func (pl *plugin) Depend(pln string) bool {
 		}
 	}
 	return f
-}
-
-func (pl *plugin) No() int {
-	return pl.no
 }
 
 func (pl *plugin) loadPlugin(filePath string) error {

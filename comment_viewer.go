@@ -73,7 +73,7 @@ func (cv *CommentViewer) loadPlugins() {
 			for i := range p.Exec {
 				p.Exec[i] = strings.Replace(p.Exec[i], "{{path}}", pPath, -1)
 				p.Exec[i] = strings.Replace(p.Exec[i], "{{port}}", cv.TCPPort, -1)
-				p.Exec[i] = strings.Replace(p.Exec[i], "{{no}}", strconv.Itoa(p.No()), -1)
+				p.Exec[i] = strings.Replace(p.Exec[i], "{{no}}", strconv.Itoa(p.No), -1)
 			}
 
 			switch p.Method {
@@ -139,9 +139,14 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 		com = CommNagomeClose
 
 	case nicolive.EventTypeHeartBeatGot:
+		hb := ev.Content.(nicolive.HeartbeatValue)
+		ct := CtNagomeBroadInfo{
+			WatchCount:   hb.WatchCount,
+			CommentCount: hb.CommentCount,
+		}
 		dom = DomainNagome
 		com = CommNagomeBroadInfo
-		con, _ = json.Marshal(ev.Content)
+		con, _ = json.Marshal(ct)
 
 	case nicolive.EventTypeSend:
 		dom = DomainNagome

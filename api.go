@@ -9,12 +9,9 @@ import (
 
 // Message is base API struct for plugin
 type Message struct {
-	// Domain that includes following parameters
-	Domain string `json:"domain"`
-	// Command
-	Command string `json:"command"`
-	// Elements type of Content is depend on witch Command is used
-	Content json.RawMessage `json:"content,omitempty"`
+	Domain  string          `json:"domain"`
+	Command string          `json:"command"`
+	Content json.RawMessage `json:"content,omitempty"` // The structure of Content is depend on the Command (and Domain).
 
 	prgno int
 }
@@ -66,22 +63,28 @@ const (
 	CommQueryBroadDisconnect  = "Broad.Disconnect"
 	CommQueryBroadSendComment = "Broad.SendComment"
 
-	CommQueryAccountSet   = "Account.Set"   // set the given content value as account values.
-	CommQueryAccountLogin = "Account.Login" // login and set the user session to account.
+	CommQueryAccountSet   = "Account.Set"   // Set the given content value as account values.
+	CommQueryAccountLogin = "Account.Login" // Login and set the user session to account.
 	CommQueryAccountLoad  = "Account.Load"
 	CommQueryAccountSave  = "Account.Save"
 
-	CommQueryLogPrint = "Log.Print" // print string using logger of Nagome
+	CommQueryLogPrint = "Log.Print" // Print string using logger of Nagome
 
 	// DomainUI
 	// Event to be processed by UI plugin
-	CommUIDialog string = "UI.Dialog"
+	CommUIDialog = "UI.Dialog"
 
-	// DomainDirect
-	// It's messages is sent between a plugin and Nagome.  Can not be filtered.
-	CommDirectEnabled  = "Direct.Enabled"  // sent when the plugin is enabled.
-	CommDirectDisabled = "Direct.Disabled" // sent when the plugin is disabled.
-	CommDirectNo       = "Direct.No"       // tell plugin number to Nagome when the connection started.  (TCP at first time only)
+	// DomainDirect (special domain)
+	// Its messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
+
+	// plugin to Nagome
+	CommDirectNo          = "Direct.No"          // Tell plugin number to Nagome when the connection started.  (TCP at first time only)
+	CommDirectReqListPlug = "Direct.ReqListPlug" // Request a list of plugins.
+
+	// Nagome to plugin
+	CommDirectEnabled  = "Direct.Enabled"  // Sent when the plugin is enabled.
+	CommDirectDisabled = "Direct.Disabled" // Sent when the plugin is disabled.
+	CommDirectListPlug = "Direct.ListPlug"
 )
 
 // Contents
@@ -89,17 +92,20 @@ const (
 // Contents in the Message API
 
 // CtNagomeBroadInfo is a content of CommNagomeBroadInfo
-type CtNagomeBroadInfo nicolive.HeartbeatValue
+type CtNagomeBroadInfo struct {
+	WatchCount   string `json:"watch_count"`
+	CommentCount string `json:"comment_count"`
+}
 
 // CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
-	BroadID string
+	BroadID string `json:"broad_id"`
 }
 
 // CtQueryBroadSendComment is a content of CommQueryBroadSendComment
 type CtQueryBroadSendComment struct {
-	Text  string
-	Iyayo bool
+	Text  string `json:"text"`
+	Iyayo bool   `json:"iyayo"`
 }
 
 // CtQueryAccountSet is a content of CommQueryAccountSet
@@ -107,29 +113,30 @@ type CtQueryAccountSet nicolive.Account
 
 // CtQueryLogPrint is a content of CommQueryLogPrint
 type CtQueryLogPrint struct {
-	Text string
+	Text string `json:"text"`
 }
 
 // A CtCommentGot is a content of CommCommentGot
 type CtCommentGot struct {
-	No            int
-	Date          time.Time
-	UserID        string
-	UserName      string
-	Raw           string // raw comment text
-	Comment       string // html format
-	IsPremium     bool
-	IsBroadcaster bool
-	IsStaff       bool
-	IsAnonymity   bool
-	Score         int
+	No            int       `json:"no"`
+	Date          time.Time `json:"date"`
+	UserID        string    `json:"user_id"`
+	UserName      string    `json:"user_name"`
+	Raw           string    `json:"raw"`
+	Comment       string    `json:"comment"`
+	IsPremium     bool      `json:"is_premium"`
+	IsBroadcaster bool      `json:"is_broadcaster"`
+	IsStaff       bool      `json:"is_staff"`
+	IsAnonymity   bool      `json:"is_anonymity"`
+	Score         int       `json:"score"`
 }
 
 // CtUIDialog is a content of CommUIDialog
 type CtUIDialog struct {
-	Type        string // select from below const string
-	Title       string
-	Description string
+	// Select type from below const string
+	Type        string `json:"type"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 // type of CtUIDialog
@@ -140,5 +147,10 @@ const (
 
 // CtDirectNo is a content for CommDirectNo
 type CtDirectNo struct {
-	No int
+	No int `json:"no"`
+}
+
+// CtDirectListPlug is a content for CommDirectListPlug
+type CtDirectListPlug struct {
+	Plugins *[]*plugin `json:"plugins"`
 }
