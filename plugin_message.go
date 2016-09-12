@@ -59,8 +59,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 		}
 		nicoerr := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
 		if nicoerr != nil {
-			// TODO: make dialog from nicolive.Error
-			//cv.CreateEvNewDialog(CtUIDialogTypeWarn, nicoerr.Code(), nicoerr.Description())
+			cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", nicoerr.Description())
 			return nicoerr
 		}
 
@@ -99,7 +98,24 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 		log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno-1].Name, ct.Text)
 
 	default:
-		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command")
+		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
+	}
+
+	return nil
+}
+
+func processDirectMessage(cv *CommentViewer, m *Message) nicolive.Error {
+	switch m.Command {
+	case CommDirectPlugList:
+		c := CtDirectngmPlugList{&cv.Pgns}
+		t, err := NewMessage(DomainDirectngm, CommDirectngmPlugList, c)
+		if err != nil {
+			return nicolive.ErrFromStdErr(err)
+		}
+		t.prgno = m.prgno
+		cv.Evch <- t
+	default:
+		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 	}
 
 	return nil

@@ -35,7 +35,7 @@ func (cv *CommentViewer) Run() {
 	go pluginTCPServer(cv)
 
 	cv.wg.Add(1)
-	go sendPluginEvent(cv)
+	go sendPluginMessage(cv)
 
 	cv.wg.Wait()
 
@@ -132,11 +132,11 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 	case nicolive.EventTypeOpen:
 		dom = DomainNagome
-		com = CommNagomeOpen
+		com = CommNagomeBroadOpen
 
 	case nicolive.EventTypeClose:
 		dom = DomainNagome
-		com = CommNagomeClose
+		com = CommNagomeBroadClose
 
 	case nicolive.EventTypeHeartBeatGot:
 		hb := ev.Content.(nicolive.HeartbeatValue)
@@ -150,11 +150,12 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 
 	case nicolive.EventTypeSend:
 		dom = DomainNagome
-		com = CommNagomeSend
+		com = CommNagomeCommentSend
 
 	case nicolive.EventTypeErr:
 		log.Println(ev)
 		return
+
 	default:
 		log.Println(ev)
 		return

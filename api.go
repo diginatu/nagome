@@ -33,29 +33,29 @@ func NewMessage(dom, com string, con interface{}) (*Message, error) {
 
 // Dimain names
 const (
-	DomainNagome  string = "nagome"
-	DomainQuery          = "nagome_query"
-	DomainComment        = "nagome_comment"
-	DomainUI             = "nagome_ui"
-	DomainDirect         = "nagome_direct" // DomainDirect is special domain.
+	DomainNagome    string = "nagome"
+	DomainQuery            = "nagome_query"
+	DomainComment          = "nagome_comment"
+	DomainUI               = "nagome_ui"
+	DomainDirect           = "nagome_direct"    // DomainDirect is a special domain (from plugin).
+	DomainDirectngm        = "nagome_directngm" // DomainDirectNgm is a domain for direct message from Nagome.
 
 	// Adding DomainFilterSuffix to the end of domain name in "depends" in your plugin.yml enables filtering messages by the plugin.
-	// If there is a plugin that depends on filtering domain, Nagome will send messages that is in the domain to only this plugin.
-	// This can used for even NagomeQuery but
+	// If there is a plugin that depends on filtering domain, Nagome will send a message of the domain to only the filtering plugin.
 	DomainFilterSuffix = "@filter"
 )
 
 // Command names
 const (
 	// DomainNagome
-	CommNagomeOpen      = "Nagome.Open"
-	CommNagomeClose     = "Nagome.Close"
-	CommNagomeBroadInfo = "Nagome.BroadInfo"
-	CommNagomeSend      = "Nagome.Send"
+	CommNagomeBroadOpen   = "Broad.Open"
+	CommNagomeBroadClose  = "Broad.Close"
+	CommNagomeBroadInfo   = "Broad.Info"
+	CommNagomeCommentSend = "Comment.Send"
 
 	// DomainComment
 	// This domain is for only sending comments
-	CommCommentGot = "Comment.Got"
+	CommCommentGot = "Got"
 
 	// DomainQuery
 	// Query from plugin to Nagome
@@ -72,19 +72,19 @@ const (
 
 	// DomainUI
 	// Event to be processed by UI plugin
-	CommUIDialog = "UI.Dialog"
+	CommUIDialog = "Dialog"
 
 	// DomainDirect (special domain)
 	// Its messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
 
 	// plugin to Nagome
-	CommDirectNo          = "Direct.No"          // Tell plugin number to Nagome when the connection started.  (TCP at first time only)
-	CommDirectReqListPlug = "Direct.ReqListPlug" // Request a list of plugins.
+	CommDirectNo       = "No"        // Tell plugin number to Nagome when the connection started.  (TCP at first time only)
+	CommDirectPlugList = "Plug.List" // Request a list of plugins.
 
 	// Nagome to plugin
-	CommDirectEnabled  = "Direct.Enabled"  // Sent when the plugin is enabled.
-	CommDirectDisabled = "Direct.Disabled" // Sent when the plugin is disabled.
-	CommDirectListPlug = "Direct.ListPlug"
+	CommDirectngmPlugEnabled  = "Plug.Enabled"  // Sent when the plugin is enabled.
+	CommDirectngmPlugDisabled = "Plug.Disabled" // Sent when the plugin is disabled.
+	CommDirectngmPlugList     = "Plug.List"
 )
 
 // Contents
@@ -150,7 +150,7 @@ type CtDirectNo struct {
 	No int `json:"no"`
 }
 
-// CtDirectListPlug is a content for CommDirectListPlug
-type CtDirectListPlug struct {
+// CtDirectngmPlugList is a content for CommDirectngmPlugList
+type CtDirectngmPlugList struct {
 	Plugins *[]*plugin `json:"plugins"`
 }

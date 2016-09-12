@@ -10,6 +10,7 @@ import (
 	"net"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -77,8 +78,8 @@ func (pl *plugin) Enable() {
 
 	// send message
 	jmes, err := json.Marshal(Message{
-		Domain:  DomainDirect,
-		Command: CommDirectEnabled,
+		Domain:  DomainDirectngm,
+		Command: CommDirectngmPlugEnabled,
 	})
 	if err != nil {
 		log.Println(err)
@@ -96,8 +97,8 @@ func (pl *plugin) Disable() {
 
 	// send message
 	jmes, err := json.Marshal(Message{
-		Domain:  DomainDirect,
-		Command: CommDirectDisabled,
+		Domain:  DomainDirectngm,
+		Command: CommDirectngmPlugDisabled,
 	})
 	if err != nil {
 		log.Println(err)
@@ -220,7 +221,7 @@ func eachPluginRw(cv *CommentViewer, n int) {
 		}
 
 		select {
-		// Process the message
+		// Process received message
 		case m := <-mes:
 			if m == nil {
 				// quit if UI plugin disconnect
@@ -248,17 +249,44 @@ func eachPluginRw(cv *CommentViewer, n int) {
 	}
 }
 
-func sendPluginEvent(cv *CommentViewer) {
+func sendPluginMessage(cv *CommentViewer) {
 	defer cv.wg.Done()
 
 	for {
 	readLoop:
 		select {
 		case mes := <-cv.Evch:
-			jmes, err := json.Marshal(mes)
-			if err != nil {
-				log.Println(err)
-				log.Println(mes)
+			// Direct
+			if mes.Domain == DomainDirectngm {
+				plug := cv.Pgns[mes.prgno]
+				if plug.Rw == nil {
+					continue
+				}
+				jmes, err := json.Marshal(mes)
+				if err != nil {
+					log.Println(err)
+					log.Println(mes)
+					continue
+				}
+				plug.flushTm.Reset(pluginFlashWaitDu)
+				_, err = fmt.Fprintf(plug.Rw, "%s\n", jmes)
+				if err != nil {
+					cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
+					log.Println(err)
+
+					plug.Rw = nil
+					continue
+				}
+				continue
+			}
+			if mes.Domain == DomainDirect {
+				go func() {
+					nicoerr := processDirectMessage(cv, mes)
+					if nicoerr != nil {
+						log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nicoerr)
+						log.Println(mes)
+					}
+				}()
 				continue
 			}
 
@@ -267,14 +295,26 @@ func sendPluginEvent(cv *CommentViewer) {
 			// Messages from filter plugin will not send same plugin.
 			var st int
 			if strings.HasSuffix(mes.Domain, DomainFilterSuffix) {
-				mes.Domain = strings.TrimSuffix(mes.Domain, DomainFilterSuffix)
 				st = mes.prgno + 1
+				mes.Domain = strings.TrimSuffix(mes.Domain, DomainFilterSuffix)
 			}
 			for i := st; i < len(cv.Pgns); i++ {
 				plug := cv.Pgns[i]
 
 				if plug.Rw != nil && plug.DependFilter(mes.Domain) {
-					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
+					plug.flushTm.Reset(pluginFlashWaitDu)
+
+					// A message to filter plugin has filter domain.
+					tmes := *mes
+					tmes.Domain = DomainFilterSuffix + mes.Domain
+					jmes, err := json.Marshal(tmes)
+					if err != nil {
+						log.Println(err)
+						log.Println(mes)
+						break readLoop
+					}
+					plug.flushTm.Reset(pluginFlashWaitDu)
+					_, err = fmt.Fprintf(plug.Rw, "%s\n", jmes)
 					if err != nil {
 						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
 						log.Println(err)
@@ -282,32 +322,49 @@ func sendPluginEvent(cv *CommentViewer) {
 						plug.Rw = nil
 						continue
 					}
-					plug.flushTm.Reset(pluginFlashWaitDu)
 					break readLoop
 				}
 			}
 
-			// regular
-			for _, plug := range cv.Pgns {
-				if plug.Rw != nil && plug.Depend(mes.Domain) {
-					_, err := fmt.Fprintf(plug.Rw.Writer, "%s\n", jmes)
-					if err != nil {
-						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
-						log.Println(err)
+			jmes, err := json.Marshal(mes)
+			if err != nil {
+				log.Println(err)
+				log.Println(mes)
+				continue
+			}
 
-						plug.Rw = nil
-						continue
+			var wg sync.WaitGroup
+
+			// regular
+			for i := range cv.Pgns {
+				wg.Add(1)
+				go func(i int) {
+					defer wg.Done()
+					plug := cv.Pgns[i]
+
+					if plug.Rw != nil && plug.Depend(mes.Domain) {
+						plug.flushTm.Reset(pluginFlashWaitDu)
+						_, err := fmt.Fprintf(plug.Rw, "%s\n", jmes)
+						if err != nil {
+							cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
+							log.Println(err)
+
+							plug.Rw = nil
+							return
+						}
 					}
-					plug.flushTm.Reset(pluginFlashWaitDu)
-				}
+				}(i)
 			}
 
 			go func() {
 				nicoerr := processPluginMessage(cv, mes)
 				if nicoerr != nil {
-					log.Println("plugin message error : ", nicoerr)
+					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nicoerr)
+					log.Println(mes)
 				}
 			}()
+
+			wg.Wait()
 
 		case <-cv.Quit:
 			return
