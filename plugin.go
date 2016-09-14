@@ -162,6 +162,10 @@ func (pl *plugin) savePlugin(filePath string) error {
 	return nil
 }
 
+func (pl *plugin) isMain() bool {
+	return pl.No == 0
+}
+
 // eachPluginRw manages plugins IO. It is launched when a plugin is leaded.
 func eachPluginRw(cv *CommentViewer, n int) {
 	defer cv.wg.Done()
@@ -225,7 +229,7 @@ func eachPluginRw(cv *CommentViewer, n int) {
 		case m := <-mes:
 			if m == nil {
 				// quit if UI plugin disconnect
-				if cv.Pgns[n].Name == pluginNameMain {
+				if cv.Pgns[n].isMain() {
 					cv.Cmm.Disconnect()
 					close(cv.Quit)
 				}
