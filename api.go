@@ -72,7 +72,8 @@ const (
 
 	// DomainUI
 	// Event to be processed by UI plugin
-	CommUIDialog = "Dialog"
+	CommUIDialog        = "Dialog"
+	CommUIClearComments = "ClearComments"
 
 	// DomainDirect (special domain)
 	// Its messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.

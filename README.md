@@ -36,7 +36,6 @@ Tasks
 -----
 
 +   [ ] message that clear comments
-+   [ ] message that list plugins
 +   [ ] nagomever
 +   [ ] add broadcast info to the message open
 +   [ ] translation function

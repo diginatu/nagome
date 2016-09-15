@@ -131,6 +131,11 @@ func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
 		con, _ = json.Marshal(ct)
 
 	case nicolive.EventTypeOpen:
+		cv.Evch <- &Message{
+			Domain:  DomainUI,
+			Command: CommUIClearComments,
+		}
+
 		dom = DomainNagome
 		com = CommNagomeBroadOpen
 
