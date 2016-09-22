@@ -8,10 +8,8 @@ import (
 )
 
 func findUserConfigPath() string {
-	var home, dir string
-
-	home = os.Getenv("HOME")
-	dir = filepath.Join(home, ".config")
+	home := os.Getenv("HOME")
+	dir := filepath.Join(home, ".config")
 
 	return filepath.Join(dir, App.Name)
 }

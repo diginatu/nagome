@@ -6,10 +6,8 @@ import (
 )
 
 func findUserConfigPath() string {
-	var home, dir string
-
-	home = os.Getenv("USERPROFILE")
-	dir = os.Getenv("APPDATA")
+	home := os.Getenv("USERPROFILE")
+	dir := os.Getenv("APPDATA")
 	if dir == "" {
 		dir = filepath.Join(home, "Application Data")
 	}

@@ -12,7 +12,7 @@ type Application struct {
 
 var (
 	// App is global Application settings and valuables for this app
-	App = Application{Name: "Nagome", Version: "0.0"}
+	App = Application{Name: "Nagome", Version: "0.0.0"}
 )
 
 func main() {

@@ -16,7 +16,7 @@ Installation
 Assume you have the go developing environment.
 
 ~~~ sh
-go get https://github.com/diginatu/nagome
+go get -u github.com/diginatu/nagome
 ~~~
 
 Licence

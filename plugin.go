@@ -19,8 +19,7 @@ import (
 const (
 	pluginFlashWaitDu time.Duration = 50 * time.Millisecond
 
-	pluginNameMain  string = "main"
-	pluginMethodTCP        = "tcp"
+	pluginMethodTCP string = "tcp"
 	pluginMethodStd        = "std"
 )
 
