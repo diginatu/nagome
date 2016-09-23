@@ -162,7 +162,7 @@ func (pl *plugin) savePlugin(filePath string) error {
 }
 
 func (pl *plugin) isMain() bool {
-	return pl.No == 0
+	return pl.No == 1
 }
 
 // eachPluginRw manages plugins IO. It is launched when a plugin is leaded.
