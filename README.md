@@ -6,9 +6,9 @@ Nagome
 Advanced NicoLive Comment Viewer written in go.
 
 Nagome has no UI but API to communicate with plugins.
-So it doesn't depend on platforms and still its look.
-You can make various UI like native desktop app on any platform, modern app on the browser, even as Vim plugin.
-It can be also used for daemon like a bot.
+So it doesn't depend on platforms or environments.
+You can make various UIs like native desktop app on any platform, modern app on the browser, even as Vim plugin.
+It can be also used for daemon like bots.
 
 Installation
 ------------
@@ -18,6 +18,11 @@ Assume you have the go developing environment.
 ~~~ sh
 go get -u github.com/diginatu/nagome
 ~~~
+
+Document
+--------
+
+[index](docs/README.md)
 
 Licence
 -------
@@ -35,7 +40,6 @@ Dependencies
 Tasks
 -----
 
-+   [ ] message that clear comments
 +   [ ] nagomever
 +   [ ] add broadcast info to the message open
 +   [ ] translation function

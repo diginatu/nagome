@@ -7,7 +7,7 @@ Installation
 Assume you have the go developing environment.
 
 ~~~ sh
-go get https://github.com/diginatu/nagome
+go get github.com/diginatu/nagome
 ~~~
 
 To make normal plugin
