@@ -26,7 +26,6 @@ func RunCli() {
 	tcpPort := flag.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
 	debugToStderr := flag.Bool("dbgtostd", false, `Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
-	uiUseTCP := flag.Bool("uitcp", false, `Use TCP connection for UI instead of stdin/out`)
 	printHelp := flag.Bool("help", false, "Print this help.")
 	printHelp = flag.Bool("h", false, "Print this help. (shorthand)")
 	printVersion := flag.Bool("v", false, "Print version information.")
@@ -120,7 +119,7 @@ func RunCli() {
 			log.Println(err)
 		}
 	}
-	if *uiUseTCP {
+	if plug.Method == "tcp" {
 		plug.Init(1)
 	} else {
 		plug.Rw = bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
