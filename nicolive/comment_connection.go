@@ -109,7 +109,7 @@ type CommentConnection struct {
 }
 
 // NewCommentConnection returns a pointer to new CommentConnection
-func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
+func NewCommentConnection(ev EventReceiver) *CommentConnection {
 	kat := time.NewTimer(keepAliveDuration)
 	kat.Stop()
 	pkt := time.NewTimer(postKeyDuration)
@@ -122,7 +122,6 @@ func NewCommentConnection(l *LiveWaku, ev EventReceiver) *CommentConnection {
 	}
 
 	return &CommentConnection{
-		lv:           l,
 		termc:        make(chan bool),
 		keepAliveTmr: kat,
 		postKeyTmr:   pkt,
@@ -143,6 +142,13 @@ func (cc *CommentConnection) SetLv(l *LiveWaku) Error {
 }
 
 func (cc *CommentConnection) open() Error {
+	if cc.lv.Account == nil {
+		return MakeError(ErrOther, "nil account in LiveWaku")
+	}
+	if cc.lv.BroadID == "" {
+		return MakeError(ErrOther, "BroadID is not set")
+	}
+
 	var err error
 
 	addrport := fmt.Sprintf("%s:%s",

@@ -25,6 +25,16 @@ type CommentViewer struct {
 	wg      sync.WaitGroup
 }
 
+// NewCommentViewer makes new CommentViewer
+func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
+	return &CommentViewer{
+		Ac:      ac,
+		TCPPort: tcpPort,
+		Evch:    make(chan *Message, eventBufferSize),
+		Quit:    make(chan struct{}),
+	}
+}
+
 // Run run the CommentViewer and start connecting plugins
 func (cv *CommentViewer) Run() {
 	defer cv.Cmm.Disconnect()

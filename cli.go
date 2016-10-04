@@ -92,13 +92,8 @@ func RunCli() {
 	defer file.Close()
 	log.SetOutput(file)
 
-	var cv = CommentViewer{
-		Ac:      new(nicolive.Account),
-		TCPPort: *tcpPort,
-		Evch:    make(chan *Message, eventBufferSize),
-		Quit:    make(chan struct{}),
-	}
-	cv.Cmm = nicolive.NewCommentConnection(new(nicolive.LiveWaku), &cv)
+	cv := NewCommentViewer(new(nicolive.Account), *tcpPort)
+	cv.Cmm = nicolive.NewCommentConnection(cv)
 
 	// load account data
 	err := cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
@@ -111,6 +106,7 @@ func RunCli() {
 		Name:        "main",
 		Description: "main plugin",
 		Version:     "0.0",
+		Method:      "std",
 		Depends:     []string{DomainNagome, DomainComment, DomainUI},
 	}
 	if *mainyml != "" {
@@ -124,7 +120,7 @@ func RunCli() {
 	} else {
 		plug.Rw = bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
 		plug.Init(1)
-		plug.Start(&cv)
+		plug.Start(cv)
 	}
 	cv.Pgns = append(cv.Pgns, plug)
 
