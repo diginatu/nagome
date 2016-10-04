@@ -9,6 +9,10 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
+var (
+	broadIDRegex = regexp.MustCompile("(lv|co)\\d+")
+)
+
 func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 	if m.Domain != DomainQuery {
 		return nil
@@ -21,8 +25,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 		}
 
-		brdRg := regexp.MustCompile("(lv|co)\\d+")
-		broadMch := brdRg.FindString(ct.BroadID)
+		broadMch := broadIDRegex.FindString(ct.BroadID)
 		if broadMch == "" {
 			cv.CreateEvNewDialog(CtUIDialogTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
 			return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
