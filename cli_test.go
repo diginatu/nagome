@@ -29,6 +29,7 @@ func TestMainTCP(t *testing.T) {
 	}
 	plug.Init(1)
 	cv.Pgns = append(cv.Pgns, plug)
+	cv.TCPPort = "0"
 
 	cv.Start()
 
