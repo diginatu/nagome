@@ -39,8 +39,6 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 
 // Start run the CommentViewer and start connecting plugins
 func (cv *CommentViewer) Start() {
-	defer cv.Cmm.Disconnect()
-
 	waitWakeServer := make(chan struct{})
 
 	cv.wg.Add(1)
@@ -52,9 +50,13 @@ func (cv *CommentViewer) Start() {
 	<-waitWakeServer
 	cv.loadPlugins()
 
-	cv.wg.Wait()
-
 	return
+}
+
+// Wait waits for quiting after Start().
+func (cv *CommentViewer) Wait() {
+	defer cv.Cmm.Disconnect()
+	cv.wg.Wait()
 }
 
 // AddPlugin adds new plugin to Pgns
