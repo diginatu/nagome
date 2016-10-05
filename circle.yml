@@ -19,6 +19,6 @@ test:
     - cd $GOPATH/src/$IMPORT_PATH && for package in `go list ./...| grep -v vendor`; do golint $GOPATH/src/$package | tee /dev/stderr; done
     - cd $GOPATH/src/$IMPORT_PATH && for package in `go list ./...| grep -v vendor`; do go vet $package | tee /dev/stderr; done
   override:
-    - cd $GOPATH/src/$IMPORT_PATH && for package in `go list ./...| grep -v vendor`; do go test -cover -coverprofile=$CIRCLE_ARTIFACTS/cover.out -bench -benchmem -v -race $package; done
+    - cd $GOPATH/src/$IMPORT_PATH && go test -cover -coverprofile=$CIRCLE_ARTIFACTS/cover.out -bench -benchmem -v -race ./...
   post:
     - go tool cover -html=$CIRCLE_ARTIFACTS/cover.out -o $CIRCLE_ARTIFACTS/cover.html
