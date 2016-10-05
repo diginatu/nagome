@@ -376,40 +376,6 @@ func sendPluginMessage(cv *CommentViewer) {
 	}
 }
 
-func pluginTCPServer(cv *CommentViewer) {
-	defer cv.wg.Done()
-
-	adr, err := net.ResolveTCPAddr("tcp", ":"+cv.TCPPort)
-	if err != nil {
-		log.Panicln(err)
-	}
-	l, err := net.ListenTCP("tcp", adr)
-	if err != nil {
-		log.Panicln(err)
-	}
-	defer l.Close()
-
-	for {
-		l.SetDeadline(time.Now().Add(time.Second))
-		select {
-		default:
-			conn, err := l.Accept()
-			if err != nil {
-				nerr, ok := err.(net.Error)
-				if ok && nerr.Timeout() && nerr.Temporary() {
-					continue
-				}
-				log.Println(err)
-				continue
-			}
-			cv.wg.Add(1)
-			go handleTCPPlugin(conn, cv)
-		case <-cv.Quit:
-			return
-		}
-	}
-}
-
 func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
 	defer cv.wg.Done()
 	defer c.Close()

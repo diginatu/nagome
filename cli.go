@@ -124,5 +124,5 @@ func RunCli() {
 	}
 	cv.Pgns = append(cv.Pgns, plug)
 
-	cv.Run()
+	cv.Start()
 }
