@@ -40,56 +40,6 @@ type Comment struct {
 // This struct automatically submits NULL character to reserve connection and
 // get the PostKey, which is necessary for sending comments.
 // liveWaku should have connection information which is able to get by fetchInformation()
-/*
-@startuml
-title "Comment connection - Sequence Diagram"
-actor User
-
-== Connecting ==
-User -> Main : Connect
-
-Main -> socket : dial
-activate socket
-
-note right
-    returns no error
-    even if failed to connect
-end note
-
-Main -> event : opened
-
-create "receiveStream()" as rs
-Main -> rs : go
-activate rs
-create "timer()" as tm
-Main -> tm : go
-activate tm
-
-
-loop
-...Wait for a message or closing socket...
-rs -> event : comment,\nconnect,\nsubmit status
-note left
-    wait for a message
-    even if connection error occured
-//send.append('\0');
-
-end note
-end
-
-== Disconnecting ==
-User -> Main : Disconnect
-Main -> socket : close
-deactivate socket
-
-Main -> rs : termSig
-destroy rs
-Main -> tm : termSig
-destroy tm
-
-Main -> event : disconnect
-@enduml
-*/
 type CommentConnection struct {
 	IsConnected bool
 
