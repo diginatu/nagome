@@ -2,9 +2,11 @@ package nicolive
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -58,4 +60,19 @@ func TestUserFetchInfo(t *testing.T) {
 	if nerr := u.fetchInfoImpl(ts.URL+"/notfound", a); nerr == nil {
 		log.Fatal(nerr)
 	}
+}
+
+func TestUserDB(t *testing.T) {
+	f, err := ioutil.TempFile("", "nagome")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	defer os.Remove(f.Name())
+
+	db, err := NewUserDB(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
 }

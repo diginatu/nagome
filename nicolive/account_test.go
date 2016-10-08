@@ -3,6 +3,7 @@ package nicolive
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -75,6 +76,7 @@ func TestAccountSave(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.Close()
+	defer os.Remove(f.Name())
 
 	err = a.Save(f.Name())
 	if err != nil {
