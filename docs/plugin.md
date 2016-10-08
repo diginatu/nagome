@@ -17,7 +17,7 @@ Other user-defined plugin is called normal plugins.
 ### Normal plugin
 
 Normal plugins are placed in Plugins directory in Nagome configure directory.
-A plugin should have corresponding directory and a plugin settings file named "plugin.yml" like below.
+A plugin should have corresponding directory and a plugin settings file named "plugin.yml" (describe later).
 
 In the Nagome configure dir,
 
@@ -28,10 +28,28 @@ In the Nagome configure dir,
     +   ( plugin-name-2 )
         +   ( plugin.yml )
 
-The plugin directory (plugin-name-1 above) is not need to be same as its name.
+The plugin directory (plugin-name-1 above) name don't need to be same as its name.
 But using the name connected with `-` is recommended.
 
-#### plugin.yml
+### Main plugin
+
+Nagome always creates one main plugin.  You can't make more.
+Main plugin has plugin number 1.
+Typically, it is used to a plugin that provides user interface, and the plugin executes Nagome.
+So main plugin doesn't have plugin directory or fixed configuration file but you can pass -y(--ymlmain) command line option to specify the configuration file (same as plugin.yml in normal plugin).
+
+You have to check below when you make a UI plugin.
+
++   Depend on the Domain "nagome_ui" and use all events as you can.
++   Do not use --dbgtostd command line option when you distribute it so users can see the log file later.
+
+Deferences between normal and main plugins:
+
++   Nagome will quit if the connection of main plugin is closed
++   Typically, main plugin executes Nagome.  Normal plugins are executed by Nagome.
+
+plugin.yml
+----------
 
 Plugin configuration which is read at loading the plugin.
 
@@ -63,37 +81,47 @@ depends:
     Following context will be replaced.
 
     +   {{path}} : Path to plugin directory.
-    +   {{no}} : Internal plugin number (necessary in TCP).
+    +   {{no}} : Plugin number (necessary in TCP).
     +   {{port}} : TCP port to connect (necessary in TCP).
 
-+   nagomever : String.  Supporting version of Nagome (Not implemented yet).
-+   depends : Array of string.  Dependencies (see Nagome message for more detail)
++   nagomever : String.  Supporting version of Nagome (No effect).
++   depends : Array of string.  Domain of message that the plugin will receive (see Nagome message for more detail)
 
-### Main plugin
-
-Nagome always creates one main plugin.
-And you can't make more.
-Main plugin has Internal plugin number 1.
-Typically, it is used to a plugin that provides user interface.
-
-Deferences between normal and main plugins:
-
-+   Nagome will quit if the connection of main plugin is closed
-+   Main plugin executes Nagome process and passes settings via command line options.
-
-You have to check below when you make a UI plugin.
-
-+   Depend on the Domain "nagome_ui" and use all events as you can.
-+   Do not use --dbgtostd command line option when you distribute it so users can see the log file later.
-
-Connection type
----------------
+Connection
+----------
 
 Plugins communicate with Nagome process using JSON in stdin/out or TCP connection.
+Each JSON message is sent line by line from Nagome.
+Plugins don't have to keep this rule.
 
 ### stdin/out
 
+To use stdin/out connection, set 'std' to 'method' in your plugin.yml.
+
+You can directory use standard input and output for JSON communication.
+Normal plugin can naturally use its stdin/out.
+Main plugin should execute Nagome and grab the stdin/out of it.
+
 ### TCP
+
+To use TCP connection, set 'tcp' to 'method' in your plugin.yml.
+
+Deferent from stdin/out, TCP plugin should tell the plugin number to Nagome at first.
+The number can be got as command line argument (see plugin.yml > exec).
+Then, at the beginning of the connection, send a message like below.
+
+~~~ json
+{ 
+    "domain": "nagome_direct",
+    "command": "No",
+    "content": {
+        "no": YOUR_PLUGIN_NUM_HERE
+    }
+}
+~~~
+
+This message is special, so cannot be send at any time except this.
+
 
 Nagome message
 --------------
@@ -101,7 +129,7 @@ Nagome message
 Nagome message is JSON message which is used in communication with Nagome.
 All plugins and Nagome use this one message at each messaging.
 
-The basic structure of a Nagome message is like this.
+The basic structure of a Nagome message is like blow.
 
 +   Domain
 +   Command
