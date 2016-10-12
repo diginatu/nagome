@@ -93,7 +93,6 @@ func RunCli() {
 	log.SetOutput(file)
 
 	cv := NewCommentViewer(new(nicolive.Account), *tcpPort)
-	cv.Cmm = nicolive.NewCommentConnection(cv)
 
 	// load account data
 	err := cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))

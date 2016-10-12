@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net"
@@ -25,16 +24,19 @@ type CommentViewer struct {
 	Evch    chan *Message
 	Quit    chan struct{}
 	wg      sync.WaitGroup
+	prcdnle *ProceedNicoliveEvent
 }
 
 // NewCommentViewer makes new CommentViewer
 func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
-	return &CommentViewer{
+	cv := &CommentViewer{
 		Ac:      ac,
 		TCPPort: tcpPort,
 		Evch:    make(chan *Message, eventBufferSize),
 		Quit:    make(chan struct{}),
 	}
+	cv.Cmm = nicolive.NewCommentConnection(&ProceedNicoliveEvent{cv})
+	return cv
 }
 
 // Start run the CommentViewer and start connecting plugins
@@ -154,80 +156,6 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 		case <-cv.Quit:
 			return
 		}
-	}
-}
-
-// ProceedNicoEvent will receive events and emits it.
-func (cv *CommentViewer) ProceedNicoEvent(ev *nicolive.Event) {
-	var con []byte
-	var dom, com string
-
-	switch ev.Type {
-	case nicolive.EventTypeGot:
-		cm, _ := ev.Content.(nicolive.Comment)
-		ct := CtCommentGot{
-			No:            cm.No,
-			Date:          cm.Date,
-			UserID:        cm.UserID,
-			Raw:           cm.Comment,
-			IsPremium:     cm.IsPremium,
-			IsBroadcaster: cm.IsCommand,
-			IsStaff:       cm.IsStaff,
-			IsAnonymity:   cm.IsAnonymity,
-			Score:         cm.Score,
-		}
-		if cm.IsCommand {
-			ct.UserName = "Broadcaster"
-		} else {
-			ct.UserName = ""
-		}
-
-		ct.Comment = strings.Replace(cm.Comment, "\n", "<br>", -1)
-
-		dom = DomainComment
-		com = CommCommentGot
-		con, _ = json.Marshal(ct)
-
-	case nicolive.EventTypeOpen:
-		cv.Evch <- &Message{
-			Domain:  DomainUI,
-			Command: CommUIClearComments,
-		}
-
-		dom = DomainNagome
-		com = CommNagomeBroadOpen
-
-	case nicolive.EventTypeClose:
-		dom = DomainNagome
-		com = CommNagomeBroadClose
-
-	case nicolive.EventTypeHeartBeatGot:
-		hb := ev.Content.(nicolive.HeartbeatValue)
-		ct := CtNagomeBroadInfo{
-			WatchCount:   hb.WatchCount,
-			CommentCount: hb.CommentCount,
-		}
-		dom = DomainNagome
-		com = CommNagomeBroadInfo
-		con, _ = json.Marshal(ct)
-
-	case nicolive.EventTypeSend:
-		dom = DomainNagome
-		com = CommNagomeCommentSend
-
-	case nicolive.EventTypeErr:
-		log.Println(ev)
-		return
-
-	default:
-		log.Println(ev)
-		return
-	}
-
-	cv.Evch <- &Message{
-		Domain:  dom,
-		Command: com,
-		Content: con,
 	}
 }
 

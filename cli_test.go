@@ -12,13 +12,7 @@ import (
 
 func TestMainTCP(t *testing.T) {
 	log.SetFlags(log.Lshortfile | log.Ltime)
-	var cv = CommentViewer{
-		Ac:      new(nicolive.Account),
-		TCPPort: "",
-		Evch:    make(chan *Message, eventBufferSize),
-		Quit:    make(chan struct{}),
-	}
-	cv.Cmm = nicolive.NewCommentConnection(&cv)
+	cv := NewCommentViewer(new(nicolive.Account), "")
 
 	plug := &plugin{
 		Name:        "main",
