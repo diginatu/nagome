@@ -45,10 +45,10 @@ func TestUserFetchInfo(t *testing.T) {
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
-	var u User
 	a := &Account{Usersession: "usersession_example"}
 
-	if nerr := u.fetchInfoImpl(ts.URL+"/ok", a); nerr != nil {
+	u, nerr := fetchUserInfoImpl(ts.URL+"/ok", a)
+	if nerr != nil {
 		log.Fatal(nerr)
 	}
 	if u.Name != userInfoResponseOkName {
@@ -58,7 +58,8 @@ func TestUserFetchInfo(t *testing.T) {
 		t.Fatalf("Should be %v but %v", userInfoResponseOkThum, u.ThumbnailURL)
 	}
 
-	if nerr := u.fetchInfoImpl(ts.URL+"/notfound", a); nerr == nil {
+	_, nerr = fetchUserInfoImpl(ts.URL+"/notfound", a)
+	if nerr == nil {
 		log.Fatal(nerr)
 	}
 }

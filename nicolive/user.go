@@ -20,40 +20,45 @@ type User struct {
 	Misc         string
 }
 
-// FetchInfo fetches user name and Thumbnail URL from niconico.
-func (u *User) FetchInfo(id string, a *Account) Error {
+// FetchUserInfo fetches user name and Thumbnail URL from niconico.
+func FetchUserInfo(id string, a *Account) (*User, Error) {
 	url := fmt.Sprintf("http://api.ce.nicovideo.jp/api/v1/user.info?user_id=%s", id)
-	return u.fetchInfoImpl(url, a)
+	return fetchUserInfoImpl(url, a)
 }
 
-func (u *User) fetchInfoImpl(url string, a *Account) Error {
+func fetchUserInfoImpl(url string, a *Account) (*User, Error) {
+	u := new(User)
+
 	c, nerr := NewNicoClient(a)
 	if nerr != nil {
-		return nerr
+		return nil, nerr
 	}
 
 	res, err := c.Get(url)
 	if err != nil {
-		return ErrFromStdErr(err)
+		return nil, ErrFromStdErr(err)
 	}
 	defer res.Body.Close()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
-		return ErrFromStdErr(err)
+		return nil, ErrFromStdErr(err)
 	}
 
 	if v, ok := statusXMLPath.String(root); ok {
 		if v != "ok" {
 			if v, ok := errorCodeXMLPath.String(root); ok {
 				desc, _ := errorDescXMLPath.String(root)
-				return MakeError(ErrOther, v+desc)
+				return nil, MakeError(ErrOther, v+desc)
 			}
-			return MakeError(ErrOther, "request failed with unknown error")
+			return nil, MakeError(ErrOther, "request failed with unknown error")
 		}
 	}
 
 	// stream
+	if v, ok := xmlpath.MustCompile("/nicovideo_user_response/user/id").String(root); ok {
+		u.ID = v
+	}
 	if v, ok := xmlpath.MustCompile("/nicovideo_user_response/user/nickname").String(root); ok {
 		u.Name = v
 	}
@@ -61,7 +66,9 @@ func (u *User) fetchInfoImpl(url string, a *Account) Error {
 		u.ThumbnailURL = v
 	}
 
-	return nil
+	u.GotTime = time.Now()
+
+	return u, nil
 }
 
 // Equal reports whether t and x represent the same User instant.
@@ -138,8 +145,9 @@ func (d *UserDB) Store(u *User) error {
 }
 
 // Fetch fetches a user of given ID from the DB.
-// If no user is found, return (nil, nil)
-func (d *UserDB) Fetch(id string) (*User, error) {
+// If no user is found, return (nil, nil).
+// So you should check if user is nil.
+func (d *UserDB) Fetch(id string) (*User, Error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -150,7 +158,7 @@ func (d *UserDB) Fetch(id string) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, err
+		return nil, ErrFromStdErr(err)
 	}
 
 	u.GotTime = time.Unix(t, 0)
@@ -159,13 +167,13 @@ func (d *UserDB) Fetch(id string) (*User, error) {
 }
 
 // Remove removes a user of given ID from the DB.
-func (d *UserDB) Remove(id string) error {
+func (d *UserDB) Remove(id string) Error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	_, err := d.db.Exec(userDBRemoveUser, id)
 	if err != nil {
-		return err
+		return ErrFromStdErr(err)
 	}
 
 	return nil
