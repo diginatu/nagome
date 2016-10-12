@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 var (
@@ -75,4 +76,46 @@ func TestUserDB(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
+
+	su := &User{
+		ID:           "testid",
+		Name:         "name",
+		GotTime:      time.Now(),
+		Is184:        false,
+		ThumbnailURL: "url",
+		Misc:         "{}",
+	}
+
+	err = db.Store(su)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fu, err := db.Fetch("testid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fu.Equal(su) {
+		t.Fatalf("Should be %v but %v", su, fu)
+	}
+
+	fu, err = db.Fetch("fail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fu != nil {
+		t.Fatalf("Should be %v but %v", nil, fu)
+	}
+
+	err = db.Remove("testid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fu, err = db.Fetch("testid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fu != nil {
+		t.Fatalf("Should be %v but %v", nil, fu)
+	}
 }

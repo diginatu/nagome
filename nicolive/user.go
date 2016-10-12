@@ -3,17 +3,18 @@ package nicolive
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3" // sqlite3 for database/sql
 	"gopkg.in/xmlpath.v2"
 )
 
-// User is a niconico user
+// User is a niconico user.
 type User struct {
 	ID           string
 	Name         string
-	GotTime      time.Time
+	GotTime      time.Time // The information shorter than 1 second will be lost after storing to UserDB.
 	Is184        bool
 	ThumbnailURL string
 	Misc         string
@@ -63,10 +64,40 @@ func (u *User) fetchInfoImpl(url string, a *Account) Error {
 	return nil
 }
 
+// Equal reports whether t and x represent the same User instant.
+func (u *User) Equal(x *User) bool {
+	return u.ID == x.ID &&
+		u.Name == x.Name &&
+		u.GotTime.Unix() == x.GotTime.Unix() &&
+		u.Is184 == x.Is184 &&
+		u.ThumbnailURL == x.ThumbnailURL &&
+		u.Misc == x.Misc
+}
+
+const (
+	userDBCreateUserTable = `
+create table if not exists user (
+	id text primary key,
+	name text,
+	got_time integer,
+	is_184 integer,
+	thumbnail_url text,
+	misc text
+)`
+	userDBInsertUser = `
+insert or replace into
+user (id, name, got_time, is_184, thumbnail_url, misc)
+values (?, ?, ?, ?, ?, ?)`
+	userDBFetchUser  = `select * from user where id=?`
+	userDBRemoveUser = `delete from user where id=?`
+)
+
 // UserDB is database of Users.
 type UserDB struct {
-	File string
-	DB   *sql.DB
+	File      string
+	db        *sql.DB
+	mu        sync.RWMutex
+	fetchStmt *sql.Stmt
 }
 
 // NewUserDB creates new UserDB.
@@ -76,36 +107,72 @@ func NewUserDB(file string) (*UserDB, error) {
 		return nil, err
 	}
 
-	stmt, err := db.Prepare("create table if not exists user " +
-		"(id integer unique primary key, name varchar(60))")
+	_, err = db.Exec(userDBCreateUserTable)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := stmt.Exec()
+	fstmt, err := db.Prepare(userDBFetchUser)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(res)
 
 	return &UserDB{
-		File: file,
-		DB:   db,
+		File:      file,
+		db:        db,
+		fetchStmt: fstmt,
 	}, nil
 }
 
 // Store stores a user into the DB.
-func (d *UserDB) Store(u User) error {
+func (d *UserDB) Store(u *User) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	_, err := d.db.Exec(userDBInsertUser, u.ID, u.Name, u.GotTime.Unix(), u.Is184, u.ThumbnailURL, u.Misc)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Fetch fetches a user of given ID from the DB.
+// If no user is found, return (nil, nil)
 func (d *UserDB) Fetch(id string) (*User, error) {
-	return nil, nil
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	var u User
+	var t int64
+	err := d.fetchStmt.QueryRow(id).Scan(&u.ID, &u.Name, &t, &u.Is184, &u.ThumbnailURL, &u.Misc)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	u.GotTime = time.Unix(t, 0)
+
+	return &u, nil
+}
+
+// Remove removes a user of given ID from the DB.
+func (d *UserDB) Remove(id string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	_, err := d.db.Exec(userDBRemoveUser, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close closes the DB.
 func (d *UserDB) Close() {
-	d.DB.Close()
+	d.fetchStmt.Close()
+	d.db.Close()
 }
