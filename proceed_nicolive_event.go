@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/diginatu/nagome/nicolive"
@@ -17,7 +17,7 @@ type ProceedNicoliveEvent struct {
 
 // NewProceedNicoliveEvent makes new ProceedNicoliveEvent and returns it.
 func NewProceedNicoliveEvent(cv *CommentViewer) *ProceedNicoliveEvent {
-	udb, err := nicolive.NewUserDB(path.Join(App.SavePath, userDBFileName))
+	udb, err := nicolive.NewUserDB(filepath.Join(App.SavePath, userDBFileName))
 	if err != nil {
 		log.Fatalln(err)
 	}

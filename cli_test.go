@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/diginatu/nagome/nicolive"
@@ -15,7 +15,7 @@ import (
 func TestMainTCP(t *testing.T) {
 	log.SetFlags(log.Lshortfile | log.Ltime)
 
-	App.SavePath = path.Join(os.TempDir(), "nagome_test")
+	App.SavePath = filepath.Join(os.TempDir(), "nagome_test")
 	if err := os.MkdirAll(App.SavePath, 0777); err != nil {
 		t.Fatal(err)
 	}
