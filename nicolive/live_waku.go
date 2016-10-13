@@ -81,9 +81,9 @@ func (l *LiveWaku) FetchInformation() Error {
 		return ErrFromStdErr(err)
 	}
 
-	if v, ok := statusXMLPath.String(root); ok {
+	if v, ok := xmlPathStatus.String(root); ok {
 		if v != "ok" {
-			if v, ok := errorCodeXMLPath.String(root); ok {
+			if v, ok := xmlPathErrorCode.String(root); ok {
 				errorNum := ErrNicoLiveOther
 				switch v {
 				case "closed":
@@ -184,16 +184,16 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, Error) {
 		return hb, ErrFromStdErr(err)
 	}
 
-	if v, ok := statusXMLPath.String(root); ok {
+	if v, ok := xmlPathStatus.String(root); ok {
 		if v != "ok" {
-			if v, ok := errorCodeXMLPath.String(root); ok {
+			if v, ok := xmlPathErrorCode.String(root); ok {
 				errorNum := ErrNicoLiveOther
 				if v == "NOTLOGIN" {
 					errorNum = ErrNotLogin
 				}
 
 				var desc string
-				if v, ok := errorDescXMLPath.String(root); ok {
+				if v, ok := xmlPathErrorDesc.String(root); ok {
 					desc = v
 				}
 				return hb, MakeError(errorNum, v+desc)

@@ -45,10 +45,10 @@ func fetchUserInfoImpl(url string, a *Account) (*User, Error) {
 		return nil, ErrFromStdErr(err)
 	}
 
-	if v, ok := statusXMLPath.String(root); ok {
+	if v, ok := xmlPathStatus.String(root); ok {
 		if v != "ok" {
-			if v, ok := errorCodeXMLPath.String(root); ok {
-				desc, _ := errorDescXMLPath.String(root)
+			if v, ok := xmlPathErrorCode.String(root); ok {
+				desc, _ := xmlPathErrorDesc.String(root)
 				return nil, MakeError(ErrOther, v+desc)
 			}
 			return nil, MakeError(ErrOther, "request failed with unknown error")

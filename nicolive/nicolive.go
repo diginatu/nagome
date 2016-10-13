@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	statusXMLPath    = xmlpath.MustCompile("//@status")
-	errorCodeXMLPath = xmlpath.MustCompile("//error/code")
-	errorDescXMLPath = xmlpath.MustCompile("//error/description")
+	xmlPathStatus    = xmlpath.MustCompile("//@status")
+	xmlPathTime      = xmlpath.MustCompile("//@time")
+	xmlPathErrorCode = xmlpath.MustCompile("//error/code")
+	xmlPathErrorDesc = xmlpath.MustCompile("//error/description")
 )
 
 func init() {

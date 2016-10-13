@@ -35,7 +35,7 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 		Evch:    make(chan *Message, eventBufferSize),
 		Quit:    make(chan struct{}),
 	}
-	cv.Cmm = nicolive.NewCommentConnection(&ProceedNicoliveEvent{cv})
+	cv.Cmm = nicolive.NewCommentConnection(NewProceedNicoliveEvent(cv))
 	return cv
 }
 
