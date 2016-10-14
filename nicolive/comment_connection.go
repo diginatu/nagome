@@ -42,6 +42,7 @@ type Comment struct {
 // liveWaku should have connection information which is able to get by fetchInformation()
 type CommentConnection struct {
 	IsConnected bool
+	ConnectedTm time.Time // The time when this connection started
 
 	lv     *LiveWaku
 	sock   net.Conn
@@ -200,7 +201,8 @@ func (cc *CommentConnection) receiveStream() {
 				}
 				if v, ok := xmlpath.MustCompile("/thread/@server_time").String(rt); ok {
 					i, _ := strconv.ParseInt(v, 10, 64)
-					cc.svrDu = time.Unix(i, 0).Sub(time.Now())
+					cc.ConnectedTm = time.Unix(i, 0)
+					cc.svrDu = cc.ConnectedTm.Sub(time.Now())
 				}
 
 				// immediately update postkey and start the timer
