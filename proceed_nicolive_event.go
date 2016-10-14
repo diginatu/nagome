@@ -63,7 +63,8 @@ func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 	}
 
 	// user info
-	u, err := p.getUserName(cm.UserID, !cm.IsAnonymity)
+	useAPI := cm.Date.After(p.cv.Cmm.ConnectedTm) && !cm.IsAnonymity && !cm.IsCommand
+	u, err := p.getUserName(cm.UserID, useAPI)
 	if err != nil {
 		log.Println(err)
 	}
