@@ -43,7 +43,7 @@ You have to check below when you make a UI plugin.
 +   Depend on the Domain "nagome_ui" and use all events as you can.
 +   Do not use --dbgtostd command line option when you distribute it so users can see the log file later.
 
-Deferences between normal and main plugins:
+Differences between normal and main plugins:
 
 +   Nagome will quit if the connection of main plugin is closed
 +   Typically, main plugin executes Nagome.  Normal plugins are executed by Nagome.
@@ -106,7 +106,7 @@ Main plugin should execute Nagome and grab the stdin/out of it.
 
 To use TCP connection, set 'tcp' to 'method' in your plugin.yml.
 
-Deferent from stdin/out, TCP plugin should tell the plugin number to Nagome at first.
+Different from stdin/out, TCP plugin should tell the plugin number to Nagome at first.
 The number can be got as command line argument (see plugin.yml > exec).
 Then, at the beginning of the connection, send a message like below.
 
@@ -137,7 +137,7 @@ The basic structure of a Nagome message is like blow.
 
 ### Domain
 
-An message sent from a plugin resend to other plugins which is domain plugin itself or depend on it.
+A message sent from a plugin resend to other plugins which is domain plugin itself or depend on it.
 
 ### Command
 
