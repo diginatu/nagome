@@ -127,11 +127,11 @@ type CtCommentGot struct {
 	IsBroadcaster bool      `json:"is_broadcaster"`
 	IsStaff       bool      `json:"is_staff"`
 	IsAnonymity   bool      `json:"is_anonymity"`
-	Score         int       `json:"score"`
+	Score         int       `json:"score,omitempty"`
 
 	UserID           string `json:"user_id"`
 	UserName         string `json:"user_name"`
-	UserThumbnailURL string `json:"user_thumbnail_url"`
+	UserThumbnailURL string `json:"user_thumbnail_url,omitempty"`
 }
 
 // CtUIDialog is a content of CommUIDialog
