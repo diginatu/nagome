@@ -18,6 +18,7 @@ const (
 	pluginDirName    = "plugin"
 	pluginConfigName = "plugin.yml"
 	userDBFileName   = "user.sqlite"
+	settingsFileName = "setting.yml"
 )
 
 // RunCli processes flags and io
@@ -50,28 +51,7 @@ func RunCli() {
 		return
 	}
 	if *mkplug != "" {
-		p := filepath.Join(pluginPath, *mkplug)
-
-		// check if the directory already exists
-		_, err := os.Stat(p)
-		if err == nil {
-			log.Fatalln("Same name directory is already exists.")
-		}
-
-		if err := os.MkdirAll(p, 0777); err != nil {
-			log.Fatalln("could not make save directory\n", err)
-		}
-
-		pl := plugin{
-			Name:    *mkplug,
-			Version: "1.0",
-			Depends: []string{DomainNagome},
-			Method:  "tcp",
-			Exec:    []string{"{{path}}/" + *mkplug, "{{port}}", "{{no}}"},
-		}
-		pl.savePlugin(filepath.Join(p, pluginConfigName))
-
-		fmt.Printf("Create your plugin in : %s\n", p)
+		generatePluginTemplate(*mkplug, pluginPath)
 		return
 	}
 
@@ -126,4 +106,29 @@ func RunCli() {
 
 	cv.Start()
 	cv.Wait()
+}
+
+func generatePluginTemplate(name, pluginPath string) {
+	p := filepath.Join(pluginPath, name)
+
+	// check if the directory already exists
+	_, err := os.Stat(p)
+	if err == nil {
+		log.Fatalln("Same name directory is already exists.")
+	}
+
+	if err := os.MkdirAll(p, 0777); err != nil {
+		log.Fatalln("could not make save directory\n", err)
+	}
+
+	pl := plugin{
+		Name:    name,
+		Version: "1.0",
+		Depends: []string{DomainNagome},
+		Method:  "tcp",
+		Exec:    []string{"{{path}}/" + name, "{{port}}", "{{no}}"},
+	}
+	pl.savePlugin(filepath.Join(p, pluginConfigName))
+
+	fmt.Printf("Create your plugin in : %s\n", p)
 }
