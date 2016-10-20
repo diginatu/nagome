@@ -40,6 +40,11 @@ func RunCli() {
 
 	log.SetFlags(log.Lshortfile | log.Ltime)
 
+	err := App.SettingsSlots.Load()
+	if err != nil {
+		log.Println(err)
+	}
+
 	pluginPath := filepath.Join(App.SavePath, pluginDirName)
 
 	if *printHelp {
@@ -76,7 +81,7 @@ func RunCli() {
 	cv := NewCommentViewer(new(nicolive.Account), *tcpPort)
 
 	// load account data
-	err := cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
+	err = cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
 	if err != nil {
 		log.Println(err)
 	}
@@ -106,6 +111,14 @@ func RunCli() {
 
 	cv.Start()
 	cv.Wait()
+
+	if cv.Settings.AutoSaveTo0Slot {
+		App.SettingsSlots.Config[0] = &cv.Settings
+	}
+	err = App.SettingsSlots.Save()
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func generatePluginTemplate(name, pluginPath string) {

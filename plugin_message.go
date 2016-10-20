@@ -100,6 +100,25 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 
 		log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno-1].Name, ct.Text)
 
+	case CommQuerySettingsSet:
+		var ct CtQuerySettingsSet
+		if err := json.Unmarshal(m.Content, &ct); err != nil {
+			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+		}
+
+		cv.Settings = SettingsSlot(ct)
+
+	case CommQuerySettingsSetAll:
+		var ct CtQuerySettingsSetSlots
+		if err := json.Unmarshal(m.Content, &ct); err != nil {
+			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+		}
+
+		log.Printf("%s\n", m.Content)
+		log.Printf("%v\n", *ct.Config[0])
+
+		App.SettingsSlots = SettingsSlots(ct)
+
 	default:
 		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 	}
@@ -112,6 +131,20 @@ func processDirectMessage(cv *CommentViewer, m *Message) nicolive.Error {
 	case CommDirectPlugList:
 		c := CtDirectngmPlugList{&cv.Pgns}
 		t, err := NewMessage(DomainDirectngm, CommDirectngmPlugList, c)
+		if err != nil {
+			return nicolive.ErrFromStdErr(err)
+		}
+		t.prgno = m.prgno
+		cv.Evch <- t
+	case CommDirectSettingsCurrent:
+		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsCurrent, cv.Settings)
+		if err != nil {
+			return nicolive.ErrFromStdErr(err)
+		}
+		t.prgno = m.prgno
+		cv.Evch <- t
+	case CommDirectSettingsAll:
+		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, App.SettingsSlots)
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}

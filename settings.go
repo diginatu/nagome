@@ -9,7 +9,16 @@ import (
 
 // A SettingsSlot represents a settings of Nagome.
 type SettingsSlot struct {
-	UserNameGet bool `yaml:"user_name_get" json:"user_name_get"`
+	AutoSaveTo0Slot bool `yaml:"auto_save_to0_slot" json:"auto_save_to0_slot"`
+	UserNameGet     bool `yaml:"user_name_get" json:"user_name_get"`
+}
+
+// NewSettingsSlot creates new SettingsSlot with default values.
+func NewSettingsSlot() *SettingsSlot {
+	return &SettingsSlot{
+		AutoSaveTo0Slot: true,
+		UserNameGet:     false,
+	}
 }
 
 // Equal reports whether c and x represent the same SettingsSlot instant.

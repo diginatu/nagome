@@ -16,24 +16,29 @@ import (
 
 // A CommentViewer is a pair of an Account and a LiveWaku.
 type CommentViewer struct {
-	Ac      *nicolive.Account
-	Lw      *nicolive.LiveWaku
-	Cmm     *nicolive.CommentConnection
-	Pgns    []*plugin
-	TCPPort string
-	Evch    chan *Message
-	Quit    chan struct{}
-	wg      sync.WaitGroup
-	prcdnle *ProceedNicoliveEvent
+	Ac       *nicolive.Account
+	Lw       *nicolive.LiveWaku
+	Cmm      *nicolive.CommentConnection
+	Pgns     []*plugin
+	Settings SettingsSlot
+	TCPPort  string
+	Evch     chan *Message
+	Quit     chan struct{}
+	wg       sync.WaitGroup
+	prcdnle  *ProceedNicoliveEvent
 }
 
 // NewCommentViewer makes new CommentViewer
 func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
+	if len(App.SettingsSlots.Config) == 0 {
+		App.SettingsSlots.Add(NewSettingsSlot())
+	}
 	cv := &CommentViewer{
-		Ac:      ac,
-		TCPPort: tcpPort,
-		Evch:    make(chan *Message, eventBufferSize),
-		Quit:    make(chan struct{}),
+		Ac:       ac,
+		Settings: *App.SettingsSlots.Config[0],
+		TCPPort:  tcpPort,
+		Evch:     make(chan *Message, eventBufferSize),
+		Quit:     make(chan struct{}),
 	}
 	cv.Cmm = nicolive.NewCommentConnection(NewProceedNicoliveEvent(cv))
 	return cv

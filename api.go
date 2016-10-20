@@ -70,22 +70,31 @@ const (
 
 	CommQueryLogPrint = "Log.Print" // Print string using logger of Nagome
 
+	CommQuerySettingsSet    = "Settings.Set"    // Set settings to current slot.
+	CommQuerySettingsSetAll = "Settings.SetAll" // Set all slots of settings.
+
 	// DomainUI
 	// Event to be processed by UI plugin
 	CommUIDialog        = "Dialog"
 	CommUIClearComments = "ClearComments"
 
 	// DomainDirect (special domain)
-	// Its messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
+	// The messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
 
 	// plugin to Nagome
 	CommDirectNo       = "No"        // Tell plugin number to Nagome when the connection started.  (TCP at first time only)
 	CommDirectPlugList = "Plug.List" // Request a list of plugins.
 
+	CommDirectSettingsCurrent = "Settings.Current" // Request current settings message.
+	CommDirectSettingsAll     = "Settings.All"     // Request all slots of settings message.
+
 	// Nagome to plugin
 	CommDirectngmPlugEnabled  = "Plug.Enabled"  // Sent when the plugin is enabled.
 	CommDirectngmPlugDisabled = "Plug.Disabled" // Sent when the plugin is disabled.
 	CommDirectngmPlugList     = "Plug.List"
+
+	CommDirectngmSettingsCurrent = "Settings.Current"
+	CommDirectngmSettingsAll     = "Settings.All"
 )
 
 // Contents
@@ -117,21 +126,27 @@ type CtQueryLogPrint struct {
 	Text string `json:"text"`
 }
 
+// CtQuerySettingsSet is a content of CommQuerySettingsSet
+type CtQuerySettingsSet SettingsSlot
+
+// CtQuerySettingsSetSlots is a content of CommQuerySettingsSetSlots
+type CtQuerySettingsSetSlots SettingsSlots
+
 // A CtCommentGot is a content of CommCommentGot
 type CtCommentGot struct {
-	No            int       `json:"no"`
-	Date          time.Time `json:"date"`
-	Raw           string    `json:"raw"`
-	Comment       string    `json:"comment"`
-	IsPremium     bool      `json:"is_premium"`
-	IsBroadcaster bool      `json:"is_broadcaster"`
-	IsStaff       bool      `json:"is_staff"`
-	IsAnonymity   bool      `json:"is_anonymity"`
-	Score         int       `json:"score,omitempty"`
+	No      int       `json:"no"`
+	Date    time.Time `json:"date"`
+	Raw     string    `json:"raw"`
+	Comment string    `json:"comment"`
 
 	UserID           string `json:"user_id"`
 	UserName         string `json:"user_name"`
 	UserThumbnailURL string `json:"user_thumbnail_url,omitempty"`
+	Score            int    `json:"score,omitempty"`
+	IsPremium        bool   `json:"is_premium"`
+	IsBroadcaster    bool   `json:"is_broadcaster"`
+	IsStaff          bool   `json:"is_staff"`
+	IsAnonymity      bool   `json:"is_anonymity"`
 }
 
 // CtUIDialog is a content of CommUIDialog
@@ -157,3 +172,9 @@ type CtDirectNo struct {
 type CtDirectngmPlugList struct {
 	Plugins *[]*plugin `json:"plugins"`
 }
+
+// CtDirectngmSettingsCurrent is a content for CommDirectSettingsCurrent
+type CtDirectngmSettingsCurrent SettingsSlot
+
+// CtDirectngmSettingsAll is a content for CommDirectSettingsSlots
+type CtDirectngmSettingsAll SettingsSlots

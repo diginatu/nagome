@@ -41,9 +41,12 @@ Tasks
 -----
 
 +   [ ] nagomever
++   [ ] quit message
++   [ ] dynamic plugin add/remove
++   [ ] make direct domain available by plugin
 +   [ ] add broadcast info to the message open
 +   [ ] translation function
-+   [ ] document (plugin)
++   [ ] document
 +   [ ] function for NicoLive
     -   [ ] getting user name and storing
     -   [ ] alert connection
