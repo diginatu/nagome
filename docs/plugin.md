@@ -98,7 +98,7 @@ Plugins don't have to keep this rule.
 
 To use stdin/out connection, set 'std' to 'method' in your plugin.yml.
 
-You can directory use standard input and output for JSON communication.
+You can directly use standard input and output for JSON communication.
 Normal plugin can naturally use its stdin/out.
 Main plugin should execute Nagome and grab the stdin/out of it.
 
@@ -137,7 +137,24 @@ The basic structure of a Nagome message is like blow.
 
 ### Domain
 
+Basically, the message acts like pub-sub messaging.
 A message sent from a plugin resend to other plugins which is domain plugin itself or depend on it.
+"Depend" means that setting domain string in domain in the "plugin.yml".
+
+#### Suffixed Domain
+
+There is some special suffix.
+
+##### @filter
+
+The plugin that depends on a domain with this suffix can filter messages.
+If there is a plugin that depends on filtering domain, a original message (without suffix) is added the suffix and sent to ONLY one plugin which depends filtering domain.
+
+If the plugin wants to proceed the message, have to send the message with the suffix.
+In this process, you can modify or just through, abort by not sending, also delay the message.
+
+The suffixed message that passed all filtering plugins will broadcast to all plugins which depends the original domain.
+
 
 ### Command
 

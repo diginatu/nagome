@@ -305,11 +305,9 @@ func sendPluginMessage(cv *CommentViewer) {
 				plug := cv.Pgns[i]
 
 				if plug.Rw != nil && plug.DependFilter(mes.Domain) {
-					plug.flushTm.Reset(pluginFlashWaitDu)
-
-					// A message to filter plugin has filter domain.
+					// Add suffix to a message for filter plugin.
 					tmes := *mes
-					tmes.Domain = DomainFilterSuffix + mes.Domain
+					tmes.Domain = mes.Domain + DomainFilterSuffix
 					jmes, err := json.Marshal(tmes)
 					if err != nil {
 						log.Println(err)
