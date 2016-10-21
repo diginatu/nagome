@@ -114,7 +114,7 @@ func (pl *plugin) IsEnable() bool {
 func (pl *plugin) DependFilter(pln string) bool {
 	f := false
 	for _, d := range pl.Depends {
-		if d == pln+DomainFilterSuffix {
+		if d == pln+DomainSuffixFilter {
 			f = true
 			break
 		}
@@ -297,9 +297,9 @@ func sendPluginMessage(cv *CommentViewer) {
 
 			// Messages from filter plugin will not send same plugin.
 			var st int
-			if strings.HasSuffix(mes.Domain, DomainFilterSuffix) {
+			if strings.HasSuffix(mes.Domain, DomainSuffixFilter) {
 				st = mes.prgno + 1
-				mes.Domain = strings.TrimSuffix(mes.Domain, DomainFilterSuffix)
+				mes.Domain = strings.TrimSuffix(mes.Domain, DomainSuffixFilter)
 			}
 			for i := st; i < len(cv.Pgns); i++ {
 				plug := cv.Pgns[i]
@@ -307,7 +307,7 @@ func sendPluginMessage(cv *CommentViewer) {
 				if plug.Rw != nil && plug.DependFilter(mes.Domain) {
 					// Add suffix to a message for filter plugin.
 					tmes := *mes
-					tmes.Domain = mes.Domain + DomainFilterSuffix
+					tmes.Domain = mes.Domain + DomainSuffixFilter
 					jmes, err := json.Marshal(tmes)
 					if err != nil {
 						log.Println(err)
