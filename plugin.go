@@ -229,7 +229,6 @@ func eachPluginRw(cv *CommentViewer, n int) {
 			if m == nil {
 				// quit if UI plugin disconnect
 				if cv.Pgns[n].isMain() {
-					cv.Cmm.Disconnect()
 					close(cv.Quit)
 				}
 				continue

@@ -2,6 +2,7 @@ package nicolive
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"html"
 	"io/ioutil"
@@ -37,30 +38,29 @@ type Comment struct {
 }
 
 // CommentConnection is a struct to manage sending/receiving comments.
-// This struct automatically submits NULL character to reserve connection and
-// get the PostKey, which is necessary for sending comments.
-// liveWaku should have connection information which is able to get by fetchInformation()
+// This struct automatically Keeping alive and get the PostKey, which is necessary for sending comments.
 type CommentConnection struct {
-	IsConnected bool
 	ConnectedTm time.Time // The time when this connection started
 
 	lv     *LiveWaku
-	sock   net.Conn
+	conn   net.Conn
 	ticket string
 	svrDu  time.Duration
 	block  int
 
-	rw           bufio.ReadWriter
-	keepAliveTmr *time.Timer
-	postKeyTmr   *time.Timer
-	heartbeatTmr *time.Timer
-	wmu          sync.Mutex
-	termc        chan bool
-	ev           EventReceiver
+	rw            bufio.ReadWriter
+	postKeyTmr    *time.Timer
+	heartbeatTmr  *time.Timer
+	wmu           sync.Mutex
+	cancel        context.CancelFunc
+	ev            EventReceiver
+	disconnecting bool
+	wg            sync.WaitGroup
 }
 
-// NewCommentConnection returns a pointer to new CommentConnection
-func NewCommentConnection(ev EventReceiver) *CommentConnection {
+// CommentConnect connects to nicolive and start receiving comment.
+// liveWaku should have connection information which is able to get by fetchInformation()
+func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*CommentConnection, Error) {
 	kat := time.NewTimer(keepAliveDuration)
 	kat.Stop()
 	pkt := time.NewTimer(postKeyDuration)
@@ -72,27 +72,29 @@ func NewCommentConnection(ev EventReceiver) *CommentConnection {
 		ev = &defaultEventReceiver{}
 	}
 
-	return &CommentConnection{
-		termc:        make(chan bool),
-		keepAliveTmr: kat,
+	cc := &CommentConnection{
+		lv:           lv,
 		postKeyTmr:   pkt,
 		heartbeatTmr: hbt,
 		ev:           ev,
 	}
-}
 
-// SetLv sets lv with given pointer to LiveWaku
-func (cc *CommentConnection) SetLv(l *LiveWaku) Error {
-	if cc.IsConnected {
-		return MakeError(ErrOther,
-			"already connected.\nlv can not be changed while it's connected")
+	cctx, cancel := context.WithCancel(context.Background())
+	cc.cancel = cancel
+
+	nerr := cc.open(ctx)
+	if nerr != nil {
+		return nil, nerr
 	}
 
-	cc.lv = l
-	return nil
+	cc.wg.Add(2)
+	go cc.receiveStream(cctx)
+	go cc.timer(cctx)
+
+	return cc, nil
 }
 
-func (cc *CommentConnection) open() Error {
+func (cc *CommentConnection) open(ctx context.Context) Error {
 	if cc.lv.Account == nil {
 		return MakeError(ErrOther, "nil account in LiveWaku")
 	}
@@ -102,20 +104,20 @@ func (cc *CommentConnection) open() Error {
 
 	var err error
 
-	addrport := fmt.Sprintf("%s:%s",
-		cc.lv.CommentServer.Addr,
-		cc.lv.CommentServer.Port)
+	addrport := net.JoinHostPort(cc.lv.CommentServer.Addr, cc.lv.CommentServer.Port)
 
-	cc.wmu.Lock()
+	d := &net.Dialer{
+		KeepAlive: keepAliveDuration,
+	}
 
-	cc.sock, err = net.Dial("tcp", addrport)
+	cc.conn, err = d.DialContext(ctx, "tcp", addrport)
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
 
 	cc.rw = bufio.ReadWriter{
-		Reader: bufio.NewReader(cc.sock),
-		Writer: bufio.NewWriter(cc.sock),
+		Reader: bufio.NewReader(cc.conn),
+		Writer: bufio.NewWriter(cc.conn),
 	}
 
 	_, err = fmt.Fprintf(cc.rw,
@@ -129,52 +131,32 @@ func (cc *CommentConnection) open() Error {
 		return ErrFromStdErr(err)
 	}
 
-	cc.wmu.Unlock()
-
 	return nil
 }
 
-// Connect Connect to nicolive and start receiving comment
-func (cc *CommentConnection) Connect() Error {
-	if cc.IsConnected {
-		return MakeError(ErrOther, "already connected")
-	}
-	cc.IsConnected = true
-
-	nerr := cc.open()
-	if nerr != nil {
-		return nerr
-	}
-	cc.keepAliveTmr.Reset(keepAliveDuration)
-
-	go cc.receiveStream()
-	go cc.timer()
-
-	return nil
-}
-
-func (cc *CommentConnection) receiveStream() {
+func (cc *CommentConnection) receiveStream(ctx context.Context) {
+	defer cc.wg.Done()
 	for {
 		select {
-		case <-cc.termc:
+		case <-ctx.Done():
 			return
 		default:
-			cc.sock.SetReadDeadline(time.Now().Add(time.Second))
 			commxml, err := cc.rw.ReadString('\x00')
 			if err != nil {
 				nerr, ok := err.(net.Error)
-				if ok && nerr.Timeout() && nerr.Temporary() {
+				if ok && nerr.Temporary() {
 					continue
 				}
 
-				if cc.IsConnected {
-					go cc.Disconnect()
+				if cc.disconnecting {
+					return
 				}
+
 				cc.ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: ErrFromStdErr(err),
 				})
-				<-cc.termc
+				go cc.Disconnect()
 				return
 			}
 
@@ -286,13 +268,10 @@ func (cc *CommentConnection) receiveStream() {
 
 				if comment.IsCommand && comment.Comment == "/disconnect" {
 					go cc.Disconnect()
-
 					cc.ev.ProceedNicoEvent(&Event{
 						Type:    EventTypeWakuEnd,
 						Content: *cc.lv,
 					})
-
-					<-cc.termc
 					return
 				}
 				continue
@@ -302,31 +281,16 @@ func (cc *CommentConnection) receiveStream() {
 				Type:    EventTypeErr,
 				Content: MakeError(ErrSendComment, "unknown stream : "+commxml),
 			})
-
 		}
 	}
 }
 
-func (cc *CommentConnection) timer() {
+func (cc *CommentConnection) timer(ctx context.Context) {
+	defer cc.wg.Done()
 	for {
 		select {
-		case <-cc.termc:
+		case <-ctx.Done():
 			return
-		case <-cc.keepAliveTmr.C:
-			cc.keepAliveTmr.Reset(keepAliveDuration)
-			cc.wmu.Lock()
-			err := cc.rw.WriteByte(0)
-			if err == nil {
-				err = cc.rw.Flush()
-			}
-			cc.wmu.Unlock()
-			if err != nil {
-				cc.ev.ProceedNicoEvent(&Event{
-					Type:    EventTypeErr,
-					Content: MakeError(ErrConnection, "keep alive : "+err.Error()),
-				})
-				continue
-			}
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.FetchPostKey()
@@ -395,9 +359,6 @@ func (cc *CommentConnection) FetchPostKey() Error {
 
 // SendComment sends comment to current comment connection
 func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
-	if !cc.IsConnected {
-		return MakeError(ErrOther, "not connected")
-	}
 	if cc.lv.PostKey == "" {
 		return MakeError(ErrOther, "no postkey in livewaku")
 	}
@@ -431,13 +392,13 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 	fmt.Println(sdcomm)
 
 	cc.wmu.Lock()
+	defer cc.wmu.Unlock()
+
 	fmt.Fprint(cc.rw, sdcomm)
 	err := cc.rw.Flush()
-	cc.wmu.Unlock()
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
-	cc.keepAliveTmr.Reset(keepAliveDuration)
 
 	return nil
 }
@@ -445,20 +406,19 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit
 func (cc *CommentConnection) Disconnect() Error {
-	if !cc.IsConnected {
-		return MakeError(ErrOther, "not connected yet")
+	if cc.disconnecting {
+		return MakeError(ErrOther, "already disconnecting")
 	}
-	cc.IsConnected = false
+	cc.disconnecting = true
+	defer func() { cc.disconnecting = false }()
 
-	cc.keepAliveTmr.Stop()
 	cc.postKeyTmr.Stop()
 	cc.heartbeatTmr.Stop()
 
-	for i := 0; i < numCommentConnectionRoutines; i++ {
-		cc.termc <- true
-	}
+	cc.cancel()
+	cc.conn.Close()
 
-	cc.sock.Close()
+	cc.wg.Wait()
 
 	cc.ev.ProceedNicoEvent(&Event{
 		Type:    EventTypeClose,

@@ -40,7 +40,6 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 		Evch:     make(chan *Message, eventBufferSize),
 		Quit:     make(chan struct{}),
 	}
-	cv.Cmm = nicolive.NewCommentConnection(NewProceedNicoliveEvent(cv))
 	return cv
 }
 
@@ -48,10 +47,8 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 func (cv *CommentViewer) Start() {
 	waitWakeServer := make(chan struct{})
 
-	cv.wg.Add(1)
+	cv.wg.Add(2)
 	go cv.pluginTCPServer(waitWakeServer)
-
-	cv.wg.Add(1)
 	go sendPluginMessage(cv)
 
 	<-waitWakeServer
@@ -62,7 +59,7 @@ func (cv *CommentViewer) Start() {
 
 // Wait waits for quiting after Start().
 func (cv *CommentViewer) Wait() {
-	defer cv.Cmm.Disconnect()
+	defer cv.Disconnect()
 	cv.wg.Wait()
 }
 
@@ -176,4 +173,16 @@ func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
 		log.Println(err)
 	}
 	cv.Evch <- t
+}
+
+// Disconnect disconnects current comment connection if connected.
+func (cv *CommentViewer) Disconnect() error {
+	if cv.Cmm == nil {
+		return nil
+	}
+
+	err := cv.Cmm.Disconnect()
+	cv.Cmm = nil
+
+	return err
 }

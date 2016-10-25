@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"path/filepath"
@@ -13,15 +14,16 @@ var (
 	broadIDRegex = regexp.MustCompile("(lv|co)\\d+")
 )
 
-func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
+func processPluginMessage(cv *CommentViewer, m *Message) error {
 	if m.Domain != DomainQuery {
 		return nil
 	}
 
 	switch m.Command {
 	case CommQueryBroadConnect:
+		var err error
 		var ct CtQueryBroadConnect
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
+		if err = json.Unmarshal(m.Content, &ct); err != nil {
 			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 		}
 
@@ -33,27 +35,21 @@ func processPluginMessage(cv *CommentViewer, m *Message) nicolive.Error {
 
 		cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
 
-		if nicoerr := cv.Lw.FetchInformation(); nicoerr != nil {
-			return nicoerr
+		if err = cv.Lw.FetchInformation(); err != nil {
+			return err
 		}
-		if cv.Cmm.IsConnected {
-			log.Println("Connected")
-			if nicoerr := cv.Cmm.Disconnect(); nicoerr != nil {
-				log.Println("discon err")
-				return nicoerr
-			}
-			log.Println("disconnected")
+		if err = cv.Disconnect(); err != nil {
+			return err
 		}
-		if nicoerr := cv.Cmm.SetLv(cv.Lw); nicoerr != nil {
-			return nicoerr
-		}
-		if nicoerr := cv.Cmm.Connect(); nicoerr != nil {
-			return nicoerr
+
+		cv.Cmm, err = nicolive.CommentConnect(context.TODO(), cv.Lw, NewProceedNicoliveEvent(cv))
+		if err != nil {
+			return err
 		}
 		log.Println("connecting")
 
 	case CommQueryBroadDisconnect:
-		cv.Cmm.Disconnect()
+		cv.Disconnect()
 
 	case CommQueryBroadSendComment:
 		var ct CtQueryBroadSendComment
