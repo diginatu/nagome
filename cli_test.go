@@ -16,7 +16,7 @@ func TestMainTCP(t *testing.T) {
 	log.SetFlags(log.Lshortfile | log.Ltime)
 
 	App.SavePath = filepath.Join(os.TempDir(), "nagome_test")
-	if err := os.MkdirAll(App.SavePath, 0777); err != nil {
+	if err := os.MkdirAll(filepath.Join(App.SavePath, pluginDirName), 0777); err != nil {
 		t.Fatal(err)
 	}
 	cv := NewCommentViewer(new(nicolive.Account), "")
