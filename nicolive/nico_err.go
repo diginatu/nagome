@@ -15,6 +15,7 @@ const (
 	ErrNicoLiveOther
 	ErrNotLogin
 	ErrClosed
+	ErrIncorrectAccount
 )
 
 // Error is error interface in nicolive
