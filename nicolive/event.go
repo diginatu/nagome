@@ -14,6 +14,10 @@ const (
 	EventTypeClose
 	EventTypeWakuEnd
 	EventTypeHeartBeatGot
+	EventTypeAntennaOpen
+	EventTypeAntennaClose
+	EventTypeAntennaGot
+	EventTypeAntennaErr
 )
 
 // Event is an event

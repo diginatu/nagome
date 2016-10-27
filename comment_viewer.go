@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"net"
@@ -19,6 +20,7 @@ type CommentViewer struct {
 	Ac       *nicolive.Account
 	Lw       *nicolive.LiveWaku
 	Cmm      *nicolive.CommentConnection
+	Antn     *nicolive.Antenna
 	Pgns     []*plugin
 	Settings SettingsSlot
 	TCPPort  string
@@ -45,6 +47,7 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 
 // Start run the CommentViewer and start connecting plugins
 func (cv *CommentViewer) Start() {
+	var err error
 	waitWakeServer := make(chan struct{})
 
 	cv.wg.Add(2)
@@ -54,11 +57,18 @@ func (cv *CommentViewer) Start() {
 	<-waitWakeServer
 	cv.loadPlugins()
 
+	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, nil)
+	if err != nil {
+		log.Println(err)
+		cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Antenna error", "Antenna login failed")
+	}
+
 	return
 }
 
 // Wait waits for quiting after Start().
 func (cv *CommentViewer) Wait() {
+	defer cv.AntennaDisconnect()
 	defer cv.Disconnect()
 	cv.wg.Wait()
 }
@@ -176,13 +186,31 @@ func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
 }
 
 // Disconnect disconnects current comment connection if connected.
-func (cv *CommentViewer) Disconnect() error {
+func (cv *CommentViewer) Disconnect() {
 	if cv.Cmm == nil {
-		return nil
+		return
 	}
 
 	err := cv.Cmm.Disconnect()
+	if err != nil {
+		log.Println(err)
+	}
 	cv.Cmm = nil
 
-	return err
+	return
+}
+
+// AntennaDisconnect disconnects current antenna connection if connected.
+func (cv *CommentViewer) AntennaDisconnect() {
+	if cv.Antn == nil {
+		return
+	}
+
+	err := cv.Antn.Disconnect()
+	if err != nil {
+		log.Println(err)
+	}
+	cv.Antn = nil
+
+	return
 }

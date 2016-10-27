@@ -41,6 +41,7 @@ Dependencies
 Tasks
 -----
 
++   [ ] return value of nicoerror is interface "error"
 +   [ ] nagomever
 +   [ ] quit message
 +   [ ] dynamic plugin add/remove

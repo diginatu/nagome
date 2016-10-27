@@ -51,6 +51,7 @@ func newConnection(addrPort string, proceedMessage proceedConnMes, ev EventRecei
 func (c *connection) Connect(ctx context.Context) Error {
 	nerr := c.open(ctx)
 	if nerr != nil {
+		// No need to disconnect.
 		return nerr
 	}
 

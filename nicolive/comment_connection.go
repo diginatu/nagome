@@ -43,10 +43,9 @@ type CommentConnection struct {
 
 	con *connection
 
-	postKeyTmr    *time.Timer
-	heartbeatTmr  *time.Timer
-	disconnecting bool
-	ConnectedTm   time.Time // The time when this connection started
+	postKeyTmr   *time.Timer
+	heartbeatTmr *time.Timer
+	ConnectedTm  time.Time // The time when this connection started
 }
 
 // CommentConnect connects to nicolive and start receiving comment.
@@ -85,14 +84,11 @@ func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*Comme
 	cc.con.Wg.Add(1)
 	go cc.timer()
 
-	_, err := fmt.Fprintf(cc.con.rw,
+	err := cc.con.Send(fmt.Sprintf(
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
-		cc.lv.CommentServer.Thread)
+		cc.lv.CommentServer.Thread))
 	if err != nil {
-		return nil, ErrFromStdErr(err)
-	}
-	err = cc.con.rw.Flush()
-	if err != nil {
+		go cc.Disconnect()
 		return nil, ErrFromStdErr(err)
 	}
 
@@ -331,8 +327,8 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 	return nil
 }
 
-// Disconnect close and disconnect
-// terminate all goroutines and wait to exit
+// Disconnect quit all routines and disconnect.
+// terminate all go-routines and wait to exit
 func (cc *CommentConnection) Disconnect() Error {
 	fmt.Println(1)
 	cc.postKeyTmr.Stop()
