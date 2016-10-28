@@ -39,13 +39,16 @@ type plugin struct {
 	isEnable    bool
 }
 
-func (pl *plugin) Init(no int) {
-	pl.flushTm = time.NewTimer(time.Hour)
-	pl.Startc = make(chan struct{}, 1)
-	pl.No = no
+// NewPlugin makes new Plugin.
+func newPlugin() *plugin {
+	return &plugin{
+		flushTm: time.NewTimer(time.Hour),
+		Startc:  make(chan struct{}, 1),
+	}
 }
 
 func (pl *plugin) Start(cv *CommentViewer) {
+	log.Println(pl.flushTm)
 	if pl.No == 0 {
 		log.Printf("plugin \"%s\" is not initialized\n", pl.Name)
 		return
@@ -70,6 +73,7 @@ func (pl *plugin) Start(cv *CommentViewer) {
 }
 
 func (pl *plugin) Enable() {
+	log.Println(pl.flushTm)
 	if pl.isEnable {
 		return
 	}

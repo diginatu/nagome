@@ -21,14 +21,14 @@ func TestMainTCP(t *testing.T) {
 	}
 	cv := NewCommentViewer(new(nicolive.Account), "")
 
-	plug := &plugin{
-		Name:        "main",
-		Description: "main plugin",
-		Version:     "0.0",
-		Method:      "tcp",
-		Depends:     []string{DomainNagome, DomainComment, DomainUI},
-	}
-	plug.Init(1)
+	plug := newPlugin()
+	plug.Name = "main"
+	plug.Description = "main plugin"
+	plug.Version = "0.0"
+	plug.Method = "tcp"
+	plug.Depends = []string{DomainNagome, DomainComment, DomainUI}
+	cv.AddPlugin(plug)
+
 	cv.Pgns = append(cv.Pgns, plug)
 	cv.TCPPort = "0"
 

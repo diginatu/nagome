@@ -87,27 +87,22 @@ func RunCli() {
 	}
 
 	// add main plugin
-	plug := &plugin{
-		Name:        "main",
-		Description: "main plugin",
-		Version:     "0.0",
-		Method:      "std",
-		Depends:     []string{DomainNagome, DomainComment, DomainUI},
-	}
+	plug := newPlugin()
+	plug.Name = "main"
+	plug.Description = "main plugin"
+	plug.Version = "0.0"
+	plug.Method = "std"
+	plug.Depends = []string{DomainNagome, DomainComment, DomainUI}
 	if *mainyml != "" {
-		err = plug.loadPlugin(*mainyml)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 	}
-	if plug.Method == "tcp" {
-		plug.Init(1)
-	} else {
+	cv.AddPlugin(plug)
+	if plug.Method == "std" {
 		plug.Rw = bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
-		plug.Init(1)
 		plug.Start(cv)
 	}
-	cv.Pgns = append(cv.Pgns, plug)
 
 	cv.Start()
 	cv.Wait()

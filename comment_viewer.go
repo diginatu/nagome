@@ -76,7 +76,7 @@ func (cv *CommentViewer) Wait() {
 // AddPlugin adds new plugin to Pgns
 func (cv *CommentViewer) AddPlugin(p *plugin) {
 	cv.Pgns = append(cv.Pgns, p)
-	p.Init(len(cv.Pgns))
+	p.No = len(cv.Pgns)
 }
 
 func (cv *CommentViewer) loadPlugins() {
@@ -90,7 +90,7 @@ func (cv *CommentViewer) loadPlugins() {
 
 	for _, d := range ds {
 		if d.IsDir() {
-			p := new(plugin)
+			p := newPlugin()
 			pPath := filepath.Join(psPath, d.Name())
 			err = p.loadPlugin(filepath.Join(pPath, "plugin.yml"))
 			if err != nil {
