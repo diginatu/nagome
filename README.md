@@ -1,7 +1,7 @@
 Nagome
 ======
 
-[![Circle CI](https://circleci.com/gh/diginatu/nagome.svg?style=svg)](https://circleci.com/gh/diginatu/nagome)
+[![Build Status](https://travis-ci.org/diginatu/nagome.svg?branch=master)](https://travis-ci.org/diginatu/nagome)
 
 Advanced NicoLive Comment Viewer written in go.
 

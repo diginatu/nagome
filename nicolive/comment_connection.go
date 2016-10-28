@@ -328,7 +328,6 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 }
 
 // Disconnect quit all routines and disconnect.
-// terminate all go-routines and wait to exit
 func (cc *CommentConnection) Disconnect() Error {
 	fmt.Println(1)
 	cc.postKeyTmr.Stop()

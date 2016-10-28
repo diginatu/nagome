@@ -1,6 +1,15 @@
 language: go
 
 go:
-  - 1.7
-  - master
-go_import_path: "github.com/diginatu/nagome"
+    - 1.7
+
+install:
+    - go get github.com/golang/lint/golint
+    - go get golang.org/x/tools/cmd/vet
+
+script:
+    - go build
+    - go fmt ./...
+    - golint ./...
+    - go vet ./...
+    - go test -v -race ./...
