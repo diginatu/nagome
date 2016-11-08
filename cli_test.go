@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,17 +14,7 @@ import (
 	"github.com/diginatu/nagome/nicolive"
 )
 
-func setLogForTest() {
-	if testing.Verbose() {
-		log.SetFlags(log.Lshortfile)
-		log.SetPrefix("        ")
-	} else {
-		log.SetOutput(ioutil.Discard)
-	}
-}
-
-func TestMainTCP(t *testing.T) {
-	setLogForTest()
+func TestTCPAPI(t *testing.T) {
 	App.SavePath = filepath.Join(os.TempDir(), "nagome_test")
 	if err := os.MkdirAll(filepath.Join(App.SavePath, pluginDirName), 0777); err != nil {
 		t.Fatal(err)
@@ -66,4 +57,20 @@ func TestMainTCP(t *testing.T) {
 	conn.Close()
 	cv.Wait()
 	// shold quit because main plugin was closed
+}
+
+func setLogForTest() {
+	fmt.Println(testing.Verbose())
+	if testing.Verbose() {
+		log.SetFlags(log.Lshortfile)
+		log.SetPrefix("        ")
+	} else {
+		log.SetOutput(ioutil.Discard)
+	}
+}
+func TestMain(m *testing.M) {
+	flag.Parse()
+	setLogForTest()
+	code := m.Run()
+	os.Exit(code)
 }

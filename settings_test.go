@@ -7,7 +7,6 @@ import (
 )
 
 func TestSettingsSlots(t *testing.T) {
-	setLogForTest()
 	App.SavePath = os.TempDir()
 
 	ss := SettingsSlots{}

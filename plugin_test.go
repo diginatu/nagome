@@ -32,7 +32,6 @@ func (rwc *testRwc) Close() error {
 }
 
 func TestPluginClose(t *testing.T) {
-	setLogForTest()
 	ac := &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
 	cv := NewCommentViewer(ac, "0")
 	p := newPlugin(cv)
@@ -66,7 +65,6 @@ func TestPluginClose(t *testing.T) {
 }
 
 func TestPluginErrorConnection(t *testing.T) {
-	setLogForTest()
 	ac := &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
 	cv := NewCommentViewer(ac, "0")
 	p := newPlugin(cv)
@@ -101,7 +99,6 @@ func TestPluginErrorConnection(t *testing.T) {
 }
 
 func TestPluginWrite(t *testing.T) {
-	setLogForTest()
 	ac := &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
 	cv := NewCommentViewer(ac, "0")
 	p := newPlugin(cv)
