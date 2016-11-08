@@ -47,7 +47,6 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 
 // Start run the CommentViewer and start connecting plugins
 func (cv *CommentViewer) Start() {
-	var err error
 	waitWakeServer := make(chan struct{})
 
 	cv.wg.Add(2)
@@ -57,13 +56,17 @@ func (cv *CommentViewer) Start() {
 	<-waitWakeServer
 	cv.loadPlugins()
 
+	return
+}
+
+// AntennaConnect connects Antenna and start processing.
+func (cv *CommentViewer) AntennaConnect() {
+	var err error
 	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, nil)
 	if err != nil {
 		log.Println(err)
 		cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Antenna error", "Antenna login failed")
 	}
-
-	return
 }
 
 // Wait waits for quiting after Start().

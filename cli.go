@@ -103,6 +103,7 @@ func RunCli() {
 	}
 
 	cv.Start()
+	cv.AntennaConnect()
 	cv.Wait()
 
 	if cv.Settings.AutoSaveTo0Slot {
