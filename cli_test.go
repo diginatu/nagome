@@ -15,7 +15,8 @@ import (
 
 func setLogForTest() {
 	if testing.Verbose() {
-		log.SetFlags(log.Lshortfile | log.Ltime)
+		log.SetFlags(log.Lshortfile)
+		log.SetPrefix("        ")
 	} else {
 		log.SetOutput(ioutil.Discard)
 	}
