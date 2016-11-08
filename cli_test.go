@@ -21,7 +21,7 @@ func TestMainTCP(t *testing.T) {
 	}
 	cv := NewCommentViewer(new(nicolive.Account), "")
 
-	plug := newPlugin()
+	plug := newPlugin(cv)
 	plug.Name = "main"
 	plug.Description = "main plugin"
 	plug.Version = "0.0"

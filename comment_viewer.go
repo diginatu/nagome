@@ -25,7 +25,7 @@ type CommentViewer struct {
 	Settings SettingsSlot
 	TCPPort  string
 	Evch     chan *Message
-	Quit     chan struct{}
+	quit     chan struct{}
 	wg       sync.WaitGroup
 	prcdnle  *ProceedNicoliveEvent
 }
@@ -40,7 +40,7 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 		Settings: *App.SettingsSlots.Config[0],
 		TCPPort:  tcpPort,
 		Evch:     make(chan *Message, eventBufferSize),
-		Quit:     make(chan struct{}),
+		quit:     make(chan struct{}),
 	}
 	return cv
 }
@@ -90,9 +90,9 @@ func (cv *CommentViewer) loadPlugins() {
 
 	for _, d := range ds {
 		if d.IsDir() {
-			p := newPlugin()
+			p := newPlugin(cv)
 			pPath := filepath.Join(psPath, d.Name())
-			err = p.loadPlugin(filepath.Join(pPath, "plugin.yml"))
+			err = p.Load(filepath.Join(pPath, "plugin.yml"))
 			if err != nil {
 				log.Println("failed load plugin : ", d.Name())
 				log.Println(err)
@@ -165,7 +165,7 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 			}
 			cv.wg.Add(1)
 			go handleTCPPlugin(conn, cv)
-		case <-cv.Quit:
+		case <-cv.quit:
 			return
 		}
 	}
@@ -181,7 +181,10 @@ func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
 		})
 	if err != nil {
 		log.Println(err)
+		return
 	}
+
+	log.Printf("[D] %s : %s", title, desc)
 	cv.Evch <- t
 }
 
@@ -213,4 +216,9 @@ func (cv *CommentViewer) AntennaDisconnect() {
 	cv.Antn = nil
 
 	return
+}
+
+// Quit quits the CommentViewer.
+func (cv *CommentViewer) Quit() {
+	close(cv.quit)
 }

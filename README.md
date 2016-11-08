@@ -41,6 +41,7 @@ Dependencies
 Tasks
 -----
 
++   [ ] improve flags
 +   [ ] return value of nicoerror is interface "error"
 +   [ ] nagomever
 +   [ ] quit message
@@ -50,7 +51,7 @@ Tasks
 +   [ ] translation function
 +   [ ] document
 +   [ ] function for NicoLive
-    -   [ ] getting user name and storing
+    -   [ ] limit rate of getting user name
     -   [ ] alert connection
-    -   [ ] get new Waku
+    -   [ ] prepare new Waku
 

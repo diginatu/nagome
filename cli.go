@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -87,11 +86,11 @@ func RunCli() {
 	}
 
 	// add main plugin
-	plug := newPlugin()
+	plug := newPlugin(cv)
 	plug.Name = "main"
 	plug.Description = "main plugin"
 	plug.Version = "0.0"
-	plug.Method = "std"
+	plug.Method = pluginMethodStd
 	plug.Depends = []string{DomainNagome, DomainComment, DomainUI}
 	if *mainyml != "" {
 		if err != nil {
@@ -99,9 +98,8 @@ func RunCli() {
 		}
 	}
 	cv.AddPlugin(plug)
-	if plug.Method == "std" {
-		plug.Rw = bufio.NewReadWriter(bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
-		plug.Start(cv)
+	if plug.Method == pluginMethodStd {
+		plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout})
 	}
 
 	cv.Start()
@@ -136,7 +134,7 @@ func generatePluginTemplate(name, pluginPath string) {
 		Method:  "tcp",
 		Exec:    []string{"{{path}}/" + name, "{{port}}", "{{no}}"},
 	}
-	pl.savePlugin(filepath.Join(p, pluginConfigName))
+	pl.Save(filepath.Join(p, pluginConfigName))
 
 	fmt.Printf("Create your plugin in : %s\n", p)
 }

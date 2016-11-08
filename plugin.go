@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"os/exec"
 	"strings"
 	"sync"
@@ -19,111 +18,103 @@ import (
 const (
 	pluginFlashWaitDu time.Duration = 50 * time.Millisecond
 
-	pluginMethodTCP string = "tcp"
-	pluginMethodStd        = "std"
+	pluginMethodTCP           string = "tcp"
+	pluginMethodStd                  = "std"
+	pluginEachMessageChanSize        = 3
 )
 
 type plugin struct {
-	Name        string            `yaml:"name"        json:"name"`
-	Description string            `yaml:"description" json:"description"`
-	Version     string            `yaml:"version"     json:"version"`
-	Author      string            `yaml:"author"      json:"author"`
-	Method      string            `yaml:"method"      json:"method"`
-	Exec        []string          `yaml:"exec"        json:"-"`
-	Nagomever   string            `yaml:"nagomever"   json:"-"`
-	Depends     []string          `yaml:"depends"     json:"depends"`
-	No          int               `yaml:"-"           json:"no"`
-	Rw          *bufio.ReadWriter `yaml:"-"           json:"-"`
-	Startc      chan struct{}     `yaml:"-"           json:"-"`
+	Name        string   `yaml:"name"        json:"name"`
+	Description string   `yaml:"description" json:"description"`
+	Version     string   `yaml:"version"     json:"version"`
+	Author      string   `yaml:"author"      json:"author"`
+	Method      string   `yaml:"method"      json:"method"`
+	Exec        []string `yaml:"exec"        json:"-"`
+	Nagomever   string   `yaml:"nagomever"   json:"-"`
+	Depends     []string `yaml:"depends"     json:"depends"`
+	No          int      `yaml:"-"           json:"no"`
+	rwc         io.ReadWriteCloser
 	flushTm     *time.Timer
+	wg          sync.WaitGroup
+	cv          *CommentViewer
+	setEnable   chan (bool)
+	quit        chan (struct{})
 	isEnable    bool
+	writec      chan ([]byte)
+	openc       chan (struct{})
 }
 
 // NewPlugin makes new Plugin.
-func newPlugin() *plugin {
+func newPlugin(cv *CommentViewer) *plugin {
 	return &plugin{
-		flushTm: time.NewTimer(time.Hour),
-		Startc:  make(chan struct{}, 1),
+		openc:     make(chan struct{}),
+		quit:      make(chan struct{}),
+		setEnable: make(chan bool),
+		writec:    make(chan []byte, pluginEachMessageChanSize),
+		cv:        cv,
 	}
 }
 
-func (pl *plugin) Start(cv *CommentViewer) {
-	log.Println(pl.flushTm)
+func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
 	if pl.No == 0 {
-		log.Printf("plugin \"%s\" is not initialized\n", pl.Name)
-		return
+		return fmt.Errorf("plugin \"%s\" is not initialized (add to CommentViewer)\n", pl.Name)
 	}
 	if pl.Name == "" {
-		log.Printf("plugin \"%s\" no name is set\n", pl.Name)
-		return
+		return fmt.Errorf("plugin \"%s\" no name is set\n", pl.Name)
 	}
-	if pl.Rw == nil {
-		log.Printf("plugin \"%s\" no rw\n", pl.Name)
-		return
+	if rwc == nil {
+		return fmt.Errorf("given rw is nil\n")
 	}
-	if pl.isEnable {
-		return
+	if pl.rwc != nil {
+		return fmt.Errorf("already opened\n")
 	}
-	pl.Enable()
 
-	pl.Startc <- struct{}{}
+	pl.rwc = rwc
+	pl.flushTm = time.NewTimer(time.Minute)
 
-	cv.wg.Add(1)
-	go eachPluginRw(cv, pl.No-1)
+	pl.wg.Add(1)
+	go pl.rwRoutine()
+
+	close(pl.openc)
+	pl.SetEnable(true)
+
+	return nil
 }
 
-func (pl *plugin) Enable() {
-	log.Println(pl.flushTm)
-	if pl.isEnable {
+func (pl *plugin) SetEnable(e bool) {
+	select {
+	default:
 		return
+	case <-pl.openc:
 	}
-	pl.isEnable = true
+	select {
+	case pl.setEnable <- e:
+	case <-pl.quit:
+	}
+}
 
-	// send message
-	jmes, err := json.Marshal(Message{
-		Domain:  DomainDirectngm,
-		Command: CommDirectngmPlugEnabled,
-	})
+func (pl *plugin) WriteMess(m *Message) (fail bool) {
+	jm, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err)
+		log.Println(m)
 		return
 	}
-	fmt.Fprintf(pl.Rw, "%s\n", jmes)
-	pl.flushTm.Reset(0)
+	return pl.Write(jm)
 }
 
-func (pl *plugin) Disable() {
-	if !pl.isEnable {
-		return
+func (pl *plugin) Write(p []byte) (fail bool) {
+	select {
+	default:
+		return true
+	case <-pl.openc:
 	}
-	pl.isEnable = false
-
-	// send message
-	jmes, err := json.Marshal(Message{
-		Domain:  DomainDirectngm,
-		Command: CommDirectngmPlugDisabled,
-	})
-	if err != nil {
-		log.Println(err)
-		return
+	select {
+	case pl.writec <- p:
+		return false
+	case <-pl.quit:
 	}
-	fmt.Fprintf(pl.Rw, "%s\n", jmes)
-	pl.flushTm.Reset(0)
-}
-
-func (pl *plugin) IsEnable() bool {
-	return pl.isEnable
-}
-
-func (pl *plugin) DependFilter(pln string) bool {
-	f := false
-	for _, d := range pl.Depends {
-		if d == pln+DomainSuffixFilter {
-			f = true
-			break
-		}
-	}
-	return f
+	return true
 }
 
 func (pl *plugin) Depend(pln string) bool {
@@ -137,7 +128,7 @@ func (pl *plugin) Depend(pln string) bool {
 	return f
 }
 
-func (pl *plugin) loadPlugin(filePath string) error {
+func (pl *plugin) Load(filePath string) error {
 	d, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
@@ -151,7 +142,7 @@ func (pl *plugin) loadPlugin(filePath string) error {
 	return nil
 }
 
-func (pl *plugin) savePlugin(filePath string) error {
+func (pl *plugin) Save(filePath string) error {
 	d, err := yaml.Marshal(pl)
 	if err != nil {
 		return err
@@ -165,45 +156,38 @@ func (pl *plugin) savePlugin(filePath string) error {
 	return nil
 }
 
-func (pl *plugin) isMain() bool {
+func (pl *plugin) IsMain() bool {
 	return pl.No == 1
 }
 
-// eachPluginRw manages plugins IO. It is launched when a plugin is leaded.
-func eachPluginRw(cv *CommentViewer, n int) {
-	defer cv.wg.Done()
-
-	// wait for being enabled
-	select {
-	case <-cv.Pgns[n].Startc:
-	case <-cv.Quit:
-		return
-	}
+func (pl *plugin) rwRoutine() {
+	defer pl.wg.Done()
+	defer pl.rwc.Close()
+	defer log.Printf("plugin [%s] is closing", pl.Name)
 
 	// Run decoder.  It puts a message into "mes".
-	dec := json.NewDecoder(cv.Pgns[n].Rw)
+	dec := json.NewDecoder(pl.rwc)
 	mes := make(chan (*Message))
-	cv.wg.Add(1)
+	pl.wg.Add(1)
 	go func() {
-		defer cv.wg.Done()
+		defer pl.wg.Done()
 		for {
 			m := new(Message)
 			err := dec.Decode(m)
 			if err != nil {
-				if err != io.EOF {
-					select {
-					// ignore if quitting
-					case <-cv.Quit:
-					default:
-						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnect",
-							fmt.Sprintf("plugin [%s] : connection disconnected", cv.Pgns[n].Name))
+				select {
+				// ignore if quitting
+				case <-pl.quit:
+				default:
+					if err != io.EOF {
+						pl.cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnected",
+							fmt.Sprintf("plugin [%s] : connection disconnected", pl.Name))
 						log.Println(err)
 					}
 				}
-				cv.Pgns[n].Rw = nil
 				m = nil
 			} else {
-				m.prgno = n
+				m.prgno = pl.No
 			}
 
 			select {
@@ -211,45 +195,83 @@ func eachPluginRw(cv *CommentViewer, n int) {
 				if m == nil {
 					return
 				}
-			case <-cv.Quit:
+			case <-pl.quit:
 				return
 			}
 		}
 	}()
 
-	for {
-		if !cv.Pgns[n].IsEnable() {
-			// wait for being enabled
-			select {
-			case <-cv.Pgns[n].Startc:
-			case <-cv.Quit:
-				return
+	bufw := bufio.NewWriter(pl.rwc)
+	writeMess := func(p []byte) {
+		pl.flushTm.Reset(pluginFlashWaitDu)
+		_, err := fmt.Fprintf(bufw, "%s\n", p)
+		if err != nil {
+			log.Println(err)
+			pl.cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to write a message : "+pl.Name)
+			// quit if UI plugin disconnect
+			if pl.IsMain() {
+				pl.cv.Quit()
+			} else {
+				pl.close()
 			}
 		}
-
+		return
+	}
+	for {
 		select {
-		// Process received message
+		// Process a received message
 		case m := <-mes:
 			if m == nil {
 				// quit if UI plugin disconnect
-				if cv.Pgns[n].isMain() {
-					close(cv.Quit)
+				if pl.IsMain() {
+					pl.cv.Quit()
+				} else {
+					pl.close()
 				}
 				continue
 			}
 
 			// ignore if plugin is not enabled
-			if cv.Pgns[n].IsEnable() {
-				log.Printf("plugin message [%s] : %v", cv.Pgns[n].Name, m)
-				cv.Evch <- m
+			if pl.isEnable {
+				log.Printf("plugin message [%s] : %v", pl.Name, m)
+				pl.cv.Evch <- m
 			}
 
-		// Flush plugin IO
-		case <-cv.Pgns[n].flushTm.C:
-			cv.Pgns[n].Rw.Flush()
+		// Send a message
+		case m := <-pl.writec:
+			if pl.isEnable == false {
+				continue
+			}
+			writeMess(m)
 
-		case <-cv.Quit:
-			cv.Pgns[n].Rw = nil
+		// Flush plugin IO
+		case <-pl.flushTm.C:
+			bufw.Flush()
+
+		case e := <-pl.setEnable:
+			if pl.isEnable == e {
+				continue
+			}
+			pl.isEnable = e
+
+			// send message
+			m := &Message{
+				Domain: DomainDirectngm,
+			}
+			if e == true {
+				m.Command = CommDirectngmPlugEnabled
+			} else {
+				m.Command = CommDirectngmPlugDisabled
+			}
+			jm, err := json.Marshal(m)
+			if err != nil {
+				log.Println(err)
+				log.Println(m)
+				return
+			}
+			writeMess(jm)
+
+		case <-pl.quit:
 			return
 		}
 	}
@@ -264,25 +286,7 @@ func sendPluginMessage(cv *CommentViewer) {
 		case mes := <-cv.Evch:
 			// Direct
 			if mes.Domain == DomainDirectngm {
-				plug := cv.Pgns[mes.prgno]
-				if plug.Rw == nil {
-					continue
-				}
-				jmes, err := json.Marshal(mes)
-				if err != nil {
-					log.Println(err)
-					log.Println(mes)
-					continue
-				}
-				plug.flushTm.Reset(pluginFlashWaitDu)
-				_, err = fmt.Fprintf(plug.Rw, "%s\n", jmes)
-				if err != nil {
-					cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
-					log.Println(err)
-
-					plug.Rw = nil
-					continue
-				}
+				cv.Pgns[mes.prgno].WriteMess(mes)
 				continue
 			}
 			if mes.Domain == DomainDirect {
@@ -305,25 +309,12 @@ func sendPluginMessage(cv *CommentViewer) {
 				mes.Domain = strings.TrimSuffix(mes.Domain, DomainSuffixFilter)
 			}
 			for i := st; i < len(cv.Pgns); i++ {
-				plug := cv.Pgns[i]
-
-				if plug.Rw != nil && plug.DependFilter(mes.Domain) {
+				if cv.Pgns[i].Depend(mes.Domain + DomainSuffixFilter) {
 					// Add suffix to a message for filter plugin.
 					tmes := *mes
 					tmes.Domain = mes.Domain + DomainSuffixFilter
-					jmes, err := json.Marshal(tmes)
-					if err != nil {
-						log.Println(err)
-						log.Println(mes)
-						break readLoop
-					}
-					plug.flushTm.Reset(pluginFlashWaitDu)
-					_, err = fmt.Fprintf(plug.Rw, "%s\n", jmes)
-					if err != nil {
-						cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
-						log.Println(err)
-
-						plug.Rw = nil
+					fail := cv.Pgns[i].WriteMess(&tmes)
+					if fail {
 						continue
 					}
 					break readLoop
@@ -337,27 +328,11 @@ func sendPluginMessage(cv *CommentViewer) {
 				continue
 			}
 
-			var wg sync.WaitGroup
-
 			// regular
 			for i := range cv.Pgns {
-				wg.Add(1)
-				go func(i int) {
-					defer wg.Done()
-					plug := cv.Pgns[i]
-
-					if plug.Rw != nil && plug.Depend(mes.Domain) {
-						plug.flushTm.Reset(pluginFlashWaitDu)
-						_, err := fmt.Fprintf(plug.Rw, "%s\n", jmes)
-						if err != nil {
-							cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to send event : "+plug.Name)
-							log.Println(err)
-
-							plug.Rw = nil
-							return
-						}
-					}
-				}(i)
+				if cv.Pgns[i].Depend(mes.Domain) {
+					cv.Pgns[i].Write(jmes)
+				}
 			}
 
 			go func() {
@@ -368,84 +343,66 @@ func sendPluginMessage(cv *CommentViewer) {
 				}
 			}()
 
-			wg.Wait()
-
-		case <-cv.Quit:
+		case <-cv.quit:
 			return
 		}
-
 	}
 }
 
-func handleTCPPlugin(c net.Conn, cv *CommentViewer) {
+func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	defer cv.wg.Done()
-	defer c.Close()
 
-	rw := bufio.NewReadWriter(bufio.NewReader(c), bufio.NewWriter(c))
-
-	errc := make(chan struct{})
+	endc := make(chan bool, 1)
 
 	cv.wg.Add(1)
 	go func() {
 		defer cv.wg.Done()
-		for {
-			select {
-			default:
-				errf := func(s interface{}) {
-					// ignore if quitting
-					select {
-					case <-cv.Quit:
-					default:
-						log.Println(s)
-					}
-					close(errc)
-				}
-
-				dec := json.NewDecoder(rw)
-				m := new(Message)
-				err := dec.Decode(m)
-				if err != nil {
-					errf(err)
-					return
-				}
-				if m.Domain != DomainDirect || m.Command != CommDirectNo {
-					errf("send Direct.No message at first")
-					return
-				}
-
-				var ct CtDirectNo
-				if err := json.Unmarshal(m.Content, &ct); err != nil {
-					errf(err)
-					return
-				}
-
-				n := ct.No - 1
-				if n < 0 || n >= len(cv.Pgns) {
-					errf("received invalid plugin No.")
-					return
-				}
-				if cv.Pgns[n].Rw != nil {
-					errf("plugin is already connected")
-					return
-				}
-				cv.Pgns[n].Rw = rw
-				cv.Pgns[n].Start(cv)
-				log.Println("loaded plugin ", cv.Pgns[n])
-				break
-
-			case <-cv.Quit:
-				return
+		select {
+		case <-cv.quit:
+			c.Close()
+		case iserr := <-endc:
+			if iserr {
+				c.Close()
 			}
-			break
 		}
-
 	}()
 
-	// wait for quitting or error in above go routine
-	select {
-	case <-errc:
-	case <-cv.Quit:
+	dec := json.NewDecoder(c)
+
+	m := new(Message)
+	err := dec.Decode(m)
+	if err != nil {
+		log.Println(err)
+		endc <- true
+		return
 	}
+	if m.Domain != DomainDirect || m.Command != CommDirectNo {
+		log.Println("send Direct.No message at first")
+		endc <- true
+		return
+	}
+
+	var ct CtDirectNo
+	if err := json.Unmarshal(m.Content, &ct); err != nil {
+		log.Println(err)
+		endc <- true
+		return
+	}
+
+	n := ct.No - 1
+	if n < 0 || n >= len(cv.Pgns) {
+		log.Println("received invalid plugin No.")
+		endc <- true
+		return
+	}
+	err = cv.Pgns[n].Open(c)
+	if err != nil {
+		log.Println(err)
+		endc <- true
+		return
+	}
+	log.Printf("loaded plugin : %s\n", cv.Pgns[n].Name)
+	endc <- false
 }
 
 func handleSTDPlugin(p *plugin, cv *CommentViewer) {
@@ -475,9 +432,36 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 		return
 	}
 
-	p.Rw = bufio.NewReadWriter(bufio.NewReader(stdout), bufio.NewWriter(stdin))
-	p.Start(cv)
+	c := &stdReadWriteCloser{stdout, stdin}
+	p.Open(c)
 	log.Println("loaded plugin ", p)
 
-	<-cv.Quit
+	<-cv.quit
+}
+
+// Close closes opened plugin.
+func (pl *plugin) Close() {
+	pl.close()
+	pl.wg.Wait()
+}
+
+func (pl *plugin) close() {
+	close(pl.quit)
+}
+
+type stdReadWriteCloser struct {
+	io.ReadCloser
+	io.WriteCloser
+}
+
+func (rwc *stdReadWriteCloser) Close() error {
+	errr := rwc.ReadCloser.Close()
+	errw := rwc.WriteCloser.Close()
+	if errr != nil {
+		return errr
+	}
+	if errw != nil {
+		return errw
+	}
+	return nil
 }
