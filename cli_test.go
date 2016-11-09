@@ -60,7 +60,6 @@ func TestTCPAPI(t *testing.T) {
 }
 
 func setLogForTest() {
-	fmt.Println(testing.Verbose())
 	if testing.Verbose() {
 		log.SetFlags(log.Lshortfile)
 		log.SetPrefix("        ")

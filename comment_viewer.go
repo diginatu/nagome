@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/diginatu/nagome/nicolive"
 )
@@ -151,26 +150,34 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 		log.Panicln(err)
 	}
 
-	close(waitWakeServer)
-
-	for {
-		l.SetDeadline(time.Now().Add(time.Second))
-		select {
-		default:
+	cv.wg.Add(1)
+	go func() {
+		defer cv.wg.Done()
+		for {
 			conn, err := l.Accept()
 			if err != nil {
 				nerr, ok := err.(net.Error)
-				if ok && nerr.Timeout() && nerr.Temporary() {
+				if ok && nerr.Temporary() {
 					continue
 				}
-				log.Println(err)
-				continue
+				select {
+				default:
+					log.Println(err)
+					cv.Quit()
+				case <-cv.quit:
+				}
+				return
 			}
 			cv.wg.Add(1)
 			go handleTCPPlugin(conn, cv)
-		case <-cv.quit:
-			return
 		}
+	}()
+
+	close(waitWakeServer)
+
+	select {
+	case <-cv.quit:
+		return
 	}
 }
 
