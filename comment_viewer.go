@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net"
@@ -50,7 +51,7 @@ func (cv *CommentViewer) Start() {
 
 	cv.wg.Add(2)
 	go cv.pluginTCPServer(waitWakeServer)
-	go sendPluginMessage(cv)
+	go cv.sendPluginMessage()
 
 	<-waitWakeServer
 	cv.loadPlugins()
@@ -178,6 +179,81 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 	select {
 	case <-cv.quit:
 		return
+	}
+}
+
+func (cv *CommentViewer) sendPluginMessage() {
+	defer cv.wg.Done()
+
+	for {
+	readLoop:
+		select {
+		case mes := <-cv.Evch:
+			// Direct
+			if mes.Domain == DomainDirectngm {
+				cv.Pgns[mes.prgno].WriteMess(mes)
+				continue
+			}
+			if mes.Domain == DomainDirect {
+				go func() {
+					nicoerr := processDirectMessage(cv, mes)
+					if nicoerr != nil {
+						log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nicoerr)
+						log.Println(mes)
+					}
+				}()
+				continue
+			}
+
+			// filter
+
+			// Messages from filter plugin will not send same plugin.
+			var st int
+			if strings.HasSuffix(mes.Domain, DomainSuffixFilter) {
+				st = mes.prgno + 1
+				mes.Domain = strings.TrimSuffix(mes.Domain, DomainSuffixFilter)
+			}
+			for i := st; i < len(cv.Pgns); i++ {
+				if cv.Pgns[i].Depend(mes.Domain + DomainSuffixFilter) {
+					// Add suffix to a message for filter plugin.
+					tmes := *mes
+					tmes.Domain = mes.Domain + DomainSuffixFilter
+					fail := cv.Pgns[i].WriteMess(&tmes)
+					if fail {
+						continue
+					}
+					break readLoop
+				}
+			}
+
+			jmes, err := json.Marshal(mes)
+			if err != nil {
+				log.Println(err)
+				log.Println(mes)
+				continue
+			}
+
+			// regular
+			for i := range cv.Pgns {
+				if cv.Pgns[i].Depend(mes.Domain) {
+					cv.Pgns[i].Write(jmes)
+				}
+			}
+
+			go func() {
+				nicoerr := processPluginMessage(cv, mes)
+				if nicoerr != nil {
+					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nicoerr)
+					log.Println(mes)
+				}
+			}()
+
+		case <-cv.quit:
+			for _, p := range cv.Pgns {
+				p.Close()
+			}
+			return
+		}
 	}
 }
 
