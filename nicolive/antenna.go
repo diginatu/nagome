@@ -22,11 +22,11 @@ type AntennaItem struct {
 
 // Antenna manages starting broadcast antenna connection.
 type Antenna struct {
+	*connection
+
 	ac                 *Account
 	ticket             string
 	addr, port, thread string
-
-	conn *connection
 
 	MyCommunities []string
 }
@@ -174,19 +174,19 @@ func (a *Antenna) Connect(ctx context.Context, ev EventReceiver) error {
 		ev = &defaultEventReceiver{}
 	}
 
-	a.conn = newConnection(
+	a.connection = newConnection(
 		net.JoinHostPort(a.addr, a.port),
 		a.proceedMessage, ev)
 
 	var err error
 
-	err = a.conn.Connect(ctx)
+	err = a.connection.Connect(ctx)
 	if err != nil {
 		a.conn = nil
 		return err
 	}
 
-	err = a.conn.Send(fmt.Sprintf(
+	err = a.Send(fmt.Sprintf(
 		"<thread thread=\"%s\" res_from=\"-1\" version=\"20061206\" />\x00",
 		a.thread))
 
@@ -219,12 +219,12 @@ func (a *Antenna) Disconnect() error {
 		return MakeError(ErrOther, "Antenna is not connected.")
 	}
 
-	err := a.conn.Disconnect()
+	err := a.connection.Disconnect()
 	if err != nil {
 		return err
 	}
 
-	a.conn.Ev.ProceedNicoEvent(&Event{
+	a.Ev.ProceedNicoEvent(&Event{
 		Type:    EventTypeAntennaClose,
 		Content: nil,
 	})

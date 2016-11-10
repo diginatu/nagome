@@ -36,12 +36,12 @@ type Comment struct {
 // CommentConnection is a struct to manage sending/receiving comments.
 // This struct automatically Keeping alive and get the PostKey, which is necessary for sending comments.
 type CommentConnection struct {
+	*connection
+
 	lv     *LiveWaku
 	ticket string
 	svrDu  time.Duration
 	block  int
-
-	con *connection
 
 	postKeyTmr   *time.Timer
 	heartbeatTmr *time.Timer
@@ -72,19 +72,19 @@ func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*Comme
 		postKeyTmr:   pkt,
 		heartbeatTmr: hbt,
 	}
-	cc.con = newConnection(
+	cc.connection = newConnection(
 		net.JoinHostPort(lv.CommentServer.Addr, lv.CommentServer.Port),
 		cc.proceedMessage, ev)
 
-	nerr := cc.con.Connect(ctx)
+	nerr := cc.connection.Connect(ctx)
 	if nerr != nil {
 		return nil, nerr
 	}
 
-	cc.con.Wg.Add(1)
+	cc.Wg.Add(1)
 	go cc.timer()
 
-	err := cc.con.Send(fmt.Sprintf(
+	err := cc.connection.Send(fmt.Sprintf(
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
 		cc.lv.CommentServer.Thread))
 	if err != nil {
@@ -99,7 +99,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 	commxmlr := strings.NewReader(m)
 	rt, err := xmlpath.Parse(commxmlr)
 	if err != nil {
-		cc.con.Ev.ProceedNicoEvent(&Event{
+		cc.Ev.ProceedNicoEvent(&Event{
 			Type:    EventTypeErr,
 			Content: ErrFromStdErr(err),
 		})
@@ -124,7 +124,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		cc.postKeyTmr.Reset(0)
 		cc.heartbeatTmr.Reset(0)
 
-		cc.con.Ev.ProceedNicoEvent(&Event{
+		cc.Ev.ProceedNicoEvent(&Event{
 			Type:    EventTypeOpen,
 			Content: nil,
 		})
@@ -134,13 +134,13 @@ func (cc *CommentConnection) proceedMessage(m string) {
 	if strings.HasPrefix(m, "<chat_result ") {
 		if v, ok := xmlpath.MustCompile("/chat_result/@status").String(rt); ok {
 			if v != "0" {
-				cc.con.Ev.ProceedNicoEvent(&Event{
+				cc.Ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: MakeError(ErrSendComment, "comment send error. chat_result status : "+v),
 				})
 				return
 			}
-			cc.con.Ev.ProceedNicoEvent(&Event{
+			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeSend,
 				Content: nil,
 			})
@@ -194,14 +194,14 @@ func (cc *CommentConnection) proceedMessage(m string) {
 			cc.postKeyTmr.Reset(0)
 		}
 
-		cc.con.Ev.ProceedNicoEvent(&Event{
+		cc.Ev.ProceedNicoEvent(&Event{
 			Type:    EventTypeGot,
 			Content: comment,
 		})
 
 		if comment.IsCommand && comment.Comment == "/disconnect" {
 			go cc.Disconnect()
-			cc.con.Ev.ProceedNicoEvent(&Event{
+			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeWakuEnd,
 				Content: *cc.lv,
 			})
@@ -210,23 +210,23 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		return
 	}
 
-	cc.con.Ev.ProceedNicoEvent(&Event{
+	cc.Ev.ProceedNicoEvent(&Event{
 		Type:    EventTypeErr,
 		Content: MakeError(ErrSendComment, "unknown stream : "+m),
 	})
 }
 
 func (cc *CommentConnection) timer() {
-	defer cc.con.Wg.Done()
+	defer cc.Wg.Done()
 	for {
 		select {
-		case <-cc.con.Ctx.Done():
+		case <-cc.Ctx.Done():
 			return
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
 			nerr := cc.FetchPostKey()
 			if nerr != nil {
-				cc.con.Ev.ProceedNicoEvent(&Event{
+				cc.Ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
 				})
@@ -236,13 +236,13 @@ func (cc *CommentConnection) timer() {
 			cc.heartbeatTmr.Reset(heartbeatDuration)
 			hbv, nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
-				cc.con.Ev.ProceedNicoEvent(&Event{
+				cc.Ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
 					Content: nerr,
 				})
 				continue
 			}
-			cc.con.Ev.ProceedNicoEvent(&Event{
+			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeHeartBeatGot,
 				Content: hbv,
 			})
@@ -319,7 +319,7 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) error {
 		prems,
 		html.EscapeString(text))
 
-	err := cc.con.Send(sdcomm)
+	err := cc.connection.Send(sdcomm)
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
@@ -329,21 +329,18 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) error {
 
 // Disconnect quit all routines and disconnect.
 func (cc *CommentConnection) Disconnect() error {
-	fmt.Println(1)
 	cc.postKeyTmr.Stop()
 	cc.heartbeatTmr.Stop()
 
-	err := cc.con.Disconnect()
+	err := cc.connection.Disconnect()
 	if err != nil {
 		return err
 	}
 
-	cc.con.Ev.ProceedNicoEvent(&Event{
+	cc.Ev.ProceedNicoEvent(&Event{
 		Type:    EventTypeClose,
 		Content: nil,
 	})
-
-	fmt.Println(4)
 
 	return nil
 }
