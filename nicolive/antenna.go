@@ -60,7 +60,7 @@ func NewAntenna(ac *Account) *Antenna {
 }
 
 // Login logs in to the antenna connection.
-func (a *Antenna) Login() Error {
+func (a *Antenna) Login() error {
 	cl := new(http.Client)
 	vl := url.Values{"mail": {a.ac.Mail}, "password": {a.ac.Pass}}
 
@@ -82,7 +82,7 @@ func (a *Antenna) Login() Error {
 
 	return a.loginParseProc(res.Body)
 }
-func (a *Antenna) loginParseProc(r io.Reader) Error {
+func (a *Antenna) loginParseProc(r io.Reader) error {
 	root, err := xmlpath.Parse(r)
 	if err != nil {
 		return ErrFromStdErr(err)
@@ -109,7 +109,7 @@ func (a *Antenna) loginParseProc(r io.Reader) Error {
 }
 
 // Admin gets favorite communities and information to connect.
-func (a *Antenna) Admin() Error {
+func (a *Antenna) Admin() error {
 	if a.ticket == "" {
 		return MakeError(ErrOther, "The ticket is not set.  Login first.")
 	}
@@ -135,7 +135,7 @@ func (a *Antenna) Admin() Error {
 
 	return a.adminParseProc(res.Body)
 }
-func (a *Antenna) adminParseProc(r io.Reader) Error {
+func (a *Antenna) adminParseProc(r io.Reader) error {
 	root, err := xmlpath.Parse(r)
 	if err != nil {
 		return ErrFromStdErr(err)

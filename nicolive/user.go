@@ -21,12 +21,12 @@ type User struct {
 }
 
 // FetchUserInfo fetches user name and Thumbnail URL from niconico.
-func FetchUserInfo(id string, a *Account) (*User, Error) {
+func FetchUserInfo(id string, a *Account) (*User, error) {
 	url := fmt.Sprintf("http://api.ce.nicovideo.jp/api/v1/user.info?user_id=%s", id)
 	return fetchUserInfoImpl(url, a)
 }
 
-func fetchUserInfoImpl(url string, a *Account) (*User, Error) {
+func fetchUserInfoImpl(url string, a *Account) (*User, error) {
 	u := new(User)
 
 	c, nerr := NewNicoClient(a)
@@ -147,7 +147,7 @@ func (d *UserDB) Store(u *User) error {
 // Fetch fetches a user of given ID from the DB.
 // If no user is found, return (nil, nil).
 // So you should check if user is nil.
-func (d *UserDB) Fetch(id string) (*User, Error) {
+func (d *UserDB) Fetch(id string) (*User, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -167,7 +167,7 @@ func (d *UserDB) Fetch(id string) (*User, Error) {
 }
 
 // Remove removes a user of given ID from the DB.
-func (d *UserDB) Remove(id string) Error {
+func (d *UserDB) Remove(id string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 

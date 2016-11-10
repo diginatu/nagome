@@ -61,12 +61,12 @@ func (a *Account) Load(filePath string) error {
 }
 
 // Login log in to niconico and update Usersession
-func (a *Account) Login() Error {
+func (a *Account) Login() error {
 	return a.LoginImpl(loginAddr, usersessionBaseAddr)
 }
 
 // LoginImpl is implementation of Login.
-func (a *Account) LoginImpl(addr, baseAddr string) Error {
+func (a *Account) LoginImpl(addr, baseAddr string) error {
 	if a.Mail == "" || a.Pass == "" {
 		return MakeError(ErrOther, "invalid account : mail or pass is not set")
 	}

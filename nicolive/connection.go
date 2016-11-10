@@ -48,7 +48,7 @@ func newConnection(addrPort string, proceedMessage proceedConnMes, ev EventRecei
 	return c
 }
 
-func (c *connection) Connect(ctx context.Context) Error {
+func (c *connection) Connect(ctx context.Context) error {
 	nerr := c.open(ctx)
 	if nerr != nil {
 		// No need to disconnect.
@@ -61,7 +61,7 @@ func (c *connection) Connect(ctx context.Context) Error {
 	return nil
 }
 
-func (c *connection) open(ctx context.Context) Error {
+func (c *connection) open(ctx context.Context) error {
 	var err error
 
 	d := &net.Dialer{
@@ -134,7 +134,7 @@ func (c *connection) receiveStream() {
 
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit
-func (c *connection) Disconnect() Error {
+func (c *connection) Disconnect() error {
 	fmt.Println(2)
 	if c.disconnecting {
 		return MakeError(ErrOther, "already disconnecting")

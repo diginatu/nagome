@@ -50,7 +50,7 @@ type CommentConnection struct {
 
 // CommentConnect connects to nicolive and start receiving comment.
 // liveWaku should have connection information which is able to get by fetchInformation()
-func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*CommentConnection, Error) {
+func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*CommentConnection, error) {
 	if lv.Account == nil {
 		return nil, MakeError(ErrOther, "nil account in LiveWaku")
 	}
@@ -251,7 +251,7 @@ func (cc *CommentConnection) timer() {
 }
 
 // FetchPostKey gets postkey using getpostkey API
-func (cc *CommentConnection) FetchPostKey() Error {
+func (cc *CommentConnection) FetchPostKey() error {
 	if cc.lv.Account == nil {
 		return MakeError(ErrOther, "nil account in LiveWaku")
 	}
@@ -289,7 +289,7 @@ func (cc *CommentConnection) FetchPostKey() Error {
 }
 
 // SendComment sends comment to current comment connection
-func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
+func (cc *CommentConnection) SendComment(text string, iyayo bool) error {
 	if cc.lv.PostKey == "" {
 		return MakeError(ErrOther, "no postkey in livewaku")
 	}
@@ -328,7 +328,7 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) Error {
 }
 
 // Disconnect quit all routines and disconnect.
-func (cc *CommentConnection) Disconnect() Error {
+func (cc *CommentConnection) Disconnect() error {
 	fmt.Println(1)
 	cc.postKeyTmr.Stop()
 	cc.heartbeatTmr.Stop()

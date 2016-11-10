@@ -55,10 +55,14 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 		if err := json.Unmarshal(m.Content, &ct); err != nil {
 			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 		}
-		nicoerr := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
-		if nicoerr != nil {
-			cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", nicoerr.Description())
-			return nicoerr
+		err := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+		if err != nil {
+			if nerr, ok := err.(nicolive.Error); ok {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", nerr.Description())
+			} else {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", err.Error())
+			}
+			return err
 		}
 
 	case CommQueryAccountSet:
@@ -71,11 +75,14 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 		cv.Ac = &nicoac
 
 	case CommQueryAccountLogin:
-		nicoerr := cv.Ac.Login()
-		if nicoerr != nil {
-			cv.CreateEvNewDialog(CtUIDialogTypeWarn,
-				"login error", nicoerr.Description())
-			return nicoerr
+		err := cv.Ac.Login()
+		if err != nil {
+			if nerr, ok := err.(nicolive.Error); ok {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "login error", nerr.Description())
+			} else {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "login error", err.Error())
+			}
+			return err
 		}
 		log.Println("logged in")
 		cv.CreateEvNewDialog(CtUIDialogTypeInfo,
@@ -121,7 +128,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 	return nil
 }
 
-func processDirectMessage(cv *CommentViewer, m *Message) nicolive.Error {
+func processDirectMessage(cv *CommentViewer, m *Message) error {
 	switch m.Command {
 	case CommDirectPlugList:
 		c := CtDirectngmPlugList{&cv.Pgns}
