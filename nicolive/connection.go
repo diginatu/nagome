@@ -11,8 +11,8 @@ import (
 
 const (
 	keepAliveDuration       = time.Minute
-	connectionWriteDeadline = 3 * time.Second
-	connectionReadDeadline  = 3 * time.Second
+	connectionWriteDeadline = 5 * time.Second
+	connectionReadDeadline  = 5 * time.Second
 )
 
 type proceedConnMes func(m string)
@@ -135,7 +135,6 @@ func (c *connection) receiveStream() {
 // Disconnect close and disconnect
 // terminate all goroutines and wait to exit
 func (c *connection) Disconnect() error {
-	fmt.Println(2)
 	if c.disconnecting {
 		return MakeError(ErrOther, "already disconnecting")
 	}
@@ -146,7 +145,5 @@ func (c *connection) Disconnect() error {
 	c.conn.Close()
 
 	c.Wg.Wait()
-	fmt.Println(3)
-
 	return nil
 }

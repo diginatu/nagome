@@ -18,7 +18,8 @@ const (
 	heartbeatDuration = 90 * time.Second
 )
 
-// Comment is struct to hold a comment
+// A Comment is a received comment.
+// It's send as a content of an EventTypeGot event.
 type Comment struct {
 	No          int
 	Date        time.Time
@@ -101,7 +102,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 	if err != nil {
 		cc.Ev.ProceedNicoEvent(&Event{
 			Type:    EventTypeErr,
-			Content: ErrFromStdErr(err),
+			Content: err,
 		})
 		return
 	}

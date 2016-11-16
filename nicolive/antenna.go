@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,11 +12,10 @@ import (
 	"gopkg.in/xmlpath.v2"
 )
 
-const ()
-
 // An AntennaItem is a started live broadcast.
+// It's send as a content of an EventTypeAntennaGot event.
 type AntennaItem struct {
-	Title, CommunityID, UserID string
+	BroadID, CommunityID, UserID string
 }
 
 // Antenna manages starting broadcast antenna connection.
@@ -199,22 +197,43 @@ func (a *Antenna) Connect(ctx context.Context, ev EventReceiver) error {
 }
 
 func (a *Antenna) proceedMessage(m string) {
-	log.Println(m)
-	//xmlr := strings.NewReader(m)
-	//rt, err := xmlpath.Parse(xmlr)
-	//if err != nil {
-	//a.conn.Ev.ProceedNicoEvent(&Event{
-	//Type:    EventTypeErr,
-	//Content: ErrFromStdErr(err),
-	//})
-	//return
-	//}
+	xmlr := strings.NewReader(m)
+	rt, err := xmlpath.Parse(xmlr)
+	if err != nil {
+		a.Ev.ProceedNicoEvent(&Event{
+			Type:    EventTypeAntennaErr,
+			Content: err,
+		})
+		return
+	}
 
+	if strings.HasPrefix(m, "<thread ") {
+		a.Ev.ProceedNicoEvent(&Event{
+			Type:    EventTypeAntennaOpen,
+			Content: nil,
+		})
+		return
+	}
+	if strings.HasPrefix(m, "<chat ") {
+		if v, ok := xmlpath.MustCompile("/chat").String(rt); ok {
+			av := strings.Split(v, ",")
+			ai := &AntennaItem{av[0], av[1], av[2]}
+			a.Ev.ProceedNicoEvent(&Event{
+				Type:    EventTypeAntennaGot,
+				Content: ai,
+			})
+		}
+		return
+	}
+
+	a.Ev.ProceedNicoEvent(&Event{
+		Type:    EventTypeAntennaErr,
+		Content: MakeError(ErrSendComment, "unknown stream : "+m),
+	})
 }
 
 // Disconnect quit all routines and disconnect.
 func (a *Antenna) Disconnect() error {
-	fmt.Println("an1")
 	if a.conn == nil {
 		return MakeError(ErrOther, "Antenna is not connected.")
 	}
@@ -230,8 +249,5 @@ func (a *Antenna) Disconnect() error {
 	})
 
 	a.conn = nil
-
-	fmt.Println("an4")
-
 	return nil
 }

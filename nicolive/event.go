@@ -43,6 +43,14 @@ func (e *Event) String() string {
 		tys = "Close"
 	case EventTypeHeartBeatGot:
 		tys = "HeatBeatGot"
+	case EventTypeAntennaOpen:
+		tys = "AntennaOpen"
+	case EventTypeAntennaClose:
+		tys = "AntennaClose"
+	case EventTypeAntennaGot:
+		tys = "AntennaGot"
+	case EventTypeAntennaErr:
+		tys = "AntennaErr"
 	}
 	return fmt.Sprintf("Event {Type:%s %s}", tys, e.Content)
 }
