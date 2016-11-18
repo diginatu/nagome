@@ -37,6 +37,7 @@ const (
 	DomainQuery            = "nagome_query"
 	DomainComment          = "nagome_comment"
 	DomainUI               = "nagome_ui"
+	DomainAntenna          = "nagome_antenna"
 	DomainDirect           = "nagome_direct"    // DomainDirect is a special domain (from plugin).
 	DomainDirectngm        = "nagome_directngm" // DomainDirectNgm is a domain for direct message from Nagome.
 
@@ -47,17 +48,19 @@ const (
 // Command names
 const (
 	// DomainNagome
-	CommNagomeBroadOpen   = "Broad.Open"
-	CommNagomeBroadClose  = "Broad.Close"
-	CommNagomeBroadInfo   = "Broad.Info"
-	CommNagomeCommentSend = "Comment.Send"
+	CommNagomeBroadOpen    = "Broad.Open"
+	CommNagomeBroadClose   = "Broad.Close"
+	CommNagomeBroadInfo    = "Broad.Info"
+	CommNagomeCommentSend  = "Comment.Send"
+	CommNagomeAntennaOpen  = "Antenna.Open"
+	CommNagomeAntennaClose = "Antenna.Close"
 
 	// DomainComment
-	// This domain is for only sending comments
+	// This domain is for only sending comments.
 	CommCommentGot = "Got"
 
 	// DomainQuery
-	// Query from plugin to Nagome
+	// Query from plugin to Nagome.
 	CommQueryBroadConnect     = "Broad.Connect"
 	CommQueryBroadDisconnect  = "Broad.Disconnect"
 	CommQueryBroadSendComment = "Broad.SendComment"
@@ -73,9 +76,13 @@ const (
 	CommQuerySettingsSetAll = "Settings.SetAll" // Set all slots of settings.
 
 	// DomainUI
-	// Event to be processed by UI plugin
+	// Event to be processed by UI plugin.
 	CommUIDialog        = "Dialog"
 	CommUIClearComments = "ClearComments"
+
+	// DomainAntenna
+	// All antenna items (started live).
+	CommAntennaGot = "Got"
 
 	// DomainDirect (special domain)
 	// The messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
@@ -154,6 +161,13 @@ type CtUIDialog struct {
 	Type        string `json:"type"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+}
+
+// CtAntennaGot is a content of CommAntennaGot
+type CtAntennaGot struct {
+	BroadID     string `json:"broad_id"`
+	CommunityID string `json:"community_id"`
+	UserID      string `json:"user_id"`
 }
 
 // type of CtUIDialog

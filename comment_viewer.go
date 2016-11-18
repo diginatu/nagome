@@ -42,6 +42,7 @@ func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
 		Evch:     make(chan *Message, eventBufferSize),
 		quit:     make(chan struct{}),
 	}
+	cv.prcdnle = NewProceedNicoliveEvent(cv)
 	return cv
 }
 
@@ -62,7 +63,7 @@ func (cv *CommentViewer) Start() {
 // AntennaConnect connects Antenna and start processing.
 func (cv *CommentViewer) AntennaConnect() {
 	var err error
-	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, nil)
+	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, cv.prcdnle)
 	if err != nil {
 		log.Println(err)
 		cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Antenna error", "Antenna login failed")

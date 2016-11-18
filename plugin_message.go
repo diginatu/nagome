@@ -41,7 +41,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 		cv.Disconnect()
 
-		cv.Cmm, err = nicolive.CommentConnect(context.TODO(), cv.Lw, NewProceedNicoliveEvent(cv))
+		cv.Cmm, err = nicolive.CommentConnect(context.TODO(), cv.Lw, cv.prcdnle)
 		if err != nil {
 			return err
 		}

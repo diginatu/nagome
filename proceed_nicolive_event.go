@@ -112,10 +112,7 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		}
 	case nicolive.EventTypeHeartBeatGot:
 		hb := ev.Content.(nicolive.HeartbeatValue)
-		ct := CtNagomeBroadInfo{
-			WatchCount:   hb.WatchCount,
-			CommentCount: hb.CommentCount,
-		}
+		ct := CtNagomeBroadInfo{hb.WatchCount, hb.CommentCount}
 		con, err := json.Marshal(ct)
 		if err != nil {
 			log.Println(err)
@@ -134,6 +131,37 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		}
 	case nicolive.EventTypeErr:
 		log.Println(ev)
+		return
+	case nicolive.EventTypeAntennaOpen:
+		log.Println(p.cv)
+		p.cv.Evch <- &Message{
+			Domain:  DomainNagome,
+			Command: CommNagomeAntennaOpen,
+		}
+		return
+	case nicolive.EventTypeAntennaClose:
+		p.cv.Evch <- &Message{
+			Domain:  DomainNagome,
+			Command: CommNagomeAntennaClose,
+		}
+		return
+	case nicolive.EventTypeAntennaErr:
+		log.Println(ev)
+		return
+	case nicolive.EventTypeAntennaGot:
+		ai := ev.Content.(nicolive.AntennaItem)
+		ct := CtAntennaGot{ai.BroadID, ai.CommunityID, ai.UserID}
+		con, err := json.Marshal(ct)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		p.cv.Evch <- &Message{
+			Domain:  DomainAntenna,
+			Command: CommAntennaGot,
+			Content: con,
+		}
 		return
 
 	default:
