@@ -38,7 +38,11 @@ func TestAntennaAdminParseProc(t *testing.T) {
 		testAddr   = "test.addr"
 		testPort   = "2525"
 		testThread = "1000000000"
+		testComms1 = "co1"
+		testComms2 = "ch1234567"
+		testComms3 = "co2345471"
 	)
+
 	resp := strings.NewReader(`<?xml version="1.0" encoding="utf-8"?>
 		<getalertstatus status="ok" time="1477128042">
 			<user_id>123</user_id>
@@ -48,7 +52,9 @@ func TestAntennaAdminParseProc(t *testing.T) {
 			<user_age>30</user_age>
 			<user_sex>1</user_sex>
 			<communities>
-				<community_id>co2345471</community_id>
+				<community_id>` + testComms1 + `</community_id>
+				<community_id>` + testComms2 + `</community_id>
+				<community_id>` + testComms3 + `</community_id>
 			</communities>
 			<ms>
 				<addr>` + testAddr + `</addr>
@@ -82,6 +88,11 @@ func TestAntennaAdminParseProc(t *testing.T) {
 	}
 	if a.thread != testThread {
 		t.Fatalf("Should be %v but %v", a.thread, testThread)
+	}
+	if a.Following[0] != testComms1 ||
+		a.Following[1] != testComms2 ||
+		a.Following[2] != testComms3 {
+		t.Fatalf("Should be [%v %v %v] but %v", testComms1, testComms2, testComms3, a.Following)
 	}
 
 }

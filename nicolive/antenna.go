@@ -21,12 +21,11 @@ type AntennaItem struct {
 // Antenna manages starting broadcast antenna connection.
 type Antenna struct {
 	*connection
-
 	ac                 *Account
 	ticket             string
 	addr, port, thread string
 
-	MyCommunities []string
+	Following []string
 }
 
 // ConnectAntenna connects to antenna and return new Antenna.
@@ -157,6 +156,12 @@ func (a *Antenna) adminParseProc(r io.Reader) error {
 	}
 	if v, ok := xmlpath.MustCompile("//ms/thread").String(root); ok {
 		a.thread = v
+	}
+
+	i := xmlpath.MustCompile("//communities/community_id").Iter(root)
+	for i.Next() {
+		v := i.Node().String()
+		a.Following = append(a.Following, v)
 	}
 
 	return nil

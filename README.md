@@ -51,6 +51,5 @@ Tasks
 +   [ ] document
 +   [ ] function for NicoLive
     -   [ ] limit rate of getting user name
-    -   [ ] alert connection
     -   [ ] prepare new Waku
 
