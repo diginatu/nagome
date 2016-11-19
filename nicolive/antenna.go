@@ -30,7 +30,9 @@ type Antenna struct {
 
 // ConnectAntenna connects to antenna and return new Antenna.
 func ConnectAntenna(ctx context.Context, ac *Account, ev EventReceiver) (*Antenna, error) {
-	a := NewAntenna(ac)
+	a := &Antenna{
+		ac: ac,
+	}
 	var err error
 
 	err = a.Login()
@@ -49,15 +51,15 @@ func ConnectAntenna(ctx context.Context, ac *Account, ev EventReceiver) (*Antenn
 	return a, nil
 }
 
-// NewAntenna creates new Antenna.
-func NewAntenna(ac *Account) *Antenna {
-	return &Antenna{
-		ac: ac,
-	}
-}
-
 // Login logs in to the antenna connection.
 func (a *Antenna) Login() error {
+	if a.ac == nil {
+		return MakeError(ErrOther, "Account is not set")
+	}
+	if a.ac.Mail == "" || a.ac.Pass == "" {
+		return MakeError(ErrOther, "Account values is not set")
+	}
+
 	cl := new(http.Client)
 	vl := url.Values{"mail": {a.ac.Mail}, "password": {a.ac.Pass}}
 

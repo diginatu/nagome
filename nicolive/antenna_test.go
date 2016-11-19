@@ -1,7 +1,10 @@
 package nicolive
 
-import "strings"
-import "testing"
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
 
 func TestAntennaLoginParseProc(t *testing.T) {
 	const testTicket = "nicolive_antenna_8888888888888888888888888888"
@@ -17,7 +20,7 @@ func TestAntennaLoginParseProc(t *testing.T) {
 			</error>
 		</nicovideo_user_response>`)
 
-	a := NewAntenna(&Account{Mail: "mail", Pass: "pass"})
+	a := &Antenna{ac: &Account{Mail: "mail", Pass: "pass"}}
 
 	nerr := a.loginParseProc(resperr)
 	if nerr == nil {
@@ -68,7 +71,7 @@ func TestAntennaAdminParseProc(t *testing.T) {
 			<error><code>incorrect_account_data</code></error>
 		</getalertstatus>`)
 
-	a := NewAntenna(&Account{Mail: "mail", Pass: "pass"})
+	a := &Antenna{ac: &Account{Mail: "mail", Pass: "pass"}}
 
 	nerr := a.adminParseProc(resperr)
 	if nerr == nil {
@@ -94,5 +97,40 @@ func TestAntennaAdminParseProc(t *testing.T) {
 		a.Following[2] != testComms3 {
 		t.Fatalf("Should be [%v %v %v] but %v", testComms1, testComms2, testComms3, a.Following)
 	}
+}
 
+type testEvProc struct {
+	E *Event
+}
+
+func (t *testEvProc) ProceedNicoEvent(e *Event) {
+	t.E = e
+}
+func TestAntennaProcceedMessage(t *testing.T) {
+	var (
+		testMes1    = `<thread resultcode="0" thread="1000000000" last_res="25286040" ticket="0x1a2b3c" revision="1" server_time="1477577699"/>`
+		testBroadID = "123456789"
+		testCommID  = "co123456"
+		testUserID  = "98765432"
+		testMes2    = fmt.Sprintf(`<chat thread="1000000000" no="25286040" date="1477577698" date_usec="711918" user_id="394" premium="2">%s,%s,%s</chat>`, testBroadID, testCommID, testUserID)
+	)
+
+	ev := &testEvProc{}
+	a := &Antenna{connection: &connection{Ev: ev}}
+
+	a.proceedMessage(testMes1)
+	if ev.E.Type != EventTypeAntennaOpen {
+		t.Fatalf("Should be %v but %v", ev.E.Type, EventTypeAntennaOpen)
+	}
+	a.proceedMessage(testMes2)
+	if ev.E.Type != EventTypeAntennaGot {
+		t.Fatalf("Should be %v but %v", ev.E.Type, EventTypeAntennaGot)
+	}
+	ai, ok := ev.E.Content.(AntennaItem)
+	if !ok {
+		t.Fatalf("Should be AntennaItem but %v", ev.E)
+	}
+	if ai.BroadID != testBroadID || ai.CommunityID != testCommID || ai.UserID != testUserID {
+		t.Fatalf("Should be {%s,%s,%s} but %v", testBroadID, testCommID, testUserID, ai)
+	}
 }
