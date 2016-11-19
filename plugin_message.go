@@ -117,9 +117,6 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 		}
 
-		log.Printf("%s\n", m.Content)
-		log.Printf("%v\n", *ct.Config[0])
-
 		App.SettingsSlots = SettingsSlots(ct)
 
 	default:
