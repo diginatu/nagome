@@ -77,12 +77,15 @@ func RunCli() {
 	defer file.Close()
 	log.SetOutput(file)
 
-	cv := NewCommentViewer(new(nicolive.Account), *tcpPort)
+	cv := NewCommentViewer(*tcpPort)
 
 	// load account data
-	err = cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
+	ac := new(nicolive.Account)
+	err = ac.Load(filepath.Join(App.SavePath, accountFileName))
 	if err != nil {
 		log.Println(err)
+	} else {
+		cv.Ac = ac
 	}
 
 	// add main plugin
@@ -103,7 +106,9 @@ func RunCli() {
 	}
 
 	cv.Start()
-	cv.AntennaConnect()
+	if cv.Ac != nil {
+		cv.AntennaConnect()
+	}
 	cv.Wait()
 
 	if cv.Settings.AutoSaveTo0Slot {

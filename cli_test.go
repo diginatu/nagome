@@ -10,8 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/diginatu/nagome/nicolive"
 )
 
 func TestTCPAPI(t *testing.T) {
@@ -19,7 +17,7 @@ func TestTCPAPI(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(App.SavePath, pluginDirName), 0777); err != nil {
 		t.Fatal(err)
 	}
-	cv := NewCommentViewer(new(nicolive.Account), "")
+	cv := NewCommentViewer("")
 
 	plug := newPlugin(cv)
 	plug.Name = "main"

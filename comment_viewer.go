@@ -31,12 +31,11 @@ type CommentViewer struct {
 }
 
 // NewCommentViewer makes new CommentViewer
-func NewCommentViewer(ac *nicolive.Account, tcpPort string) *CommentViewer {
+func NewCommentViewer(tcpPort string) *CommentViewer {
 	if len(App.SettingsSlots.Config) == 0 {
 		App.SettingsSlots.Add(NewSettingsSlot())
 	}
 	cv := &CommentViewer{
-		Ac:       ac,
 		Settings: *App.SettingsSlots.Config[0],
 		TCPPort:  tcpPort,
 		Evch:     make(chan *Message, eventBufferSize),
@@ -62,6 +61,7 @@ func (cv *CommentViewer) Start() {
 
 // AntennaConnect connects Antenna and start processing.
 func (cv *CommentViewer) AntennaConnect() {
+	cv.AntennaDisconnect()
 	var err error
 	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, cv.prcdnle)
 	if err != nil {

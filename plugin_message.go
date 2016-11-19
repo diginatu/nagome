@@ -70,9 +70,10 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 		if err := json.Unmarshal(m.Content, &ct); err != nil {
 			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 		}
-
 		nicoac := nicolive.Account(ct)
 		cv.Ac = &nicoac
+
+		cv.AntennaConnect()
 
 	case CommQueryAccountLogin:
 		err := cv.Ac.Login()
