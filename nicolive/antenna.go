@@ -224,7 +224,7 @@ func (a *Antenna) proceedMessage(m string) {
 	if strings.HasPrefix(m, "<chat ") {
 		if v, ok := xmlpath.MustCompile("/chat").String(rt); ok {
 			av := strings.Split(v, ",")
-			ai := AntennaItem{av[0], av[1], av[2]}
+			ai := AntennaItem{"lv" + av[0], av[1], av[2]}
 			a.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeAntennaGot,
 				Content: ai,

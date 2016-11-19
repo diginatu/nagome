@@ -151,17 +151,26 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 	case nicolive.EventTypeAntennaGot:
 		ai := ev.Content.(nicolive.AntennaItem)
 		ct := CtAntennaGot{ai.BroadID, ai.CommunityID, ai.UserID}
-		con, err := json.Marshal(ct)
+		m, err := NewMessage(DomainAntenna, CommAntennaGot, ct)
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		p.cv.Evch <- m
 
-		p.cv.Evch <- &Message{
-			Domain:  DomainAntenna,
-			Command: CommAntennaGot,
-			Content: con,
+		if p.cv.Settings.AutoFollowNextWaku {
+			if p.cv.Lw != nil && p.cv.Lw.Stream.CommunityID == ai.CommunityID {
+				ct := CtQueryBroadConnect{ai.BroadID}
+				log.Println("following to " + ai.BroadID)
+				m, err := NewMessage(DomainQuery, CommQueryBroadConnect, ct)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				p.cv.Evch <- m
+			}
 		}
+
 		return
 
 	default:
