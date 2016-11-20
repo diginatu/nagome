@@ -130,7 +130,7 @@ func TestAntennaProcceedMessage(t *testing.T) {
 	if !ok {
 		t.Fatalf("Should be AntennaItem but %v", ev.E)
 	}
-	if ai.BroadID != testBroadID || ai.CommunityID != testCommID || ai.UserID != testUserID {
+	if ai.BroadID != "lv"+testBroadID || ai.CommunityID != testCommID || ai.UserID != testUserID {
 		t.Fatalf("Should be {%s,%s,%s} but %v", testBroadID, testCommID, testUserID, ai)
 	}
 }
