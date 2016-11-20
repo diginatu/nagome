@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/diginatu/nagome/nicolive"
@@ -18,9 +19,16 @@ type Message struct {
 
 // NewMessage returns new Message with the given values.
 func NewMessage(dom, com string, con interface{}) (*Message, error) {
-	conj, err := json.Marshal(con)
-	if err != nil {
-		return nil, err
+	var conj json.RawMessage
+	var err error
+
+	if con == nil {
+		conj = nil
+	} else {
+		conj, err = json.Marshal(con)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	m := &Message{
@@ -29,6 +37,15 @@ func NewMessage(dom, com string, con interface{}) (*Message, error) {
 		Content: conj,
 	}
 	return m, nil
+}
+
+// NewMessageMust is same as NewMessage but assume no error.
+func NewMessageMust(dom, com string, con interface{}) *Message {
+	m, err := NewMessage(dom, com, con)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return m
 }
 
 // Dimain names

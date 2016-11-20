@@ -260,19 +260,8 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 // CreateEvNewDialog emits new event for ask UI to display dialog.
 func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
-	t, err := NewMessage(DomainUI, CommUIDialog,
-		CtUIDialog{
-			Type:        typ,
-			Title:       title,
-			Description: desc,
-		})
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
 	log.Printf("[D] %s : %s", title, desc)
-	cv.Evch <- t
+	cv.Evch <- NewMessageMust(DomainUI, CommUIDialog, CtUIDialog{typ, title, desc})
 }
 
 // Disconnect disconnects current comment connection if connected.

@@ -86,8 +86,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			return err
 		}
 		log.Println("logged in")
-		cv.CreateEvNewDialog(CtUIDialogTypeInfo,
-			"login succeeded", "login succeeded")
+		cv.CreateEvNewDialog(CtUIDialogTypeInfo, "login succeeded", "login succeeded")
 
 	case CommQueryAccountLoad:
 		cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
