@@ -74,7 +74,12 @@ func RunCli() {
 			log.Fatal("could not open log file\n", err)
 		}
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	log.SetOutput(file)
 
 	cv := NewCommentViewer(*tcpPort)
@@ -102,7 +107,10 @@ func RunCli() {
 	}
 	cv.AddPlugin(plug)
 	if plug.Method == pluginMethodStd {
-		plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout})
+		err := plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout})
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	cv.Start()
@@ -130,7 +138,7 @@ func generatePluginTemplate(name, pluginPath string) {
 	}
 
 	if err := os.MkdirAll(p, 0777); err != nil {
-		log.Fatalln("could not make save directory\n", err)
+		log.Fatalln("Could not make save directory : ", err)
 	}
 
 	pl := plugin{
@@ -140,7 +148,10 @@ func generatePluginTemplate(name, pluginPath string) {
 		Method:  "tcp",
 		Exec:    []string{"{{path}}/" + name, "{{port}}", "{{no}}"},
 	}
-	pl.Save(filepath.Join(p, pluginConfigName))
+	err = pl.Save(filepath.Join(p, pluginConfigName))
+	if err != nil {
+		log.Fatalln("Failed to save file : ", err)
+	}
 
 	fmt.Printf("Create your plugin in : %s\n", p)
 }

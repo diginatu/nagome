@@ -85,12 +85,14 @@ func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*Comme
 	cc.Wg.Add(1)
 	go cc.timer()
 
-	err := cc.connection.Send(fmt.Sprintf(
+	nerr = cc.connection.Send(fmt.Sprintf(
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
 		cc.lv.CommentServer.Thread))
-	if err != nil {
-		go cc.Disconnect()
-		return nil, ErrFromStdErr(err)
+	if nerr != nil {
+		go func() {
+			_ = cc.Disconnect()
+		}()
+		return nil, nerr
 	}
 
 	return cc, nil
@@ -201,7 +203,9 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		})
 
 		if comment.IsCommand && comment.Comment == "/disconnect" {
-			go cc.Disconnect()
+			go func() {
+				_ = cc.Disconnect()
+			}()
 			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeWakuEnd,
 				Content: *cc.lv,
@@ -252,7 +256,7 @@ func (cc *CommentConnection) timer() {
 }
 
 // FetchPostKey gets postkey using getpostkey API
-func (cc *CommentConnection) FetchPostKey() error {
+func (cc *CommentConnection) FetchPostKey() (err error) {
 	if cc.lv.Account == nil {
 		return MakeError(ErrOther, "nil account in LiveWaku")
 	}
@@ -272,7 +276,12 @@ func (cc *CommentConnection) FetchPostKey() error {
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		lerr := res.Body.Close()
+		if lerr != nil && err == nil {
+			err = lerr
+		}
+	}()
 
 	allb, err := ioutil.ReadAll(res.Body)
 	if err != nil {

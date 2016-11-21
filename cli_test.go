@@ -52,7 +52,10 @@ func TestTCPAPI(t *testing.T) {
 		}
 	}
 
-	conn.Close()
+	err = conn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	cv.Wait()
 	// shold quit because main plugin was closed
 }

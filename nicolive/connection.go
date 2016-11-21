@@ -85,12 +85,15 @@ func (c *connection) Send(m string) error {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 
-	c.conn.SetWriteDeadline(time.Now().Add(connectionWriteDeadline))
+	err := c.conn.SetWriteDeadline(time.Now().Add(connectionWriteDeadline))
+	if err != nil {
+		return ErrFromStdErr(err)
+	}
 
 	fmt.Fprint(c.rw, m)
-	err := c.rw.Flush()
+	err = c.rw.Flush()
 	if err != nil {
-		return err
+		return ErrFromStdErr(err)
 	}
 
 	return nil
@@ -122,7 +125,15 @@ func (c *connection) receiveStream() {
 					Type:    EventTypeErr,
 					Content: ErrFromStdErr(err),
 				})
-				go c.Disconnect()
+				go func() {
+					err := c.Disconnect()
+					if err != nil {
+						c.Ev.ProceedNicoEvent(&Event{
+							Type:    EventTypeErr,
+							Content: ErrFromStdErr(err),
+						})
+					}
+				}()
 				return
 			}
 
@@ -142,7 +153,10 @@ func (c *connection) Disconnect() error {
 	defer func() { c.disconnecting = false }()
 
 	c.Cancal()
-	c.conn.Close()
+	err := c.conn.Close()
+	if err != nil {
+		return ErrFromStdErr(err)
+	}
 
 	c.Wg.Wait()
 	return nil

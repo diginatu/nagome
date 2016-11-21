@@ -93,7 +93,10 @@ func TestPluginErrorConnection(t *testing.T) {
 
 	<-wait
 
-	pr.Close()
+	err := pr.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	p.wg.Wait()
 }
 

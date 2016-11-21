@@ -145,7 +145,12 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 	if err != nil {
 		log.Panicln(err)
 	}
-	defer l.Close()
+	defer func() {
+		err := l.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 
 	_, cv.TCPPort, err = net.SplitHostPort(l.Addr().String())
 	if err != nil {

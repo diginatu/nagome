@@ -56,7 +56,7 @@ func (l *LiveWaku) IsUserOwner() bool {
 }
 
 // FetchInformation gets information using getplayerstatus API
-func (l *LiveWaku) FetchInformation() error {
+func (l *LiveWaku) FetchInformation() (err error) {
 	if l.Account == nil {
 		return MakeError(ErrOther, "nil Account in LiveWaku")
 	}
@@ -74,7 +74,12 @@ func (l *LiveWaku) FetchInformation() error {
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		lerr := res.Body.Close()
+		if lerr != nil && err == nil {
+			err = lerr
+		}
+	}()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
@@ -155,7 +160,7 @@ func (l *LiveWaku) FetchInformation() error {
 }
 
 // FetchHeartBeat gets watcher and comment count using heartbeat API
-func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, error) {
+func (l *LiveWaku) FetchHeartBeat() (heartBeatValue HeartbeatValue, err error) {
 	var hb HeartbeatValue
 
 	if l.Account == nil {
@@ -165,19 +170,22 @@ func (l *LiveWaku) FetchHeartBeat() (HeartbeatValue, error) {
 		return hb, MakeError(ErrOther, "BroadID is not set")
 	}
 
-	c, err := NewNicoClient(l.Account)
-	if err != nil {
-		return hb, err
+	c, nerr := NewNicoClient(l.Account)
+	if nerr != nil {
+		return hb, nerr
 	}
 
-	url := fmt.Sprintf(
-		"http://live.nicovideo.jp/api/heartbeat?v=%s",
-		l.BroadID)
+	url := fmt.Sprintf("http://live.nicovideo.jp/api/heartbeat?v=%s", l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
 		return hb, ErrFromStdErr(err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		lerr := res.Body.Close()
+		if lerr != nil && err == nil {
+			err = lerr
+		}
+	}()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {

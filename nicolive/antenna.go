@@ -52,7 +52,7 @@ func ConnectAntenna(ctx context.Context, ac *Account, ev EventReceiver) (*Antenn
 }
 
 // Login logs in to the antenna connection.
-func (a *Antenna) Login() error {
+func (a *Antenna) Login() (err error) {
 	if a.ac == nil {
 		return MakeError(ErrOther, "Account is not set")
 	}
@@ -77,7 +77,12 @@ func (a *Antenna) Login() error {
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		lerr := res.Body.Close()
+		if lerr != nil && err == nil {
+			err = lerr
+		}
+	}()
 
 	return a.loginParseProc(res.Body)
 }
@@ -108,7 +113,7 @@ func (a *Antenna) loginParseProc(r io.Reader) error {
 }
 
 // Admin gets favorite communities and information to connect.
-func (a *Antenna) Admin() error {
+func (a *Antenna) Admin() (err error) {
 	if a.ticket == "" {
 		return MakeError(ErrOther, "The ticket is not set.  Login first.")
 	}
@@ -130,7 +135,12 @@ func (a *Antenna) Admin() error {
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		lerr := res.Body.Close()
+		if lerr != nil && err == nil {
+			err = lerr
+		}
+	}()
 
 	return a.adminParseProc(res.Body)
 }
@@ -170,7 +180,7 @@ func (a *Antenna) adminParseProc(r io.Reader) error {
 }
 
 // Connect connects to antenna
-func (a *Antenna) Connect(ctx context.Context, ev EventReceiver) error {
+func (a *Antenna) Connect(ctx context.Context, ev EventReceiver) (err error) {
 	if a.addr == "" || a.port == "" || a.thread == "" {
 		return MakeError(ErrOther, "Connection info is not set.  Do Admin() first.")
 	}
@@ -183,8 +193,6 @@ func (a *Antenna) Connect(ctx context.Context, ev EventReceiver) error {
 		net.JoinHostPort(a.addr, a.port),
 		a.proceedMessage, ev)
 
-	var err error
-
 	err = a.connection.Connect(ctx)
 	if err != nil {
 		a.conn = nil
@@ -196,7 +204,9 @@ func (a *Antenna) Connect(ctx context.Context, ev EventReceiver) error {
 		a.thread))
 
 	if err != nil {
-		go a.Disconnect()
+		go func() {
+			_ = a.Disconnect()
+		}()
 		return ErrFromStdErr(err)
 	}
 

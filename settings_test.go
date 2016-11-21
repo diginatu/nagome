@@ -23,7 +23,12 @@ func TestSettingsSlots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(filepath.Join(App.SavePath, settingsFileName))
+	defer func() {
+		err := os.Remove(filepath.Join(App.SavePath, settingsFileName))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	err = ss.Load()
 	if err != nil {

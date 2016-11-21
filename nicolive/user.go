@@ -26,7 +26,7 @@ func FetchUserInfo(id string, a *Account) (*User, error) {
 	return fetchUserInfoImpl(url, a)
 }
 
-func fetchUserInfoImpl(url string, a *Account) (*User, error) {
+func fetchUserInfoImpl(url string, a *Account) (user *User, err error) {
 	u := new(User)
 
 	c, nerr := NewNicoClient(a)
@@ -38,7 +38,13 @@ func fetchUserInfoImpl(url string, a *Account) (*User, error) {
 	if err != nil {
 		return nil, ErrFromStdErr(err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if lerr := res.Body.Close(); lerr != nil {
+			if err == nil {
+				err = lerr
+			}
+		}
+	}()
 
 	root, err := xmlpath.Parse(res.Body)
 	if err != nil {
@@ -180,7 +186,10 @@ func (d *UserDB) Remove(id string) error {
 }
 
 // Close closes the DB.
-func (d *UserDB) Close() {
-	d.fetchStmt.Close()
-	d.db.Close()
+func (d *UserDB) Close() error {
+	err := d.fetchStmt.Close()
+	if err != nil {
+		return err
+	}
+	return d.db.Close()
 }

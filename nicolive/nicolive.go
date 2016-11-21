@@ -20,7 +20,7 @@ var (
 )
 
 // NewNicoClient makes new http.Client with usersession
-func NewNicoClient(a *Account) (*http.Client, error) {
+func NewNicoClient(a *Account) (*http.Client, Error) {
 	if a.Usersession == "" {
 		return nil, MakeError(ErrOther, "no usersession")
 	}

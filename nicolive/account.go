@@ -66,7 +66,7 @@ func (a *Account) Login() error {
 }
 
 // LoginImpl is implementation of Login.
-func (a *Account) LoginImpl(addr, baseAddr string) error {
+func (a *Account) LoginImpl(addr, baseAddr string) (err error) {
 	if a.Mail == "" || a.Pass == "" {
 		return MakeError(ErrOther, "invalid account : mail or pass is not set")
 	}
@@ -85,7 +85,12 @@ func (a *Account) LoginImpl(addr, baseAddr string) error {
 	if err != nil {
 		return ErrFromStdErr(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		lerr := resp.Body.Close()
+		if lerr != nil && err == nil {
+			err = lerr
+		}
+	}()
 
 	nicoURL, err := url.Parse(baseAddr)
 	if err != nil {

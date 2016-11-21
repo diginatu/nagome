@@ -75,8 +75,17 @@ func TestAccountSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
-	defer os.Remove(f.Name())
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		err := os.Remove(f.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	err = a.Save(f.Name())
 	if err != nil {
