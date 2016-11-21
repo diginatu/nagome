@@ -161,7 +161,12 @@ func (pl *plugin) IsMain() bool {
 
 func (pl *plugin) rwRoutine() {
 	defer pl.wg.Done()
-	defer pl.rwc.Close()
+	defer func() {
+		err := pl.rwc.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	defer log.Printf("plugin [%s] is closing", pl.Name)
 
 	// Run decoder.  It puts a message into "mes".
@@ -245,7 +250,11 @@ func (pl *plugin) rwRoutine() {
 
 		// Flush plugin IO
 		case <-pl.flushTm.C:
-			bufw.Flush()
+			err := bufw.Flush()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
 
 		case e := <-pl.setEnable:
 			if pl.isEnable == e {
@@ -285,11 +294,18 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	go func() {
 		defer cv.wg.Done()
 		select {
+		// For quitting while receiving first init message.
 		case <-cv.quit:
-			c.Close()
+			err := c.Close()
+			if err != nil {
+				log.Println(err)
+			}
 		case iserr := <-endc:
 			if iserr {
-				c.Close()
+				err := c.Close()
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}()
@@ -297,6 +313,7 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	dec := json.NewDecoder(c)
 
 	m := new(Message)
+	// It may stop here long time
 	err := dec.Decode(m)
 	if err != nil {
 		log.Println(err)
@@ -346,13 +363,28 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 		log.Println(err)
 		return
 	}
-	defer stdin.Close()
+	needClose := true
+	defer func() {
+		if needClose {
+			err = stdin.Close()
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	defer stdout.Close()
+	defer func() {
+		if needClose {
+			err = stdout.Close()
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}()
 	err = cmd.Start()
 	if err != nil {
 		log.Println(err)
@@ -360,10 +392,13 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 	}
 
 	c := &stdReadWriteCloser{stdout, stdin}
-	p.Open(c)
+	err = p.Open(c)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	needClose = false
 	log.Println("loaded plugin ", p)
-
-	<-cv.quit
 }
 
 // Close closes opened plugin.
