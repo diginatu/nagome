@@ -24,7 +24,7 @@ func TestTCPAPI(t *testing.T) {
 	plug.Description = "main plugin"
 	plug.Version = "0.0"
 	plug.Method = "tcp"
-	plug.Depends = []string{DomainNagome, DomainComment, DomainUI}
+	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 	cv.AddPlugin(plug)
 
 	cv.Pgns = append(cv.Pgns, plug)

@@ -40,7 +40,7 @@ So main plugin doesn't have plugin directory or fixed configuration file but you
 
 You have to check below when you make a UI plugin.
 
-+   Depend on the Domain "nagome_ui" and use all events as you can.
++   Subscribe the Domain "nagome_ui" and use all events as you can.
 +   Do not use --dbgtostd command line option when you distribute it so users can see the log file later.
 
 Differences between normal and main plugins:
@@ -65,7 +65,7 @@ exec:
 - '{{port}}'
 - '{{no}}'
 nagomever: ""
-depends:
+subscribe:
 - nagome
 ~~~
 
@@ -85,7 +85,7 @@ depends:
     +   {{port}} : TCP port to connect (necessary in TCP).
 
 +   nagomever : String.  Supporting version of Nagome (No effect).
-+   depends : Array of string.  Domain of message that the plugin will receive (see Nagome message for more detail)
++   subscribe : Array of string.  Domain of message that the plugin will receive (see Nagome message for more detail)
 
 Connection
 ----------
@@ -138,8 +138,8 @@ The basic structure of a Nagome message is like blow.
 ### Domain
 
 Basically, the message acts like pub-sub messaging.
-A message sent from a plugin resend to other plugins which is domain plugin itself or depend on it.
-"Depend" means that setting domain string in domain in the "plugin.yml".
+A message sent from a plugin resend to other plugins which is domain plugin itself or subscribe it.
+"Subscribe" means that the domain name in the message is set to "subscribe" in the "plugin.yml".
 
 #### Suffixed Domain
 
@@ -147,13 +147,13 @@ There is some special suffix.
 
 ##### @filter
 
-The plugin that depends on a domain with this suffix can filter messages.
-If there is a plugin that depends on filtering domain, a original message (without suffix) is added the suffix and sent to ONLY one plugin which depends filtering domain.
+The plugin describing a domain with this suffix can filter messages.
+If there is a plugin that describes on filtering domain, a original message (without suffix) is added the suffix and sent to ONLY one plugin which describes filtering domain.
 
 If the plugin wants to proceed the message, have to send the message with the suffix.
 In this process, you can modify or just through, abort by not sending, also delay the message.
 
-The suffixed message that passed all filtering plugins will broadcast to all plugins which depends the original domain.
+The suffixed message that passed all filtering plugins will broadcast to all plugins which describes the original domain.
 
 
 ### Command

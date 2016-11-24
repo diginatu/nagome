@@ -58,7 +58,7 @@ const (
 	DomainDirect           = "nagome_direct"    // DomainDirect is a special domain (from plugin).
 	DomainDirectngm        = "nagome_directngm" // DomainDirectNgm is a domain for direct message from Nagome.
 
-	// Adding DomainSuffixFilter to the end of domain name in "depends" in your plugin.yml enables filtering messages by the plugin.
+	// Adding DomainSuffixFilter to the end of domain name in "subscribe" in your plugin.yml enables filtering messages by the plugin.
 	DomainSuffixFilter = "@filter"
 )
 

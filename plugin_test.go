@@ -39,7 +39,7 @@ func TestPluginClose(t *testing.T) {
 	p.Description = "main plugin"
 	p.Version = "0.0"
 	p.Method = pluginMethodTCP
-	p.Depends = []string{DomainNagome, DomainComment, DomainUI}
+	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 
 	// assume be added as main plugin.
 	p.No = 1
@@ -71,7 +71,7 @@ func TestPluginErrorConnection(t *testing.T) {
 	p.Description = "normal plugin"
 	p.Version = "0.0"
 	p.Method = pluginMethodTCP
-	p.Depends = []string{DomainNagome, DomainComment, DomainUI}
+	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 
 	// assume be added as normal plugin.
 	p.No = 2
@@ -107,7 +107,7 @@ func TestPluginWrite(t *testing.T) {
 	p.Description = "normal plugin"
 	p.Version = "0.0"
 	p.Method = pluginMethodTCP
-	p.Depends = []string{DomainNagome, DomainComment, DomainUI}
+	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 
 	// assume be added as normal plugin.
 	p.No = 2

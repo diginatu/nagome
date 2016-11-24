@@ -35,7 +35,7 @@ exec:
 - '{{port}}'
 - '{{no}}'
 nagomever: ""
-depends:
+subscribe:
 - nagome
 ~~~
 

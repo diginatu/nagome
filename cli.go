@@ -99,7 +99,7 @@ func RunCli() {
 	plug.Description = "main plugin"
 	plug.Version = "0.0"
 	plug.Method = pluginMethodStd
-	plug.Depends = []string{DomainNagome, DomainComment, DomainUI}
+	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 	if *mainyml != "" {
 		if err != nil {
 			log.Fatal(err)
@@ -142,11 +142,11 @@ func generatePluginTemplate(name, pluginPath string) {
 	}
 
 	pl := plugin{
-		Name:    name,
-		Version: "1.0",
-		Depends: []string{DomainNagome},
-		Method:  "tcp",
-		Exec:    []string{"{{path}}/" + name, "{{port}}", "{{no}}"},
+		Name:      name,
+		Version:   "1.0",
+		Subscribe: []string{DomainNagome},
+		Method:    "tcp",
+		Exec:      []string{"{{path}}/" + name, "{{port}}", "{{no}}"},
 	}
 	err = pl.Save(filepath.Join(p, pluginConfigName))
 	if err != nil {

@@ -30,7 +30,7 @@ type plugin struct {
 	Method      string   `yaml:"method"      json:"method"`
 	Exec        []string `yaml:"exec"        json:"-"`
 	Nagomever   string   `yaml:"nagomever"   json:"-"`
-	Depends     []string `yaml:"depends"     json:"depends"`
+	Subscribe   []string `yaml:"subscribe"  json:"subscribe"`
 	No          int      `yaml:"-"           json:"no"`
 	rwc         io.ReadWriteCloser
 	flushTm     *time.Timer
@@ -116,9 +116,9 @@ func (pl *plugin) Write(p []byte) (fail bool) {
 	return true
 }
 
-func (pl *plugin) Depend(pln string) bool {
+func (pl *plugin) IsSubscribe(pln string) bool {
 	f := false
-	for _, d := range pl.Depends {
+	for _, d := range pl.Subscribe {
 		if d == pln {
 			f = true
 			break

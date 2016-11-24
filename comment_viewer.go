@@ -220,7 +220,7 @@ func (cv *CommentViewer) sendPluginMessage() {
 				mes.Domain = strings.TrimSuffix(mes.Domain, DomainSuffixFilter)
 			}
 			for i := st; i < len(cv.Pgns); i++ {
-				if cv.Pgns[i].Depend(mes.Domain + DomainSuffixFilter) {
+				if cv.Pgns[i].IsSubscribe(mes.Domain + DomainSuffixFilter) {
 					// Add suffix to a message for filter plugin.
 					tmes := *mes
 					tmes.Domain = mes.Domain + DomainSuffixFilter
@@ -241,16 +241,21 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 			// regular
 			for i := range cv.Pgns {
-				if cv.Pgns[i].Depend(mes.Domain) {
+				if cv.Pgns[i].IsSubscribe(mes.Domain) {
 					cv.Pgns[i].Write(jmes)
 				}
 			}
 
 			go func() {
-				nicoerr := processPluginMessage(cv, mes)
-				if nicoerr != nil {
-					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nicoerr)
+				nerr := processPluginMessage(cv, mes)
+				if nerr != nil {
+					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno-1].Name, nerr)
 					log.Println(mes)
+
+					nicoerr, ok := nerr.(nicolive.Error)
+					if ok {
+						cv.ProceedNicoliveError(nicoerr)
+					}
 				}
 			}()
 
@@ -302,4 +307,19 @@ func (cv *CommentViewer) AntennaDisconnect() {
 // Quit quits the CommentViewer.
 func (cv *CommentViewer) Quit() {
 	close(cv.quit)
+}
+
+// ProceedNicoliveError proceeds Error of nicolive.
+func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
+	switch e.No() {
+	case nicolive.ErrOther:
+	case nicolive.ErrSendComment:
+	case nicolive.ErrConnection:
+	case nicolive.ErrNicoLiveOther:
+	case nicolive.ErrNotLogin:
+	case nicolive.ErrClosed:
+	case nicolive.ErrIncorrectAccount:
+	default:
+		log.Println("Unknown nicolive Error")
+	}
 }
