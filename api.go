@@ -124,6 +124,21 @@ const (
 //
 // Contents in the Message API
 
+// CtNagomeBroadOpen is a content of CommNagomeBroadOpen
+type CtNagomeBroadOpen struct {
+	BroadID     string `json:"broad_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	CommunityID string `json:"community_id"`
+	OwnerID     string `json:"owner_id"`
+	OwnerName   string `json:"owner_name"`
+	OwnerBroad  bool   `json:"owner_broad"`
+
+	OpenTime  time.Time `json:"open_time"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+}
+
 // CtNagomeBroadInfo is a content of CommNagomeBroadInfo
 type CtNagomeBroadInfo struct {
 	WatchCount   string `json:"watch_count"`

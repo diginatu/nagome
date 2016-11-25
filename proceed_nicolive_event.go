@@ -87,13 +87,27 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 
 	case nicolive.EventTypeOpen:
 		p.cv.Evch <- NewMessageMust(DomainUI, CommUIClearComments, nil)
-		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadOpen, nil)
+		lv := ev.Content.(*nicolive.LiveWaku)
+		log.Println(lv)
+		ct := CtNagomeBroadOpen{
+			BroadID:     lv.BroadID,
+			Title:       lv.Stream.Title,
+			Description: lv.Stream.Description,
+			CommunityID: lv.Stream.CommunityID,
+			OwnerID:     lv.Stream.OwnerID,
+			OwnerName:   lv.Stream.OwnerName,
+			OwnerBroad:  lv.OwnerBroad,
+			OpenTime:    lv.Stream.OpenTime,
+			StartTime:   lv.Stream.StartTime,
+			EndTime:     lv.Stream.EndTime,
+		}
+		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadOpen, ct)
 
 	case nicolive.EventTypeClose:
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadClose, nil)
 
 	case nicolive.EventTypeHeartBeatGot:
-		hb := ev.Content.(nicolive.HeartbeatValue)
+		hb := ev.Content.(*nicolive.HeartbeatValue)
 		ct := CtNagomeBroadInfo{hb.WatchCount, hb.CommentCount}
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadInfo, ct)
 
@@ -113,7 +127,7 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		log.Println(ev)
 
 	case nicolive.EventTypeAntennaGot:
-		ai := ev.Content.(nicolive.AntennaItem)
+		ai := ev.Content.(*nicolive.AntennaItem)
 		ct := CtAntennaGot{ai.BroadID, ai.CommunityID, ai.UserID}
 		p.cv.Evch <- NewMessageMust(DomainAntenna, CommAntennaGot, ct)
 
@@ -128,5 +142,4 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 	default:
 		log.Println(ev)
 	}
-
 }

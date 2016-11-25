@@ -126,7 +126,7 @@ func TestAntennaProcceedMessage(t *testing.T) {
 	if ev.E.Type != EventTypeAntennaGot {
 		t.Fatalf("Should be %v but %v", ev.E.Type, EventTypeAntennaGot)
 	}
-	ai, ok := ev.E.Content.(AntennaItem)
+	ai, ok := ev.E.Content.(*AntennaItem)
 	if !ok {
 		t.Fatalf("Should be AntennaItem but %v", ev.E)
 	}

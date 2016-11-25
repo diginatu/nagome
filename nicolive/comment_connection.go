@@ -129,7 +129,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 
 		cc.Ev.ProceedNicoEvent(&Event{
 			Type:    EventTypeOpen,
-			Content: nil,
+			Content: cc.lv,
 		})
 
 		return
@@ -249,7 +249,7 @@ func (cc *CommentConnection) timer() {
 			}
 			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeHeartBeatGot,
-				Content: hbv,
+				Content: &hbv,
 			})
 		}
 	}
