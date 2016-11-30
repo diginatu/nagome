@@ -27,7 +27,6 @@ func TestTCPAPI(t *testing.T) {
 	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 	cv.AddPlugin(plug)
 
-	cv.Pgns = append(cv.Pgns, plug)
 	cv.TCPPort = "0"
 
 	cv.Start()
@@ -38,14 +37,14 @@ func TestTCPAPI(t *testing.T) {
 	}
 
 	// Connect as a main plugin
-	fmt.Fprintf(conn, "{ \"domain\": \"nagome_direct\", \"command\": \"No\", \"content\": { \"no\": 1 } }\n")
+	fmt.Fprintf(conn, "{ \"domain\": \"nagome_direct\", \"command\": \"No\", \"content\": { \"no\": 0 } }\n")
 
 	dec := json.NewDecoder(conn)
 	m := new(Message)
 	for {
 		err := dec.Decode(m)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal("Should be accepted : ", err)
 		}
 		if m.Domain == DomainDirectngm && m.Command == CommDirectngmPlugEnabled {
 			break

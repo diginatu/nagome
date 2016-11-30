@@ -35,6 +35,7 @@ func NewMessage(dom, com string, con interface{}) (*Message, error) {
 		Domain:  dom,
 		Command: com,
 		Content: conj,
+		prgno:   -1,
 	}
 	return m, nil
 }

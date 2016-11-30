@@ -46,6 +46,7 @@ type plugin struct {
 // NewPlugin makes new Plugin.
 func newPlugin(cv *CommentViewer) *plugin {
 	return &plugin{
+		No:        -1,
 		openc:     make(chan struct{}),
 		quit:      make(chan struct{}),
 		setEnable: make(chan bool),
@@ -55,7 +56,7 @@ func newPlugin(cv *CommentViewer) *plugin {
 }
 
 func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
-	if pl.No == 0 {
+	if pl.No == -1 {
 		return fmt.Errorf("plugin \"%s\" is not initialized (add to CommentViewer)\n", pl.Name)
 	}
 	if pl.Name == "" {
@@ -156,7 +157,7 @@ func (pl *plugin) Save(filePath string) error {
 }
 
 func (pl *plugin) IsMain() bool {
-	return pl.No == 1
+	return pl.No == 0
 }
 
 func (pl *plugin) rwRoutine() {
@@ -190,8 +191,6 @@ func (pl *plugin) rwRoutine() {
 					}
 				}
 				m = nil
-			} else {
-				m.prgno = pl.No
 			}
 
 			select {
@@ -226,7 +225,7 @@ func (pl *plugin) rwRoutine() {
 		// Process a received message
 		case m := <-mes:
 			if m == nil {
-				// quit if UI plugin disconnect
+				// quit if main plugin is disconnected
 				if pl.IsMain() {
 					pl.cv.Quit()
 				} else {
@@ -235,8 +234,9 @@ func (pl *plugin) rwRoutine() {
 				continue
 			}
 
-			// ignore if plugin is not enabled
+			// send if plugin is enabled
 			if pl.isEnable {
+				m.prgno = pl.No
 				log.Printf("plugin message [%s] : %v", pl.Name, m)
 				pl.cv.Evch <- m
 			}
@@ -333,7 +333,7 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 		return
 	}
 
-	n := ct.No - 1
+	n := ct.No
 	if n < 0 || n >= len(cv.Pgns) {
 		log.Println("received invalid plugin No.")
 		endc <- true

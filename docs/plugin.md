@@ -34,7 +34,7 @@ But using the name connected with `-` is recommended.
 ### Main plugin
 
 Nagome always creates one main plugin.  You can't make more.
-Main plugin has plugin number 1.
+Main plugin has plugin number 0.
 Typically, it is used to a plugin that provides user interface, and the plugin executes Nagome.
 So main plugin doesn't have plugin directory or fixed configuration file but you can pass -y(--ymlmain) command line option to specify the configuration file (same as plugin.yml in normal plugin).
 

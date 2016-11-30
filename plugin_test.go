@@ -42,7 +42,7 @@ func TestPluginClose(t *testing.T) {
 	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 
 	// assume be added as main plugin.
-	p.No = 1
+	p.No = 0
 
 	//b := new(bytes.Buffer)
 	pr, _ := io.Pipe()
@@ -74,7 +74,7 @@ func TestPluginErrorConnection(t *testing.T) {
 	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 
 	// assume be added as normal plugin.
-	p.No = 2
+	p.No = 1
 
 	//b := new(bytes.Buffer)
 	pr, _ := io.Pipe()
@@ -110,7 +110,7 @@ func TestPluginWrite(t *testing.T) {
 	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 
 	// assume be added as normal plugin.
-	p.No = 2
+	p.No = 1
 
 	// no effect before opening
 	p.WriteMess(&Message{

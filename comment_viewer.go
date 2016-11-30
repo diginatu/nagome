@@ -79,8 +79,8 @@ func (cv *CommentViewer) Wait() {
 
 // AddPlugin adds new plugin to Pgns
 func (cv *CommentViewer) AddPlugin(p *plugin) {
-	cv.Pgns = append(cv.Pgns, p)
 	p.No = len(cv.Pgns)
+	cv.Pgns = append(cv.Pgns, p)
 }
 
 func (cv *CommentViewer) loadPlugins() {
@@ -196,10 +196,6 @@ func (cv *CommentViewer) sendPluginMessage() {
 		select {
 		case mes := <-cv.Evch:
 			// Direct
-			if mes.Domain == DomainDirectngm {
-				cv.Pgns[mes.prgno].WriteMess(mes)
-				continue
-			}
 			if mes.Domain == DomainDirect {
 				go func() {
 					nicoerr := processDirectMessage(cv, mes)
@@ -249,7 +245,7 @@ func (cv *CommentViewer) sendPluginMessage() {
 			go func() {
 				nerr := processPluginMessage(cv, mes)
 				if nerr != nil {
-					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno-1].Name, nerr)
+					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nerr)
 					log.Println(mes)
 
 					nicoerr, ok := nerr.(nicolive.Error)
