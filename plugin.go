@@ -17,45 +17,55 @@ import (
 const (
 	pluginFlashWaitDu time.Duration = 50 * time.Millisecond
 
-	pluginMethodTCP           string = "tcp"
-	pluginMethodStd                  = "std"
-	pluginEachMessageChanSize        = 3
+	pluginMethodTCP           = "tcp"
+	pluginMethodStd           = "std"
+	pluginEachMessageChanSize = 3
+)
+
+type pluginState int
+
+const (
+	pluginStateClose pluginState = iota
+	pluginStateEnable
+	pluginStateDisable
 )
 
 type plugin struct {
-	Name        string   `yaml:"name"        json:"name"`
-	Description string   `yaml:"description" json:"description"`
-	Version     string   `yaml:"version"     json:"version"`
-	Author      string   `yaml:"author"      json:"author"`
-	Method      string   `yaml:"method"      json:"method"`
-	Exec        []string `yaml:"exec"        json:"-"`
-	Nagomever   string   `yaml:"nagomever"   json:"-"`
-	Subscribe   []string `yaml:"subscribe"  json:"subscribe"`
-	No          int      `yaml:"-"           json:"no"`
+	Name        string      `yaml:"name"        json:"name"`
+	Description string      `yaml:"description" json:"description"`
+	Version     string      `yaml:"version"     json:"version"`
+	Author      string      `yaml:"author"      json:"author"`
+	Method      string      `yaml:"method"      json:"method"`
+	Exec        []string    `yaml:"exec"        json:"-"`
+	Nagomever   string      `yaml:"nagomever"   json:"-"`
+	Subscribe   []string    `yaml:"subscribe"   json:"subscribe"`
+	No          int         `yaml:"-"           json:"no"`
+	GetState    pluginState `yaml:"-"           json:"state"` // Don't change directly
+	setStateCh  chan (pluginState)
+	stateMu     sync.Mutex
 	rwc         io.ReadWriteCloser
 	flushTm     *time.Timer
 	wg          sync.WaitGroup
 	cv          *CommentViewer
-	setEnable   chan (bool)
 	quit        chan (struct{})
-	isEnable    bool
 	writec      chan ([]byte)
-	openc       chan (struct{})
 }
 
 // NewPlugin makes new Plugin.
 func newPlugin(cv *CommentViewer) *plugin {
 	return &plugin{
-		No:        -1,
-		openc:     make(chan struct{}),
-		quit:      make(chan struct{}),
-		setEnable: make(chan bool),
-		writec:    make(chan []byte, pluginEachMessageChanSize),
-		cv:        cv,
+		No:         -1,
+		quit:       make(chan struct{}),
+		setStateCh: make(chan pluginState),
+		writec:     make(chan []byte, pluginEachMessageChanSize),
+		cv:         cv,
 	}
 }
 
 func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
+	pl.stateMu.Lock()
+	defer pl.stateMu.Unlock()
+
 	if pl.No == -1 {
 		return fmt.Errorf("plugin \"%s\" is not initialized (add to CommentViewer)\n", pl.Name)
 	}
@@ -65,7 +75,7 @@ func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
 	if rwc == nil {
 		return fmt.Errorf("given rw is nil\n")
 	}
-	if pl.rwc != nil {
+	if pl.GetState != pluginStateClose {
 		return fmt.Errorf("already opened\n")
 	}
 
@@ -73,23 +83,31 @@ func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
 	pl.flushTm = time.NewTimer(time.Minute)
 
 	pl.wg.Add(1)
-	go pl.rwRoutine()
+	go pl.evRoutine()
 
-	close(pl.openc)
-	pl.SetEnable(true)
+	pl.stateMu.Unlock()
+	pl.setStateCh <- pluginStateEnable
+	pl.setStateCh <- pluginStateEnable // wait for completing previous task
+	pl.stateMu.Lock()
 
 	return nil
 }
 
-func (pl *plugin) SetEnable(e bool) {
-	select {
-	default:
+func (pl *plugin) SetState(enable bool) {
+	if pl.GetState == pluginStateClose {
 		return
-	case <-pl.openc:
+	}
+
+	var st pluginState
+	if enable {
+		st = pluginStateEnable
+	} else {
+		st = pluginStateDisable
 	}
 	select {
-	case pl.setEnable <- e:
+	case pl.setStateCh <- st:
 	case <-pl.quit:
+		return
 	}
 }
 
@@ -104,10 +122,8 @@ func (pl *plugin) WriteMess(m *Message) (fail bool) {
 }
 
 func (pl *plugin) Write(p []byte) (fail bool) {
-	select {
-	default:
+	if pl.GetState != pluginStateEnable {
 		return true
-	case <-pl.openc:
 	}
 	select {
 	case pl.writec <- p:
@@ -160,13 +176,14 @@ func (pl *plugin) IsMain() bool {
 	return pl.No == 0
 }
 
-func (pl *plugin) rwRoutine() {
+func (pl *plugin) evRoutine() {
 	defer pl.wg.Done()
 	defer func() {
 		err := pl.rwc.Close()
 		if err != nil {
 			log.Println(err)
 		}
+		pl.GetState = pluginStateClose
 	}()
 	defer log.Printf("plugin [%s] is closing", pl.Name)
 
@@ -233,17 +250,16 @@ func (pl *plugin) rwRoutine() {
 				}
 				continue
 			}
-
-			// send if plugin is enabled
-			if pl.isEnable {
-				m.prgno = pl.No
-				log.Printf("plugin message [%s] : %v", pl.Name, m)
-				pl.cv.Evch <- m
+			if pl.GetState != pluginStateEnable {
+				continue
 			}
+			m.prgno = pl.No
+			log.Printf("plugin message [%s] : %v", pl.Name, m)
+			pl.cv.Evch <- m
 
 		// Send a message
 		case m := <-pl.writec:
-			if pl.isEnable == false {
+			if pl.GetState != pluginStateEnable {
 				continue
 			}
 			writeMess(m)
@@ -256,28 +272,36 @@ func (pl *plugin) rwRoutine() {
 				continue
 			}
 
-		case e := <-pl.setEnable:
-			if pl.isEnable == e {
-				continue
-			}
-			pl.isEnable = e
+		case e := <-pl.setStateCh:
+			func() {
+				pl.stateMu.Lock()
+				defer pl.stateMu.Unlock()
 
-			// send message
-			m := &Message{
-				Domain: DomainDirectngm,
-			}
-			if e == true {
-				m.Command = CommDirectngmPlugEnabled
-			} else {
-				m.Command = CommDirectngmPlugDisabled
-			}
-			jm, err := json.Marshal(m)
-			if err != nil {
-				log.Println(err)
-				log.Println(m)
-				return
-			}
-			writeMess(jm)
+				if e == pluginStateClose {
+					return
+				}
+				if pl.GetState == e {
+					return
+				}
+				pl.GetState = e
+
+				// send message
+				m := &Message{
+					Domain: DomainDirectngm,
+				}
+				if e == pluginStateEnable {
+					m.Command = CommDirectngmPlugEnabled
+				} else if e == pluginStateDisable {
+					m.Command = CommDirectngmPlugDisabled
+				}
+				jm, err := json.Marshal(m)
+				if err != nil {
+					log.Println(err)
+					log.Println(m)
+					return
+				}
+				writeMess(jm)
+			}()
 
 		case <-pl.quit:
 			return
@@ -334,18 +358,19 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	}
 
 	n := ct.No
-	if n < 0 || n >= len(cv.Pgns) {
-		log.Println("received invalid plugin No.")
+	pl, err := cv.Plugin(n)
+	if err != nil {
+		log.Panicln(err)
 		endc <- true
 		return
 	}
-	err = cv.Pgns[n].Open(c)
+	err = pl.Open(c)
 	if err != nil {
 		log.Println(err)
 		endc <- true
 		return
 	}
-	log.Printf("loaded plugin : %s\n", cv.Pgns[n].Name)
+	log.Printf("loaded plugin : %s\n", pl.Name)
 	endc <- false
 }
 

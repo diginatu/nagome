@@ -118,6 +118,18 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 		App.SettingsSlots = SettingsSlots(ct)
 
+	case CommQueryPlugEnable:
+		var ct CtQueryPlugEnable
+		if err := json.Unmarshal(m.Content, &ct); err != nil {
+			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+		}
+
+		pl, err := cv.Plugin(ct.No)
+		if err != nil {
+			return err
+		}
+		pl.SetState(ct.Enable)
+
 	default:
 		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 	}

@@ -93,6 +93,8 @@ const (
 	CommQuerySettingsSet    = "Settings.Set"    // Set settings to current slot.
 	CommQuerySettingsSetAll = "Settings.SetAll" // Set all slots of settings.
 
+	CommQueryPlugEnable = "Plug.Enable" // Enable or disable a plugin.
+
 	// DomainUI
 	// Event to be processed by UI plugin.
 	CommUIDialog        = "Dialog"
@@ -170,6 +172,12 @@ type CtQuerySettingsSet SettingsSlot
 
 // CtQuerySettingsSetSlots is a content of CommQuerySettingsSetSlots
 type CtQuerySettingsSetSlots SettingsSlots
+
+// CtQueryPlugEnable is a content of CommQueryPlugEnable
+type CtQueryPlugEnable struct {
+	No     int  `json:"no"`
+	Enable bool `json:"enable"`
+}
 
 // A CtCommentGot is a content of CommCommentGot
 type CtCommentGot struct {

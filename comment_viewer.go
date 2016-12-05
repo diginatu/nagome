@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -75,6 +76,14 @@ func (cv *CommentViewer) Wait() {
 	defer cv.AntennaDisconnect()
 	defer cv.Disconnect()
 	cv.wg.Wait()
+}
+
+// Plugin returns plugin with given No,
+func (cv *CommentViewer) Plugin(n int) (*plugin, error) {
+	if n < 0 || len(cv.Pgns) <= n {
+		return nil, fmt.Errorf("invalid plugin No")
+	}
+	return cv.Pgns[n], nil
 }
 
 // AddPlugin adds new plugin to Pgns
