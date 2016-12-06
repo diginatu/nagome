@@ -101,6 +101,7 @@ func RunCli() {
 	plug.Method = pluginMethodStd
 	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
 	if *mainyml != "" {
+		err = plug.Load(*mainyml)
 		if err != nil {
 			log.Fatal(err)
 		}
