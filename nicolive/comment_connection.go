@@ -39,19 +39,24 @@ type Comment struct {
 type CommentConnection struct {
 	*connection
 
-	lv     *LiveWaku
+	lv     LiveWaku
 	ticket string
 	svrDu  time.Duration
 	block  int
 
+	event        chan interface{}
 	postKeyTmr   *time.Timer
 	heartbeatTmr *time.Timer
 	ConnectedTm  time.Time // The time when this connection started
 }
+type commentConnectionEventSend struct {
+	text  string
+	iyayo bool
+}
 
 // CommentConnect connects to nicolive and start receiving comment.
 // liveWaku should have connection information which is able to get by fetchInformation()
-func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*CommentConnection, error) {
+func CommentConnect(ctx context.Context, lv LiveWaku, ev EventReceiver) (*CommentConnection, error) {
 	if lv.Account == nil {
 		return nil, MakeError(ErrOther, "nil account in LiveWaku")
 	}
@@ -72,6 +77,7 @@ func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*Comme
 		lv:           lv,
 		postKeyTmr:   pkt,
 		heartbeatTmr: hbt,
+		event:        make(chan interface{}),
 	}
 	cc.connection = newConnection(
 		net.JoinHostPort(lv.CommentServer.Addr, lv.CommentServer.Port),
@@ -83,7 +89,7 @@ func CommentConnect(ctx context.Context, lv *LiveWaku, ev EventReceiver) (*Comme
 	}
 
 	cc.Wg.Add(1)
-	go cc.timer()
+	go cc.routine()
 
 	nerr = cc.connection.Send(fmt.Sprintf(
 		"<thread thread=\"%s\" res_from=\"-1000\" version=\"20061206\" />\x00",
@@ -129,7 +135,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 
 		cc.Ev.ProceedNicoEvent(&Event{
 			Type:    EventTypeOpen,
-			Content: cc.lv,
+			Content: &cc.lv,
 		})
 
 		return
@@ -208,7 +214,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 			}()
 			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeWakuEnd,
-				Content: *cc.lv,
+				Content: cc.lv,
 			})
 			return
 		}
@@ -221,19 +227,25 @@ func (cc *CommentConnection) proceedMessage(m string) {
 	})
 }
 
-func (cc *CommentConnection) timer() {
+func (cc *CommentConnection) routine() {
 	defer cc.Wg.Done()
+
+	var (
+		postkey string
+		err     error
+	)
+
 	for {
 		select {
 		case <-cc.Ctx.Done():
 			return
 		case <-cc.postKeyTmr.C:
 			cc.postKeyTmr.Reset(postKeyDuration)
-			nerr := cc.FetchPostKey()
-			if nerr != nil {
+			postkey, err = cc.FetchPostKey()
+			if err != nil {
 				cc.Ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeErr,
-					Content: nerr,
+					Content: err,
 				})
 				continue
 			}
@@ -251,22 +263,31 @@ func (cc *CommentConnection) timer() {
 				Type:    EventTypeHeartBeatGot,
 				Content: &hbv,
 			})
+		case ev := <-cc.event:
+			switch a := ev.(type) {
+			case commentConnectionEventSend:
+				err = cc.sendComment(a, postkey)
+				if err != nil {
+					cc.Ev.ProceedNicoEvent(&Event{
+						Type:    EventTypeErr,
+						Content: err,
+					})
+				}
+			}
 		}
 	}
 }
 
 // FetchPostKey gets postkey using getpostkey API
-func (cc *CommentConnection) FetchPostKey() (err error) {
-	if cc.lv.Account == nil {
-		return MakeError(ErrOther, "nil account in LiveWaku")
-	}
-	if cc.lv.BroadID == "" {
-		return MakeError(ErrOther, "BroadID is not set")
+func (cc *CommentConnection) FetchPostKey() (postkey string, err error) {
+	ac := cc.lv.Account
+	if ac == nil {
+		return "", MakeError(ErrOther, "nil account")
 	}
 
-	c, nicoerr := NewNicoClient(cc.lv.Account)
+	c, nicoerr := NewNicoClient(ac)
 	if nicoerr != nil {
-		return nicoerr
+		return "", nicoerr
 	}
 
 	url := fmt.Sprintf(
@@ -274,7 +295,7 @@ func (cc *CommentConnection) FetchPostKey() (err error) {
 		cc.lv.CommentServer.Thread, cc.block)
 	res, err := c.Get(url)
 	if err != nil {
-		return ErrFromStdErr(err)
+		return "", ErrFromStdErr(err)
 	}
 	defer func() {
 		lerr := res.Body.Close()
@@ -285,32 +306,33 @@ func (cc *CommentConnection) FetchPostKey() (err error) {
 
 	allb, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return ErrFromStdErr(err)
+		return "", ErrFromStdErr(err)
 	}
 
-	pk := string(allb[8:])
-	if pk == "" {
-		return MakeError(ErrOther, "failed to get postkey")
+	psk := string(allb[8:])
+	if psk == "" {
+		return "", MakeError(ErrOther, "failed to get postkey")
 	}
 
-	cc.lv.PostKey = pk
-
-	return nil
+	return psk, nil
 }
 
 // SendComment sends comment to current comment connection
-func (cc *CommentConnection) SendComment(text string, iyayo bool) error {
-	if cc.lv.PostKey == "" {
-		return MakeError(ErrOther, "no postkey in livewaku")
+func (cc *CommentConnection) SendComment(text string, iyayo bool) {
+	cc.event <- commentConnectionEventSend{text, iyayo}
+}
+func (cc *CommentConnection) sendComment(ct commentConnectionEventSend, postkey string) error {
+	if postkey == "" {
+		return MakeError(ErrSendComment, "no postkey in livewaku")
 	}
-	if text == "" {
-		return MakeError(ErrOther, "empty text")
+	if ct.text == "" {
+		return MakeError(ErrSendComment, "empty text")
 	}
 
 	vpos := 100 * (time.Now().Add(cc.svrDu).Unix() - cc.lv.Stream.OpenTime.Unix())
 
 	var iyayos string
-	if iyayo {
+	if ct.iyayo {
 		iyayos = " mail=\"184\""
 	}
 	var prems string
@@ -323,15 +345,15 @@ func (cc *CommentConnection) SendComment(text string, iyayo bool) error {
 		cc.lv.CommentServer.Thread,
 		cc.ticket,
 		vpos,
-		cc.lv.PostKey,
+		postkey,
 		iyayos,
 		cc.lv.User.UserID,
 		prems,
-		html.EscapeString(text))
+		html.EscapeString(ct.text))
 
-	err := cc.connection.Send(sdcomm)
-	if err != nil {
-		return ErrFromStdErr(err)
+	nerr := cc.connection.Send(sdcomm)
+	if nerr != nil {
+		return nerr
 	}
 
 	return nil

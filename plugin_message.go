@@ -39,7 +39,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 			cv.Disconnect()
 
-			cv.Cmm, err = nicolive.CommentConnect(context.TODO(), cv.Lw, cv.prcdnle)
+			cv.Cmm, err = nicolive.CommentConnect(context.TODO(), *cv.Lw, cv.prcdnle)
 			if err != nil {
 				return err
 			}
@@ -53,15 +53,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
-			err := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
-			if err != nil {
-				if nerr, ok := err.(nicolive.Error); ok {
-					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", nerr.Description())
-				} else {
-					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", err.Error())
-				}
-				return err
-			}
+			cv.Cmm.SendComment(ct.Text, ct.Iyayo)
 
 		case CommQueryAccountSet:
 			var ct CtQueryAccountSet

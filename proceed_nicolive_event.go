@@ -115,7 +115,8 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeCommentSend, nil)
 
 	case nicolive.EventTypeErr:
-		log.Println(ev)
+		nerr := ev.Content.(nicolive.Error)
+		p.cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Error", nerr.Description())
 
 	case nicolive.EventTypeAntennaOpen:
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeAntennaOpen, nil)

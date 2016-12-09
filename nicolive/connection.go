@@ -87,13 +87,13 @@ func (c *connection) Send(m string) error {
 
 	err := c.conn.SetWriteDeadline(time.Now().Add(connectionWriteDeadline))
 	if err != nil {
-		return ErrFromStdErr(err)
+		return MakeError(ErrSendComment, err.Error())
 	}
 
 	fmt.Fprint(c.rw, m)
 	err = c.rw.Flush()
 	if err != nil {
-		return ErrFromStdErr(err)
+		return MakeError(ErrSendComment, err.Error())
 	}
 
 	return nil

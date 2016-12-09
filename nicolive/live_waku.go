@@ -45,7 +45,6 @@ type LiveWaku struct {
 		Thread string
 	}
 
-	PostKey           string
 	OwnerBroad        bool
 	OwnerCommentToken string
 }
