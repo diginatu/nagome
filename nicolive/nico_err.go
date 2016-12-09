@@ -18,49 +18,63 @@ const (
 	ErrIncorrectAccount
 )
 
-// Error is error interface in nicolive
-type Error interface {
-	No() ErrNum          // for identifying by application  (ie. select messages to the user)
-	Description() string // messages for debug information
-	Where() string       // where the error occurred
-	Error() string
-}
-
-// ErrStruct is an error struct in nicolive
-type ErrStruct struct {
+// Error is an error struct in nicolive
+type Error struct {
 	no    ErrNum
 	desc  string
 	where string
 }
 
-func (n ErrStruct) Error() string {
-	return fmt.Sprintf("[%s] %s", n.where, n.desc)
+// TypeString returns name of the error type.
+func (e Error) TypeString() string {
+	var s string
+	switch e.no {
+	case ErrOther:
+		s = "error"
+	case ErrSendComment:
+		s = "send comment error"
+	case ErrConnection:
+		s = "connection error"
+	case ErrNicoLiveOther:
+		s = "nico live error"
+	case ErrNotLogin:
+		s = "not login"
+	case ErrClosed:
+		s = "closed live"
+	case ErrIncorrectAccount:
+		s = "incorrect account"
+	}
+	return s
 }
 
-// No returns errorNum
-func (n ErrStruct) No() ErrNum {
-	return n.no
+func (e Error) Error() string {
+	return fmt.Sprintf("[%s] %s", e.where, e.desc)
+}
+
+// No returns errorNum for identifying by application.
+// (ie. select messages to the user)
+func (e Error) No() ErrNum {
+	return e.no
 }
 
 // Description returns description
-func (n ErrStruct) Description() string {
-	return n.desc
+func (e Error) Description() string {
+	return e.desc
 }
 
 // Where returns where
-func (n ErrStruct) Where() string {
-	return n.where
+func (e Error) Where() string {
+	return e.where
 }
 
-// MakeError returns Error that format as the given info
-// and the code position.
+// MakeError returns Error that is formated as the given info and the code position.
 func MakeError(errNum ErrNum, description string) Error {
 	where := caller(2)
-	return &ErrStruct{errNum, description, where}
+	return Error{errNum, description, where}
 }
 
 // ErrFromStdErr returns Error converted from standard error.
 func ErrFromStdErr(e error) Error {
 	where := caller(2)
-	return &ErrStruct{ErrOther, e.Error(), where}
+	return Error{ErrOther, e.Error(), where}
 }
