@@ -131,14 +131,6 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		ct := CtAntennaGot{ai.BroadID, ai.CommunityID, ai.UserID}
 		p.cv.Evch <- NewMessageMust(DomainAntenna, CommAntennaGot, ct)
 
-		if p.cv.Settings.AutoFollowNextWaku {
-			if p.cv.Lw != nil && p.cv.Lw.Stream.CommunityID == ai.CommunityID {
-				ct := CtQueryBroadConnect{ai.BroadID}
-				log.Println("following to " + ai.BroadID)
-				p.cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
-			}
-		}
-
 	default:
 		log.Println(ev)
 	}

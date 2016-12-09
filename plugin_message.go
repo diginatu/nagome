@@ -15,123 +15,138 @@ var (
 )
 
 func processPluginMessage(cv *CommentViewer, m *Message) error {
-	if m.Domain != DomainQuery {
-		return nil
-	}
-
-	switch m.Command {
-	case CommQueryBroadConnect:
-		var err error
-		var ct CtQueryBroadConnect
-		if err = json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-		}
-
-		broadMch := broadIDRegex.FindString(ct.BroadID)
-		if broadMch == "" {
-			cv.CreateEvNewDialog(CtUIDialogTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
-			return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
-		}
-
-		cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
-
-		if err = cv.Lw.FetchInformation(); err != nil {
-			return err
-		}
-
-		cv.Disconnect()
-
-		cv.Cmm, err = nicolive.CommentConnect(context.TODO(), cv.Lw, cv.prcdnle)
-		if err != nil {
-			return err
-		}
-		log.Println("connecting")
-
-	case CommQueryBroadDisconnect:
-		cv.Disconnect()
-
-	case CommQueryBroadSendComment:
-		var ct CtQueryBroadSendComment
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-		}
-		err := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
-		if err != nil {
-			if nerr, ok := err.(nicolive.Error); ok {
-				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", nerr.Description())
-			} else {
-				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", err.Error())
+	switch m.Domain {
+	case DomainQuery:
+		switch m.Command {
+		case CommQueryBroadConnect:
+			var err error
+			var ct CtQueryBroadConnect
+			if err = json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
-			return err
-		}
 
-	case CommQueryAccountSet:
-		var ct CtQueryAccountSet
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-		}
-		nicoac := nicolive.Account(ct)
-		cv.Ac = &nicoac
-
-		cv.AntennaConnect()
-
-	case CommQueryAccountLogin:
-		err := cv.Ac.Login()
-		if err != nil {
-			if nerr, ok := err.(nicolive.Error); ok {
-				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "login error", nerr.Description())
-			} else {
-				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "login error", err.Error())
+			broadMch := broadIDRegex.FindString(ct.BroadID)
+			if broadMch == "" {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
+				return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
 			}
-			return err
+
+			cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
+
+			if err = cv.Lw.FetchInformation(); err != nil {
+				return err
+			}
+
+			cv.Disconnect()
+
+			cv.Cmm, err = nicolive.CommentConnect(context.TODO(), cv.Lw, cv.prcdnle)
+			if err != nil {
+				return err
+			}
+			log.Println("connecting")
+
+		case CommQueryBroadDisconnect:
+			cv.Disconnect()
+
+		case CommQueryBroadSendComment:
+			var ct CtQueryBroadSendComment
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+			err := cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+			if err != nil {
+				if nerr, ok := err.(nicolive.Error); ok {
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", nerr.Description())
+				} else {
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Send comment error", err.Error())
+				}
+				return err
+			}
+
+		case CommQueryAccountSet:
+			var ct CtQueryAccountSet
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+			nicoac := nicolive.Account(ct)
+			cv.Ac = &nicoac
+
+			cv.AntennaConnect()
+
+		case CommQueryAccountLogin:
+			err := cv.Ac.Login()
+			if err != nil {
+				if nerr, ok := err.(nicolive.Error); ok {
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "login error", nerr.Description())
+				} else {
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "login error", err.Error())
+				}
+				return err
+			}
+			log.Println("logged in")
+			cv.CreateEvNewDialog(CtUIDialogTypeInfo, "login succeeded", "login succeeded")
+
+		case CommQueryAccountLoad:
+			return cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
+
+		case CommQueryAccountSave:
+			return cv.Ac.Save(filepath.Join(App.SavePath, accountFileName))
+
+		case CommQueryLogPrint:
+			var ct CtQueryLogPrint
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno].Name, ct.Text)
+
+		case CommQuerySettingsSet:
+			var ct CtQuerySettingsSet
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			cv.Settings = SettingsSlot(ct)
+
+		case CommQuerySettingsSetAll:
+			var ct CtQuerySettingsSetSlots
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			App.SettingsSlots = SettingsSlots(ct)
+
+		case CommQueryPlugEnable:
+			var ct CtQueryPlugEnable
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			pl, err := cv.Plugin(ct.No)
+			if err != nil {
+				return err
+			}
+			pl.SetState(ct.Enable)
+
+		default:
+			return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 		}
-		log.Println("logged in")
-		cv.CreateEvNewDialog(CtUIDialogTypeInfo, "login succeeded", "login succeeded")
 
-	case CommQueryAccountLoad:
-		return cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
-
-	case CommQueryAccountSave:
-		return cv.Ac.Save(filepath.Join(App.SavePath, accountFileName))
-
-	case CommQueryLogPrint:
-		var ct CtQueryLogPrint
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+	case DomainAntenna:
+		switch m.Command {
+		case CommAntennaGot:
+			if cv.Settings.AutoFollowNextWaku {
+				var ct CtAntennaGot
+				if err := json.Unmarshal(m.Content, &ct); err != nil {
+					return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+				}
+				if cv.Lw != nil && cv.Lw.Stream.CommunityID == ct.CommunityID {
+					ct := CtQueryBroadConnect{ct.BroadID}
+					log.Println("following to " + ct.BroadID)
+					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
+				}
+			}
 		}
-
-		log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno].Name, ct.Text)
-
-	case CommQuerySettingsSet:
-		var ct CtQuerySettingsSet
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-		}
-
-		cv.Settings = SettingsSlot(ct)
-
-	case CommQuerySettingsSetAll:
-		var ct CtQuerySettingsSetSlots
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-		}
-
-		App.SettingsSlots = SettingsSlots(ct)
-
-	case CommQueryPlugEnable:
-		var ct CtQueryPlugEnable
-		if err := json.Unmarshal(m.Content, &ct); err != nil {
-			return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-		}
-
-		pl, err := cv.Plugin(ct.No)
-		if err != nil {
-			return err
-		}
-		pl.SetState(ct.Enable)
-
-	default:
-		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 	}
 
 	return nil

@@ -423,7 +423,7 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 		return
 	}
 	needClose = false
-	log.Println("loaded plugin ", p)
+	log.Println("loaded plugin : ", p.Name)
 }
 
 // Close closes opened plugin.
