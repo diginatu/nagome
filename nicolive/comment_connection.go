@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	postKeyDuration   = 10 * time.Second
+	postKeyDuration   = 30 * time.Second
 	heartbeatDuration = 90 * time.Second
 )
 
@@ -129,8 +129,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 			cc.svrDu = cc.ConnectedTm.Sub(time.Now())
 		}
 
-		// immediately update postkey and start the timer
-		cc.postKeyTmr.Reset(0)
+		// immediately get heartbeat
 		cc.heartbeatTmr.Reset(0)
 
 		cc.Ev.ProceedNicoEvent(&Event{
@@ -200,7 +199,6 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		blk := comment.No / 10
 		if blk > cc.block {
 			cc.block = blk
-			cc.postKeyTmr.Reset(0)
 		}
 
 		cc.Ev.ProceedNicoEvent(&Event{
@@ -231,8 +229,9 @@ func (cc *CommentConnection) routine() {
 	defer cc.Wg.Done()
 
 	var (
-		postkey string
-		err     error
+		postkey           string
+		postkeyNeedUpdate = true
+		err               error
 	)
 
 	for {
@@ -240,15 +239,7 @@ func (cc *CommentConnection) routine() {
 		case <-cc.Ctx.Done():
 			return
 		case <-cc.postKeyTmr.C:
-			cc.postKeyTmr.Reset(postKeyDuration)
-			postkey, err = cc.FetchPostKey()
-			if err != nil {
-				cc.Ev.ProceedNicoEvent(&Event{
-					Type:    EventTypeCommentErr,
-					Content: err,
-				})
-				continue
-			}
+			postkeyNeedUpdate = true
 		case <-cc.heartbeatTmr.C:
 			cc.heartbeatTmr.Reset(heartbeatDuration)
 			hbv, nerr := cc.lv.FetchHeartBeat()
@@ -266,6 +257,18 @@ func (cc *CommentConnection) routine() {
 		case ev := <-cc.event:
 			switch a := ev.(type) {
 			case commentConnectionEventSend:
+				if postkeyNeedUpdate {
+					postkey, err = cc.FetchPostKey()
+					if err != nil {
+						cc.Ev.ProceedNicoEvent(&Event{
+							Type:    EventTypeCommentErr,
+							Content: MakeError(ErrSendComment, err.Error()),
+						})
+						continue
+					}
+					cc.postKeyTmr.Reset(postKeyDuration)
+					postkeyNeedUpdate = false
+				}
 				err = cc.sendComment(a, postkey)
 				if err != nil {
 					cc.Ev.ProceedNicoEvent(&Event{
