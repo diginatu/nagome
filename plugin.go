@@ -122,6 +122,8 @@ func (pl *plugin) WriteMess(m *Message) (fail bool) {
 }
 
 func (pl *plugin) Write(p []byte) (fail bool) {
+	pl.stateMu.Lock()
+	defer pl.stateMu.Unlock()
 	if pl.GetState != pluginStateEnable {
 		return true
 	}
@@ -183,7 +185,9 @@ func (pl *plugin) evRoutine() {
 		if err != nil {
 			log.Println(err)
 		}
+		pl.stateMu.Lock()
 		pl.GetState = pluginStateClose
+		pl.stateMu.Unlock()
 	}()
 	defer log.Printf("plugin [%s] is closing", pl.Name)
 
