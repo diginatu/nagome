@@ -111,7 +111,7 @@ func (c *connection) receiveStream() {
 				nerr, ok := err.(net.Error)
 				if ok && nerr.Temporary() {
 					c.Ev.ProceedNicoEvent(&Event{
-						Type:    EventTypeErr,
+						Type:    EventTypeCommentErr,
 						Content: ErrFromStdErr(err),
 					})
 					continue
@@ -122,14 +122,14 @@ func (c *connection) receiveStream() {
 				}
 
 				c.Ev.ProceedNicoEvent(&Event{
-					Type:    EventTypeErr,
+					Type:    EventTypeCommentErr,
 					Content: ErrFromStdErr(err),
 				})
 				go func() {
 					err := c.Disconnect()
 					if err != nil {
 						c.Ev.ProceedNicoEvent(&Event{
-							Type:    EventTypeErr,
+							Type:    EventTypeCommentErr,
 							Content: ErrFromStdErr(err),
 						})
 					}

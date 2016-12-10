@@ -109,7 +109,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 	rt, err := xmlpath.Parse(commxmlr)
 	if err != nil {
 		cc.Ev.ProceedNicoEvent(&Event{
-			Type:    EventTypeErr,
+			Type:    EventTypeCommentErr,
 			Content: err,
 		})
 		return
@@ -134,7 +134,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		cc.heartbeatTmr.Reset(0)
 
 		cc.Ev.ProceedNicoEvent(&Event{
-			Type:    EventTypeOpen,
+			Type:    EventTypeCommentOpen,
 			Content: &cc.lv,
 		})
 
@@ -144,13 +144,13 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		if v, ok := xmlpath.MustCompile("/chat_result/@status").String(rt); ok {
 			if v != "0" {
 				cc.Ev.ProceedNicoEvent(&Event{
-					Type:    EventTypeErr,
+					Type:    EventTypeCommentErr,
 					Content: MakeError(ErrSendComment, "comment send error. chat_result status : "+v),
 				})
 				return
 			}
 			cc.Ev.ProceedNicoEvent(&Event{
-				Type:    EventTypeSend,
+				Type:    EventTypeCommentSend,
 				Content: nil,
 			})
 		}
@@ -204,7 +204,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		}
 
 		cc.Ev.ProceedNicoEvent(&Event{
-			Type:    EventTypeGot,
+			Type:    EventTypeCommentGot,
 			Content: comment,
 		})
 
@@ -222,7 +222,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 	}
 
 	cc.Ev.ProceedNicoEvent(&Event{
-		Type:    EventTypeErr,
+		Type:    EventTypeCommentErr,
 		Content: MakeError(ErrSendComment, "unknown stream : "+m),
 	})
 }
@@ -244,7 +244,7 @@ func (cc *CommentConnection) routine() {
 			postkey, err = cc.FetchPostKey()
 			if err != nil {
 				cc.Ev.ProceedNicoEvent(&Event{
-					Type:    EventTypeErr,
+					Type:    EventTypeCommentErr,
 					Content: err,
 				})
 				continue
@@ -254,7 +254,7 @@ func (cc *CommentConnection) routine() {
 			hbv, nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
 				cc.Ev.ProceedNicoEvent(&Event{
-					Type:    EventTypeErr,
+					Type:    EventTypeCommentErr,
 					Content: nerr,
 				})
 				continue
@@ -269,7 +269,7 @@ func (cc *CommentConnection) routine() {
 				err = cc.sendComment(a, postkey)
 				if err != nil {
 					cc.Ev.ProceedNicoEvent(&Event{
-						Type:    EventTypeErr,
+						Type:    EventTypeCommentErr,
 						Content: err,
 					})
 				}
@@ -370,7 +370,7 @@ func (cc *CommentConnection) Disconnect() error {
 	}
 
 	cc.Ev.ProceedNicoEvent(&Event{
-		Type:    EventTypeClose,
+		Type:    EventTypeCommentClose,
 		Content: nil,
 	})
 

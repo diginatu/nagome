@@ -82,10 +82,10 @@ func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 // ProceedNicoEvent will receive events and emits it.
 func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 	switch ev.Type {
-	case nicolive.EventTypeGot:
+	case nicolive.EventTypeCommentGot:
 		p.proceedComment(ev)
 
-	case nicolive.EventTypeOpen:
+	case nicolive.EventTypeCommentOpen:
 		p.cv.Evch <- NewMessageMust(DomainUI, CommUIClearComments, nil)
 		lv := ev.Content.(*nicolive.LiveWaku)
 		log.Println(lv)
@@ -103,7 +103,7 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		}
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadOpen, ct)
 
-	case nicolive.EventTypeClose:
+	case nicolive.EventTypeCommentClose:
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadClose, nil)
 
 	case nicolive.EventTypeHeartBeatGot:
@@ -111,10 +111,10 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		ct := CtNagomeBroadInfo{hb.WatchCount, hb.CommentCount}
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeBroadInfo, ct)
 
-	case nicolive.EventTypeSend:
+	case nicolive.EventTypeCommentSend:
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeCommentSend, nil)
 
-	case nicolive.EventTypeErr:
+	case nicolive.EventTypeCommentErr:
 		nerr := ev.Content.(nicolive.Error)
 		p.cv.CreateEvNewDialog(CtUIDialogTypeWarn, nerr.TypeString(), nerr.Description())
 

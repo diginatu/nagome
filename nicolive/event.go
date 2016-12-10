@@ -7,11 +7,11 @@ type EventTypeNum int
 
 // EventType
 const (
-	EventTypeErr EventTypeNum = iota
-	EventTypeGot
-	EventTypeSend
-	EventTypeOpen
-	EventTypeClose
+	EventTypeCommentErr EventTypeNum = iota
+	EventTypeCommentGot
+	EventTypeCommentSend
+	EventTypeCommentOpen
+	EventTypeCommentClose
 	EventTypeWakuEnd
 	EventTypeHeartBeatGot
 	EventTypeAntennaOpen
@@ -29,18 +29,18 @@ type Event struct {
 func (e *Event) String() string {
 	var tys string
 	switch e.Type {
-	case EventTypeErr:
-		tys = "Err"
-	case EventTypeGot:
-		tys = "Got"
+	case EventTypeCommentErr:
+		tys = "CommentErr"
+	case EventTypeCommentGot:
+		tys = "CommentGot"
 	case EventTypeWakuEnd:
 		tys = "WakuEnd"
-	case EventTypeSend:
-		tys = "Send"
-	case EventTypeOpen:
-		tys = "Open"
-	case EventTypeClose:
-		tys = "Close"
+	case EventTypeCommentSend:
+		tys = "CommentSend"
+	case EventTypeCommentOpen:
+		tys = "CommentOpen"
+	case EventTypeCommentClose:
+		tys = "CommentClose"
 	case EventTypeHeartBeatGot:
 		tys = "HeatBeatGot"
 	case EventTypeAntennaOpen:
