@@ -231,6 +231,7 @@ func (cc *CommentConnection) routine() {
 	var (
 		postkey           string
 		postkeyNeedUpdate = true
+		postTimes         int
 		err               error
 	)
 
@@ -268,6 +269,14 @@ func (cc *CommentConnection) routine() {
 					}
 					cc.postKeyTmr.Reset(postKeyDuration)
 					postkeyNeedUpdate = false
+					postTimes = 0
+				}
+				if postTimes >= 10 {
+					cc.Ev.ProceedNicoEvent(&Event{
+						Type:    EventTypeCommentErr,
+						Content: MakeError(ErrSendComment, "too many comment at one time"),
+					})
+					continue
 				}
 				err = cc.sendComment(a, postkey)
 				if err != nil {
@@ -275,7 +284,9 @@ func (cc *CommentConnection) routine() {
 						Type:    EventTypeCommentErr,
 						Content: err,
 					})
+					continue
 				}
+				postTimes++
 			}
 		}
 	}
