@@ -31,14 +31,14 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
 			}
 
-			cv.Lw = &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
-
-			if err = cv.Lw.FetchInformation(); err != nil {
+			lw := &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
+			if err = lw.FetchInformation(); err != nil {
 				return err
 			}
 
 			cv.Disconnect()
 
+			cv.Lw = lw
 			cv.Cmm, err = nicolive.CommentConnect(context.TODO(), *cv.Lw, cv.prcdnle)
 			if err != nil {
 				return err

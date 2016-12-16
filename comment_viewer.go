@@ -286,6 +286,7 @@ func (cv *CommentViewer) Disconnect() {
 		log.Println(err)
 	}
 	cv.Cmm = nil
+	cv.Lw = nil
 
 	return
 }
