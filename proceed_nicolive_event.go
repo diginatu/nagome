@@ -4,14 +4,21 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/diginatu/nagome/nicolive"
 )
 
+const (
+	userNameAPITimesAMinute = 6
+)
+
 // ProceedNicoliveEvent is struct for proceeding nico events from nicolive packeage.
 type ProceedNicoliveEvent struct {
-	cv     *CommentViewer
-	userDB *nicolive.UserDB
+	cv                  *CommentViewer
+	userDB              *nicolive.UserDB
+	userNameAPITimes    int
+	userNameAPIFastTime time.Time
 }
 
 // NewProceedNicoliveEvent makes new ProceedNicoliveEvent and returns it.
@@ -31,12 +38,23 @@ func (p *ProceedNicoliveEvent) getUserName(id string, useAPI bool) (*nicolive.Us
 	if err != nil {
 		return nil, err
 	}
+	if u != nil {
+		return u, nil
+	}
+
 	if useAPI {
-		if u == nil {
+		// reset API limit
+		if time.Now().After(p.userNameAPIFastTime.Add(time.Minute)) {
+			p.userNameAPIFastTime = time.Now()
+			p.userNameAPITimes = userNameAPITimesAMinute
+		}
+		log.Println(p.userNameAPITimes)
+		if p.userNameAPITimes > 0 {
 			u, nerr := nicolive.FetchUserInfo(id, p.cv.Ac)
 			if nerr != nil {
 				return nil, nerr
 			}
+			p.userNameAPITimes--
 			err := p.userDB.Store(u)
 			if err != nil {
 				return nil, err
