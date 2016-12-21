@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -10,9 +11,7 @@ func TestSettingsSlots(t *testing.T) {
 	App.SavePath = os.TempDir()
 
 	ss := SettingsSlots{}
-	testSetting := &SettingsSlot{
-		UserNameGet: false,
-	}
+	testSetting := NewSettingsSlot()
 	testSetting2 := &SettingsSlot{
 		UserNameGet: true,
 	}
@@ -38,10 +37,10 @@ func TestSettingsSlots(t *testing.T) {
 	if got := len(ss.Config); got != 2 {
 		t.Fatalf("Should be %v but %v", 2, got)
 	}
-	if got := ss.Config[0]; !got.Equal(testSetting) {
+	if got := ss.Config[0]; !reflect.DeepEqual(got, testSetting) {
 		t.Fatalf("Should be %v but %v", testSetting, got)
 	}
-	if got := ss.Config[1]; !got.Equal(testSetting2) {
+	if got := ss.Config[1]; !reflect.DeepEqual(got, testSetting2) {
 		t.Fatalf("Should be %v but %v", testSetting2, got)
 	}
 }

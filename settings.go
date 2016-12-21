@@ -25,11 +25,6 @@ func NewSettingsSlot() *SettingsSlot {
 	}
 }
 
-// Equal reports whether c and x represent the same SettingsSlot instant.
-func (c *SettingsSlot) Equal(x *SettingsSlot) bool {
-	return c.UserNameGet == x.UserNameGet
-}
-
 // SettingsSlots is struct for multiple configs file.
 type SettingsSlots struct {
 	Config []*SettingsSlot `yaml:"config" json:"config"`
