@@ -119,6 +119,10 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return err
 			}
 			pl.SetState(ct.Enable)
+			if cv.Settings.PluginDisable == nil {
+				cv.Settings.PluginDisable = make(map[string]bool)
+			}
+			cv.Settings.PluginDisable[pl.Name] = !ct.Enable
 
 		default:
 			return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)

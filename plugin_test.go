@@ -52,7 +52,7 @@ func TestPluginClose(t *testing.T) {
 
 	// handle TCP routine
 	go func() {
-		err := p.Open(rwc)
+		err := p.Open(rwc, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -84,7 +84,7 @@ func TestPluginErrorConnection(t *testing.T) {
 
 	// handle TCP routine
 	go func() {
-		err := p.Open(rwc)
+		err := p.Open(rwc, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -126,7 +126,7 @@ func TestPluginWrite(t *testing.T) {
 	// handle TCP routine (to test race)
 	wait := make(chan struct{})
 	go func() {
-		err := p.Open(rwc)
+		err := p.Open(rwc, true)
 		if err != nil {
 			t.Fatal(err)
 		}

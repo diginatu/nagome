@@ -62,7 +62,7 @@ func newPlugin(cv *CommentViewer) *plugin {
 	}
 }
 
-func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
+func (pl *plugin) Open(rwc io.ReadWriteCloser, enable bool) error {
 	pl.stateMu.Lock()
 	defer pl.stateMu.Unlock()
 
@@ -85,9 +85,15 @@ func (pl *plugin) Open(rwc io.ReadWriteCloser) error {
 	pl.wg.Add(1)
 	go pl.evRoutine()
 
+	var st pluginState
+	if enable {
+		st = pluginStateEnable
+	} else {
+		st = pluginStateDisable
+	}
 	pl.stateMu.Unlock()
-	pl.setStateCh <- pluginStateEnable
-	pl.setStateCh <- pluginStateEnable // wait for completing previous task
+	pl.setStateCh <- st
+	pl.setStateCh <- st // wait for completing previous task
 	pl.stateMu.Lock()
 
 	return nil
@@ -362,19 +368,19 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	}
 
 	n := ct.No
-	pl, err := cv.Plugin(n)
+	p, err := cv.Plugin(n)
 	if err != nil {
 		log.Panicln(err)
 		endc <- true
 		return
 	}
-	err = pl.Open(c)
+	err = p.Open(c, !cv.Settings.PluginDisable[p.Name])
 	if err != nil {
 		log.Println(err)
 		endc <- true
 		return
 	}
-	log.Printf("loaded plugin : %s\n", pl.Name)
+	log.Printf("loaded plugin : %s\n", p.Name)
 	endc <- false
 }
 
@@ -421,7 +427,7 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 	}
 
 	c := &stdReadWriteCloser{stdout, stdin}
-	err = p.Open(c)
+	err = p.Open(c, !cv.Settings.PluginDisable[p.Name])
 	if err != nil {
 		log.Println(err)
 		return

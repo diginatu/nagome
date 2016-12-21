@@ -9,10 +9,11 @@ import (
 
 // A SettingsSlot represents a settings of Nagome.
 type SettingsSlot struct {
-	SettingsName       string `yaml:"settings_name"         json:"settings_name"`
-	AutoSaveTo0Slot    bool   `yaml:"auto_save_to0_slot"    json:"auto_save_to0_slot"`
-	UserNameGet        bool   `yaml:"user_name_get"         json:"user_name_get"`
-	AutoFollowNextWaku bool   `yaml:"auto_follow_next_waku" json:"auto_follow_next_waku"`
+	SettingsName       string          `yaml:"settings_name"         json:"settings_name"`
+	AutoSaveTo0Slot    bool            `yaml:"auto_save_to0_slot"    json:"auto_save_to0_slot"`
+	UserNameGet        bool            `yaml:"user_name_get"         json:"user_name_get"`
+	AutoFollowNextWaku bool            `yaml:"auto_follow_next_waku" json:"auto_follow_next_waku"`
+	PluginDisable      map[string]bool `yaml:"plugin_disable"        json:"plugin_disable"`
 }
 
 // NewSettingsSlot creates new SettingsSlot with default values.
@@ -22,6 +23,7 @@ func NewSettingsSlot() *SettingsSlot {
 		AutoSaveTo0Slot:    true,
 		UserNameGet:        false,
 		AutoFollowNextWaku: true,
+		PluginDisable:      make(map[string]bool),
 	}
 }
 

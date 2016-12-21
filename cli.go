@@ -108,7 +108,7 @@ func RunCli() {
 	}
 	cv.AddPlugin(plug)
 	if plug.Method == pluginMethodStd {
-		err := plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout})
+		err := plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout}, true)
 		if err != nil {
 			log.Fatalln(err)
 		}
