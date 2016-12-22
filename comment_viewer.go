@@ -37,7 +37,7 @@ func NewCommentViewer(tcpPort string) *CommentViewer {
 		App.SettingsSlots.Add(NewSettingsSlot())
 	}
 	cv := &CommentViewer{
-		Settings: *App.SettingsSlots.Config[0],
+		Settings: App.SettingsSlots.Config[0].Duplicate(),
 		TCPPort:  tcpPort,
 		Evch:     make(chan *Message, eventBufferSize),
 		quit:     make(chan struct{}),

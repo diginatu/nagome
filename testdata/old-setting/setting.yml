@@ -1,0 +1,3 @@
+config:
+- settings_name: Old Settings
+  auto_follow_next_waku: true

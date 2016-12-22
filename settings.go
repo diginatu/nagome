@@ -27,6 +27,31 @@ func NewSettingsSlot() *SettingsSlot {
 	}
 }
 
+// UnmarshalYAML is a function for implementing yaml.Unmarshaler.
+func (s *SettingsSlot) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// Using same struct type causes recursive function call.
+	type UnmarshalSettingsSlot SettingsSlot
+	ns := (*UnmarshalSettingsSlot)(NewSettingsSlot())
+	err := unmarshal(ns)
+	if err != nil {
+		return err
+	}
+	// Copy as values not rewriting the pointer.
+	*s = *(*SettingsSlot)(ns)
+	return nil
+}
+
+// Duplicate creates new copy.
+func (s *SettingsSlot) Duplicate() SettingsSlot {
+	var ns SettingsSlot
+	ns = *s
+	ns.PluginDisable = make(map[string]bool)
+	for k, c := range s.PluginDisable {
+		ns.PluginDisable[k] = c
+	}
+	return ns
+}
+
 // SettingsSlots is struct for multiple configs file.
 type SettingsSlots struct {
 	Config []*SettingsSlot `yaml:"config" json:"config"`
