@@ -22,7 +22,11 @@ go get -u github.com/diginatu/nagome
 Document
 --------
 
-[index](docs/README.md)
+[Index](docs/README.md)
+
+Nagome is initial development yet.
+APIs may be changed.
+But some features work now.
 
 Licence
 -------
@@ -38,6 +42,17 @@ Dependencies
     -   gopkg.in/yaml.v2 : Apache Licence 2.0
     -   github.com/mattn/go-sqlite3 : MIT
 
+Contribution
+------------
+
+Contribution is welcome, about anything like fixing issues, adding new features, etc.
+
+You can contact me via [my twitter](https://twitter.com/diginatu).
+Also, [my niconico community](http://com.nicovideo.jp/community/co2345471) here.
+
+Feel free to send a message and tell me what feature you want to work in.
+Or, about plugins.
+
 Tasks
 -----
 
@@ -46,10 +61,8 @@ Tasks
 +   [ ] quit message
 +   [ ] dynamic plugin add/remove
 +   [ ] make direct domain available by plugin
-+   [ ] add broadcast info to the message open
 +   [ ] translation function
-+   [ ] document
++   [ ] more document
 +   [ ] function for NicoLive
-    -   [ ] limit rate of getting user name
     -   [ ] prepare new Waku
 
