@@ -120,3 +120,10 @@ Then, at the beginning of the connection, send a message like below.
 ~~~
 
 This message is special, so cannot be send at any time except this.
+
+Example
+-------
+
+[StdExample](https://github.com/diginatu/nagome-stdexample)
+
+Example of standard io plugin written in ruby/gtk3.
