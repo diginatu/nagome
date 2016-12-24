@@ -124,6 +124,7 @@ func (cv *CommentViewer) loadPlugins() {
 			case pluginMethodTCP:
 				if len(p.Exec) >= 1 {
 					cmd := exec.Command(p.Exec[0], p.Exec[1:]...)
+					cmd.Dir = pPath
 					err := cmd.Start()
 					if err != nil {
 						log.Println(err)
@@ -132,7 +133,7 @@ func (cv *CommentViewer) loadPlugins() {
 				}
 			case pluginMethodStd:
 				cv.wg.Add(1)
-				go handleSTDPlugin(p, cv)
+				go handleSTDPlugin(p, cv, pPath)
 			default:
 				log.Printf("invalid method in plugin [%s]\n", p.Name)
 				continue

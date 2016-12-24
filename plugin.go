@@ -384,7 +384,7 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	endc <- false
 }
 
-func handleSTDPlugin(p *plugin, cv *CommentViewer) {
+func handleSTDPlugin(p *plugin, cv *CommentViewer, path string) {
 	defer cv.wg.Done()
 
 	if len(p.Exec) < 1 {
@@ -393,6 +393,7 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer) {
 	}
 
 	cmd := exec.Command(p.Exec[0], p.Exec[1:]...)
+	cmd.Dir = path
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Println(err)
