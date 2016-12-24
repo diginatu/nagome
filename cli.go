@@ -23,17 +23,22 @@ const (
 // RunCli processes flags and io
 func RunCli() {
 	// set command line options
+	var (
+		printHelp bool
+		mainyml string
+	)
+
 	flag.StringVar(&App.SavePath, "savepath", findUserConfigPath(), "Set <string> to save directory.")
 	tcpPort := flag.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
 	debugToStderr := flag.Bool("dbgtostd", false, `Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
-	printHelp := flag.Bool("help", false, "Print this help.")
-	printHelp = flag.Bool("h", false, "Print this help. (shorthand)")
+	flag.BoolVar(&printHelp, "help", false, "Print this help.")
+	flag.BoolVar(&printHelp, "h", false, "Print this help. (shorthand)")
 	printVersion := flag.Bool("v", false, "Print version information.")
 	mkplug := flag.String("makeplug", "", "Make new plugin template with given name.")
-	mainyml := flag.String("ymlmain", "", `specfy the config file of main plugin.
+	flag.StringVar(&mainyml, "ymlmain", "", `specfy the config file of main plugin.
 	Its format is same as yml file of normal plugins.`)
-	mainyml = flag.String("y", "", `specfy the config file of main plugin. (shorthand)`)
+	flag.StringVar(&mainyml, "y", "", `specfy the config file of main plugin. (shorthand)`)
 
 	flag.Parse()
 
@@ -46,7 +51,7 @@ func RunCli() {
 
 	pluginPath := filepath.Join(App.SavePath, pluginDirName)
 
-	if *printHelp {
+	if printHelp {
 		flag.Usage()
 		return
 	}
@@ -100,8 +105,8 @@ func RunCli() {
 	plug.Version = "0.0"
 	plug.Method = pluginMethodStd
 	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
-	if *mainyml != "" {
-		err = plug.Load(*mainyml)
+	if mainyml != "" {
+		err = plug.Load(mainyml)
 		if err != nil {
 			log.Fatal(err)
 		}
