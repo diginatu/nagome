@@ -40,7 +40,7 @@ Dependencies
 +   diginatu/nagome/nicolive
     -   gopkg.in/xmlpath.v2 : LGPLv3
     -   gopkg.in/yaml.v2 : Apache Licence 2.0
-    -   github.com/mattn/go-sqlite3 : MIT
+    -   github.com/syndtr/goleveldb : 2-Clause BSD License
 
 Contribution
 ------------

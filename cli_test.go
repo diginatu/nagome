@@ -13,10 +13,20 @@ import (
 )
 
 func TestTCPAPI(t *testing.T) {
-	App.SavePath = filepath.Join(os.TempDir(), "nagome_test")
+	var err error
+	App.SavePath, err = ioutil.TempDir("", "nagome")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.MkdirAll(filepath.Join(App.SavePath, pluginDirName), 0777); err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err := os.RemoveAll(App.SavePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 	cv := NewCommentViewer("")
 
 	plug := newPlugin(cv)

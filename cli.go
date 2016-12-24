@@ -16,7 +16,7 @@ const (
 	logFileName      = "info.log"
 	pluginDirName    = "plugin"
 	pluginConfigName = "plugin.yml"
-	userDBFileName   = "user.sqlite"
+	userDBDirName    = "userdb"
 	settingsFileName = "setting.yml"
 )
 

@@ -65,22 +65,18 @@ func TestUserFetchInfo(t *testing.T) {
 }
 
 func TestUserDB(t *testing.T) {
-	f, err := ioutil.TempFile("", "nagome")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = f.Close()
+	dir, err := ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err = os.Remove(f.Name())
+		err = os.RemoveAll(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	db, err := NewUserDB(f.Name())
+	db, err := NewUserDB(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +93,6 @@ func TestUserDB(t *testing.T) {
 		GotTime:      time.Now(),
 		Is184:        false,
 		ThumbnailURL: "url",
-		Misc:         "{}",
 	}
 
 	err = db.Store(su)

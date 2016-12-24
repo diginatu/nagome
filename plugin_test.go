@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/diginatu/nagome/nicolive"
@@ -32,6 +33,18 @@ func (rwc *testRwc) Close() error {
 }
 
 func TestPluginClose(t *testing.T) {
+	var err error
+	App.SavePath, err = ioutil.TempDir("", "nagome")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := os.RemoveAll(App.SavePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	cv := NewCommentViewer("0")
 	cv.Ac = &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
 	p := newPlugin(cv)
@@ -65,6 +78,18 @@ func TestPluginClose(t *testing.T) {
 }
 
 func TestPluginErrorConnection(t *testing.T) {
+	var err error
+	App.SavePath, err = ioutil.TempDir("", "nagome")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := os.RemoveAll(App.SavePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	cv := NewCommentViewer("0")
 	p := newPlugin(cv)
 	p.Name = "normal"
@@ -93,7 +118,7 @@ func TestPluginErrorConnection(t *testing.T) {
 
 	<-wait
 
-	err := pr.Close()
+	err = pr.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,6 +126,18 @@ func TestPluginErrorConnection(t *testing.T) {
 }
 
 func TestPluginWrite(t *testing.T) {
+	var err error
+	App.SavePath, err = ioutil.TempDir("", "nagome")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := os.RemoveAll(App.SavePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
 	cv := NewCommentViewer("0")
 	p := newPlugin(cv)
 	p.Name = "normal"

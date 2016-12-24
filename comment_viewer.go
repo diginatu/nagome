@@ -309,7 +309,11 @@ func (cv *CommentViewer) AntennaDisconnect() {
 
 // Quit quits the CommentViewer.
 func (cv *CommentViewer) Quit() {
+	cv.wg.Add(1)
+	defer cv.wg.Done()
+
 	close(cv.quit)
+	cv.prcdnle.userDB.Close()
 }
 
 // ProceedNicoliveError proceeds Error of nicolive.
