@@ -36,7 +36,7 @@ func NewNicoClient(a *Account) (*http.Client, error) {
 	}
 	c := http.Client{Jar: jar}
 	c.Jar.SetCookies(nicoURL, []*http.Cookie{
-		&http.Cookie{
+		{
 			Domain: nicoURL.Host,
 			Path:   "/",
 			Name:   "user_session",

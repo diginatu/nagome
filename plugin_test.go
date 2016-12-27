@@ -67,7 +67,7 @@ func TestPluginClose(t *testing.T) {
 	go func() {
 		err := p.Open(rwc, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		wait <- struct{}{}
 	}()
@@ -111,7 +111,7 @@ func TestPluginErrorConnection(t *testing.T) {
 	go func() {
 		err := p.Open(rwc, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		wait <- struct{}{}
 	}()
@@ -165,7 +165,7 @@ func TestPluginWrite(t *testing.T) {
 	go func() {
 		err := p.Open(rwc, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		wait <- struct{}{}
 	}()

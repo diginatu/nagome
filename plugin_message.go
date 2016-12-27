@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	broadIDRegex = regexp.MustCompile("(lv|co)\\d+")
+	broadIDRegex = regexp.MustCompile(`(lv|co)\\d+`)
 )
 
 func processPluginMessage(cv *CommentViewer, m *Message) error {
@@ -158,13 +158,13 @@ func processDirectMessage(cv *CommentViewer, m *Message) error {
 		}
 		cv.Pgns[m.prgno].WriteMess(t)
 	case CommDirectSettingsCurrent:
-		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsCurrent, cv.Settings)
+		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsCurrent, CtDirectngmSettingsCurrent(cv.Settings))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
 		cv.Pgns[m.prgno].WriteMess(t)
 	case CommDirectSettingsAll:
-		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, App.SettingsSlots)
+		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, CtDirectngmSettingsAll(App.SettingsSlots))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}

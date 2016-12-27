@@ -224,7 +224,7 @@ type CtDirectNo struct {
 
 // CtDirectngmPlugList is a content for CommDirectngmPlugList
 type CtDirectngmPlugList struct {
-	Plugins *[]*plugin `json:"plugins"`
+	Plugins *[]*Plugin `json:"plugins"`
 }
 
 // CtDirectngmSettingsCurrent is a content for CommDirectngmSettingsCurrent

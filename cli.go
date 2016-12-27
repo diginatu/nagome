@@ -25,7 +25,7 @@ func RunCli() {
 	// set command line options
 	var (
 		printHelp bool
-		mainyml string
+		mainyml   string
 	)
 
 	flag.StringVar(&App.SavePath, "savepath", findUserConfigPath(), "Set <string> to save directory.")
@@ -147,7 +147,7 @@ func generatePluginTemplate(name, pluginPath string) {
 		log.Fatalln("Could not make save directory : ", err)
 	}
 
-	pl := plugin{
+	pl := Plugin{
 		Name:      name,
 		Version:   "1.0",
 		Subscribe: []string{DomainNagome},

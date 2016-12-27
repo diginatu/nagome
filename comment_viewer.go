@@ -22,7 +22,7 @@ type CommentViewer struct {
 	Lw       *nicolive.LiveWaku
 	Cmm      *nicolive.CommentConnection
 	Antn     *nicolive.Antenna
-	Pgns     []*plugin
+	Pgns     []*Plugin
 	Settings SettingsSlot
 	TCPPort  string
 	Evch     chan *Message
@@ -79,7 +79,7 @@ func (cv *CommentViewer) Wait() {
 }
 
 // Plugin returns plugin with given No,
-func (cv *CommentViewer) Plugin(n int) (*plugin, error) {
+func (cv *CommentViewer) Plugin(n int) (*Plugin, error) {
 	if n < 0 || len(cv.Pgns) <= n {
 		return nil, fmt.Errorf("invalid plugin No")
 	}
@@ -87,7 +87,7 @@ func (cv *CommentViewer) Plugin(n int) (*plugin, error) {
 }
 
 // AddPlugin adds new plugin to Pgns
-func (cv *CommentViewer) AddPlugin(p *plugin) {
+func (cv *CommentViewer) AddPlugin(p *Plugin) {
 	p.No = len(cv.Pgns)
 	cv.Pgns = append(cv.Pgns, p)
 }
@@ -192,10 +192,7 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 
 	close(waitWakeServer)
 
-	select {
-	case <-cv.quit:
-		return
-	}
+	<-cv.quit
 }
 
 func (cv *CommentViewer) sendPluginMessage() {
@@ -313,7 +310,10 @@ func (cv *CommentViewer) Quit() {
 	defer cv.wg.Done()
 
 	close(cv.quit)
-	cv.prcdnle.userDB.Close()
+	err := cv.prcdnle.userDB.Close()
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // ProceedNicoliveError proceeds Error of nicolive.

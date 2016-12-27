@@ -69,12 +69,7 @@ func (ss *SettingsSlots) Save() error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(App.SavePath, settingsFileName), s, 0600)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(filepath.Join(App.SavePath, settingsFileName), s, 0600)
 }
 
 // Load loads from a file.
@@ -84,10 +79,5 @@ func (ss *SettingsSlots) Load() error {
 		return err
 	}
 
-	err = yaml.Unmarshal(f, ss)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return yaml.Unmarshal(f, ss)
 }

@@ -30,7 +30,8 @@ const (
 	pluginStateDisable
 )
 
-type plugin struct {
+// A Plugin is a Nagome plugin.
+type Plugin struct {
 	Name        string      `yaml:"name"        json:"name"`
 	Description string      `yaml:"description" json:"description"`
 	Version     string      `yaml:"version"     json:"version"`
@@ -52,8 +53,8 @@ type plugin struct {
 }
 
 // NewPlugin makes new Plugin.
-func newPlugin(cv *CommentViewer) *plugin {
-	return &plugin{
+func newPlugin(cv *CommentViewer) *Plugin {
+	return &Plugin{
 		No:         -1,
 		quit:       make(chan struct{}),
 		setStateCh: make(chan pluginState),
@@ -62,21 +63,22 @@ func newPlugin(cv *CommentViewer) *plugin {
 	}
 }
 
-func (pl *plugin) Open(rwc io.ReadWriteCloser, enable bool) error {
+// Open opens connection and start processing.
+func (pl *Plugin) Open(rwc io.ReadWriteCloser, enable bool) error {
 	pl.stateMu.Lock()
 	defer pl.stateMu.Unlock()
 
 	if pl.No == -1 {
-		return fmt.Errorf("plugin \"%s\" is not initialized (add to CommentViewer)\n", pl.Name)
+		return fmt.Errorf("plugin \"%s\" is not initialized (add to CommentViewer)", pl.Name)
 	}
 	if pl.Name == "" {
-		return fmt.Errorf("plugin \"%s\" no name is set\n", pl.Name)
+		return fmt.Errorf("plugin \"%s\" no name is set", pl.Name)
 	}
 	if rwc == nil {
-		return fmt.Errorf("given rw is nil\n")
+		return fmt.Errorf("given rw is nil")
 	}
 	if pl.GetState != pluginStateClose {
-		return fmt.Errorf("already opened\n")
+		return fmt.Errorf("already opened")
 	}
 
 	pl.rwc = rwc
@@ -99,7 +101,8 @@ func (pl *plugin) Open(rwc io.ReadWriteCloser, enable bool) error {
 	return nil
 }
 
-func (pl *plugin) SetState(enable bool) {
+// SetState sets state of the plugin.
+func (pl *Plugin) SetState(enable bool) {
 	if pl.GetState == pluginStateClose {
 		return
 	}
@@ -117,7 +120,8 @@ func (pl *plugin) SetState(enable bool) {
 	}
 }
 
-func (pl *plugin) WriteMess(m *Message) (fail bool) {
+// WriteMess writes a Nagome message into the plugin.
+func (pl *Plugin) WriteMess(m *Message) (fail bool) {
 	jm, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err)
@@ -127,7 +131,7 @@ func (pl *plugin) WriteMess(m *Message) (fail bool) {
 	return pl.Write(jm)
 }
 
-func (pl *plugin) Write(p []byte) (fail bool) {
+func (pl *Plugin) Write(p []byte) (fail bool) {
 	pl.stateMu.Lock()
 	defer pl.stateMu.Unlock()
 	if pl.GetState != pluginStateEnable {
@@ -141,7 +145,8 @@ func (pl *plugin) Write(p []byte) (fail bool) {
 	return true
 }
 
-func (pl *plugin) IsSubscribe(pln string) bool {
+// IsSubscribe returns whether the plugin subscribes given Domain.
+func (pl *Plugin) IsSubscribe(pln string) bool {
 	f := false
 	for _, d := range pl.Subscribe {
 		if d == pln {
@@ -152,39 +157,32 @@ func (pl *plugin) IsSubscribe(pln string) bool {
 	return f
 }
 
-func (pl *plugin) Load(filePath string) error {
+// Load loads from file and set values.
+func (pl *Plugin) Load(filePath string) error {
 	d, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	err = yaml.Unmarshal(d, pl)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return yaml.Unmarshal(d, pl)
 }
 
-func (pl *plugin) Save(filePath string) error {
+// Save saves the plugin into a file with given name.
+func (pl *Plugin) Save(filePath string) error {
 	d, err := yaml.Marshal(pl)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filePath, d, 0600)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(filePath, d, 0600)
 }
 
-func (pl *plugin) IsMain() bool {
+// IsMain returns whether the plugin is main one.
+func (pl *Plugin) IsMain() bool {
 	return pl.No == 0
 }
 
-func (pl *plugin) evRoutine() {
+func (pl *Plugin) evRoutine() {
 	defer pl.wg.Done()
 	defer func() {
 		err := pl.rwc.Close()
@@ -384,7 +382,7 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	endc <- false
 }
 
-func handleSTDPlugin(p *plugin, cv *CommentViewer, path string) {
+func handleSTDPlugin(p *Plugin, cv *CommentViewer, path string) {
 	defer cv.wg.Done()
 
 	if len(p.Exec) < 1 {
@@ -438,12 +436,12 @@ func handleSTDPlugin(p *plugin, cv *CommentViewer, path string) {
 }
 
 // Close closes opened plugin.
-func (pl *plugin) Close() {
+func (pl *Plugin) Close() {
 	pl.close()
 	pl.wg.Wait()
 }
 
-func (pl *plugin) close() {
+func (pl *Plugin) close() {
 	select {
 	case <-pl.quit:
 	default:
