@@ -255,6 +255,8 @@ func (cv *CommentViewer) sendPluginMessage() {
 				nicoerr, ok := nerr.(nicolive.Error)
 				if ok {
 					cv.ProceedNicoliveError(nicoerr)
+				} else {
+					log.Panicln(err)
 				}
 			}
 

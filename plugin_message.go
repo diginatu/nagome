@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	broadIDRegex = regexp.MustCompile(`(lv|co)\\d+`)
+	broadIDRegex = regexp.MustCompile(`(lv|co)\d+`)
 )
 
 func processPluginMessage(cv *CommentViewer, m *Message) error {

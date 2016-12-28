@@ -177,7 +177,7 @@ func (pl *Plugin) Save(filePath string) error {
 	return ioutil.WriteFile(filePath, d, 0600)
 }
 
-// IsMain returns whether the plugin is main one.
+// IsMain returns whether the plugin is main plugin.
 func (pl *Plugin) IsMain() bool {
 	return pl.No == 0
 }

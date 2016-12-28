@@ -11,6 +11,7 @@ type ErrNum int
 const (
 	ErrOther ErrNum = iota
 	ErrSendComment
+	ErrOpen
 	ErrConnection
 	ErrNicoLiveOther
 	ErrNotLogin
