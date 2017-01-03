@@ -5,6 +5,7 @@ go:
 
 install:
     - go get github.com/golang/lint/golint
+    - go get github.com/mitchellh/gox
 
 script:
     - go get -t -v ./...
@@ -13,3 +14,22 @@ script:
     - golint ./...
     - go vet ./...
     - go test -v -race ./...
+
+notifications:
+    slack:
+        secure: QteIM/R6b62A5ldnhIBm5IS8dJ3ppeVD+VD+IPYemtzeq4nkPZDUZ2SscvyDoVthetdRznVFewI8QzJ/8qWpo7urrhSp/RXkVXM6Q76POgdIKC9sAXSkvgStnJ3a6wx8Le4g6rUTriG8tM7O+ehLPCcmyEmqqiqfWywtBwIdgAkYKoNwNCcCWP6HUZA6NAlCbI/zGRSuFcDGIdV4bi9697OQyEi3M7xBYZlK+6mEftJwsDrgMpfjiLUlFXVbZKQnBLTgyDlP9qgWhwIi4Zjgo/iGKtE9Ii3AVpwKGlMgXgL6tEa2fQiX7VQXao3owUunKg8OTnfWdqO3qAHIHi65v+8xdqofdTu6nRb1w4uXzWDEyVbLma77YHYxs/O8PGTyjH2xeiSTlE07T8lgFmtXc4czkCkib2UuULluQioSiUznTCm1PjvDSfuXelPEUG+QFrWGj0J1c7U4F8TIqnLjZTJOiO+rGCLgI6MdQikXOcbP0ujJAC3+S6eNBvQfXuLsYMM5vegQ9+iUDArJ503pPCo+JPh9Bar2QOBwm8NqbTzKq+A3UW5og5M21cG3miFWZGuZyXGkzX7gMglH6af1MF77Q9QofKptygq2Kb5ai39xkgSenVKGZDy7E+z8yeYEtWLFm5fawLOLzoYMv8Rpar0Hz2RaZfRnVVvccC3is0U=
+    email: false
+
+before_deploy: gox -osarch "linux/amd64 darwin/amd64 windows/amd64" -output "release/{{.Dir}}_{{.OS}}_{{.Arch}}"
+deploy:
+    provider: releases
+    api_key:
+        secure: IOtDtwf6ub+Bpeo4xyAp/JC6x4OFjdzLCOdXCVIszRppc58oF+Gak5kQh+sT2NAX4iuYR2GmxNUrvzt5UlF3hShPIvXRM2/475u7791N7baH6he4+lieR9G43DrnQHDvyvpkAqanPojDLLr2YLdQvd+Y60GnVm3mxuV5ge6rb4bT3pzlkDjPOwYKZ5UuO9cdCJPHxbLJJKAx5BE/HQ2XpPORLm1GX+po5ilM2cP0L8BBUCMFN6JWVAyZTIfUVs7Vh111Ucj/Dx/THo/5OXj7F5+VRX1mc3nbNuWmQgmMeHrneuRWrN5rJLJDh8qzLFAk7tORK9j8vek2UCxnKwuC4oG3hHtXd0vAXtmw9pXpNLd5xz665CHYHAcBXzmzquZRhOyMhGQpne49keyzWxe9iyh9wScIFDp8RiB06twphZdG9ROu7Xt6b/kVbl6I37KMSo2sAAgCfMaNp4sNqhUq85r7Xc55goXGN0qritNTdacAwProWkvZPHi3J/XQiisUwXDQXt/J1yTomloDFInX/ASjYGR9qHFju5RwFsIKvr2GlcxamVvejm8oSLDrOAtgtrDFyOL3Gf4mkbyTjXcq6wCv85x9W76TJlNqYdVeIQZWfXnxIvOqFvutxiqTVwy3oJQwgFVter61XKn+LT31rGqnCoLtT79j4OvhgBtvUUU=
+    file:
+        - "release/nagome_darwin_amd64"
+        - "release/nagome_linux_amd64"
+        - "release/nagome_windows_amd64.exe"
+    skip_cleanup: true
+    on:
+        repo: diginatu/nagome
+        tags: true
