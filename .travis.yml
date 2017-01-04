@@ -18,6 +18,8 @@ script:
 notifications:
     slack:
         secure: QteIM/R6b62A5ldnhIBm5IS8dJ3ppeVD+VD+IPYemtzeq4nkPZDUZ2SscvyDoVthetdRznVFewI8QzJ/8qWpo7urrhSp/RXkVXM6Q76POgdIKC9sAXSkvgStnJ3a6wx8Le4g6rUTriG8tM7O+ehLPCcmyEmqqiqfWywtBwIdgAkYKoNwNCcCWP6HUZA6NAlCbI/zGRSuFcDGIdV4bi9697OQyEi3M7xBYZlK+6mEftJwsDrgMpfjiLUlFXVbZKQnBLTgyDlP9qgWhwIi4Zjgo/iGKtE9Ii3AVpwKGlMgXgL6tEa2fQiX7VQXao3owUunKg8OTnfWdqO3qAHIHi65v+8xdqofdTu6nRb1w4uXzWDEyVbLma77YHYxs/O8PGTyjH2xeiSTlE07T8lgFmtXc4czkCkib2UuULluQioSiUznTCm1PjvDSfuXelPEUG+QFrWGj0J1c7U4F8TIqnLjZTJOiO+rGCLgI6MdQikXOcbP0ujJAC3+S6eNBvQfXuLsYMM5vegQ9+iUDArJ503pPCo+JPh9Bar2QOBwm8NqbTzKq+A3UW5og5M21cG3miFWZGuZyXGkzX7gMglH6af1MF77Q9QofKptygq2Kb5ai39xkgSenVKGZDy7E+z8yeYEtWLFm5fawLOLzoYMv8Rpar0Hz2RaZfRnVVvccC3is0U=
+        on_success: never
+        on_failure: always
     email: false
 
 before_deploy: gox -osarch "linux/amd64 darwin/amd64 windows/amd64" -output "release/{{.Dir}}_{{.OS}}_{{.Arch}}"
