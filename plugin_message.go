@@ -49,6 +49,9 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			cv.Disconnect()
 
 		case CommQueryBroadSendComment:
+			if cv.Cmm == nil {
+				return nicolive.MakeError(nicolive.ErrOther, "not connected to live")
+			}
 			var ct CtQueryBroadSendComment
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
