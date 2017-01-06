@@ -2,15 +2,15 @@ package main
 
 // Application holds app settings and valuables
 type Application struct {
-	Name          string
-	Version       string
 	SavePath      string
 	SettingsSlots SettingsSlots
 }
 
+// Application global information
 var (
-	// App is global Application settings and valuables for this app
-	App = Application{Name: "Nagome", Version: "0.0.1"}
+	AppName = "Nagome"
+	Version string
+	App     Application
 )
 
 func main() {

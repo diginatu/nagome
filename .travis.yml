@@ -22,7 +22,7 @@ notifications:
         on_failure: always
     email: false
 
-before_deploy: gox -osarch "linux/amd64 darwin/amd64 windows/amd64" -output "release/{{.Dir}}_{{.OS}}_{{.Arch}}"
+before_deploy: make cross
 deploy:
     provider: releases
     api_key:

@@ -56,7 +56,7 @@ func RunCli() {
 		return
 	}
 	if *printVersion {
-		fmt.Println(App.Name, " ", App.Version)
+		fmt.Println(AppName, " ", Version)
 		return
 	}
 	if *mkplug != "" {

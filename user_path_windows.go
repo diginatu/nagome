@@ -12,5 +12,5 @@ func findUserConfigPath() string {
 		dir = filepath.Join(home, "Application Data")
 	}
 
-	return filepath.Join(dir, App.Name)
+	return filepath.Join(dir, AppName)
 }
