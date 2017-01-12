@@ -109,6 +109,9 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			}
 
 			cv.Settings = SettingsSlot(ct)
+			for _, p := range cv.Pgns {
+				p.SetState(!cv.Settings.PluginDisable[p.Name])
+			}
 
 		case CommQuerySettingsSetAll:
 			var ct CtQuerySettingsSetAll
