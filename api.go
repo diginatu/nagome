@@ -90,8 +90,8 @@ const (
 
 	CommQueryLogPrint = "Log.Print" // Print string using logger of Nagome
 
-	CommQuerySettingsSet    = "Settings.Set"    // Set settings to current slot.
-	CommQuerySettingsSetAll = "Settings.SetAll" // Set all slots of settings.
+	CommQuerySettingsSetCurrent = "Settings.SetCurrent" // Set settings to current slot.
+	CommQuerySettingsSetAll     = "Settings.SetAll"     // Set all slots of settings.
 
 	CommQueryPlugEnable = "Plug.Enable" // Enable or disable a plugin.
 
@@ -167,11 +167,11 @@ type CtQueryLogPrint struct {
 	Text string `json:"text"`
 }
 
-// CtQuerySettingsSet is a content of CommQuerySettingsSet
-type CtQuerySettingsSet SettingsSlot
+// CtQuerySettingsSetCurrent is a content of CommQuerySettingsSetCurrent
+type CtQuerySettingsSetCurrent SettingsSlot
 
-// CtQuerySettingsSetSlots is a content of CommQuerySettingsSetSlots
-type CtQuerySettingsSetSlots SettingsSlots
+// CtQuerySettingsSetAll is a content of CommQuerySettingsSetAll
+type CtQuerySettingsSetAll SettingsSlots
 
 // CtQueryPlugEnable is a content of CommQueryPlugEnable
 type CtQueryPlugEnable struct {

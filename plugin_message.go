@@ -102,8 +102,8 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 			log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno].Name, ct.Text)
 
-		case CommQuerySettingsSet:
-			var ct CtQuerySettingsSet
+		case CommQuerySettingsSetCurrent:
+			var ct CtQuerySettingsSetCurrent
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
@@ -111,7 +111,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			cv.Settings = SettingsSlot(ct)
 
 		case CommQuerySettingsSetAll:
-			var ct CtQuerySettingsSetSlots
+			var ct CtQuerySettingsSetAll
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
