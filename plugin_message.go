@@ -100,7 +100,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
-			log.Printf("plug[%s] %s\n", cv.Pgns[m.prgno].Name, ct.Text)
+			log.Printf("plug[%s] %s\n", cv.PluginName(m.prgno), ct.Text)
 
 		case CommQuerySettingsSetCurrent:
 			var ct CtQuerySettingsSetCurrent

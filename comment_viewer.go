@@ -78,12 +78,24 @@ func (cv *CommentViewer) Wait() {
 	cv.wg.Wait()
 }
 
-// Plugin returns plugin with given No,
+// Plugin returns plugin with given No.
 func (cv *CommentViewer) Plugin(n int) (*Plugin, error) {
 	if n < 0 || len(cv.Pgns) <= n {
 		return nil, fmt.Errorf("invalid plugin No")
 	}
 	return cv.Pgns[n], nil
+}
+
+// PluginName returns name of the plugin with given No.
+func (cv *CommentViewer) PluginName(n int) string {
+	if n < -1 || len(cv.Pgns) <= n {
+		log.Printf("invalid plugin num : %d\n", n)
+		return "???"
+	}
+	if n == -1 {
+		return "NagomeInternal"
+	}
+	return cv.Pgns[n].Name
 }
 
 // AddPlugin adds new plugin to Pgns
@@ -206,7 +218,7 @@ func (cv *CommentViewer) sendPluginMessage() {
 			if mes.Domain == DomainDirect {
 				nicoerr := processDirectMessage(cv, mes)
 				if nicoerr != nil {
-					log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nicoerr)
+					log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.prgno), nicoerr)
 					log.Println(mes)
 				}
 				continue
@@ -249,7 +261,7 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 			nerr := processPluginMessage(cv, mes)
 			if nerr != nil {
-				log.Printf("plugin message error form [%s] : %s\n", cv.Pgns[mes.prgno].Name, nerr)
+				log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.prgno), nerr)
 				log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)
