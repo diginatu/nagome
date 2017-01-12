@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -15,6 +16,10 @@ type Message struct {
 	Content json.RawMessage `json:"content,omitempty"` // The structure of Content is depend on the Command (and Domain).
 
 	prgno int
+}
+
+func (m *Message) String() string {
+	return fmt.Sprintf("{%s %s %s plug:%d}", m.Domain, m.Command, m.Content, m.prgno)
 }
 
 // NewMessage returns new Message with the given values.
