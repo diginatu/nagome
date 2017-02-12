@@ -261,14 +261,14 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 			nerr := processPluginMessage(cv, mes)
 			if nerr != nil {
-				log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.prgno), nerr)
+				log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.prgno), nerr)
 				log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)
 				if ok {
 					cv.ProceedNicoliveError(nicoerr)
 				} else {
-					log.Panicln(err)
+					log.Panicln(nerr)
 				}
 			}
 
@@ -335,6 +335,7 @@ func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
 	switch e.No() {
 	case nicolive.ErrOther:
 	case nicolive.ErrSendComment:
+		cv.CreateEvNewDialog(CtUIDialogTypeWarn, e.TypeString(), e.Description())
 	case nicolive.ErrConnection:
 	case nicolive.ErrNicoLiveOther:
 	case nicolive.ErrNotLogin:
@@ -343,4 +344,5 @@ func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
 	default:
 		log.Println("Unknown nicolive Error")
 	}
+	cv.CreateEvNewDialog(CtUIDialogTypeWarn, e.TypeString(), e.Description())
 }

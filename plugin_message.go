@@ -43,20 +43,51 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			if err != nil {
 				return err
 			}
-			log.Println("connecting")
+
+			if lw.IsUserOwner() {
+				ps, err := nicolive.PublishStatus(lw.BroadID, cv.Ac)
+				if err != nil {
+					return err
+				}
+				cv.Lw.OwnerCommentToken = ps.Token
+			}
+
+			log.Println("connected")
 
 		case CommQueryBroadDisconnect:
 			cv.Disconnect()
 
 		case CommQueryBroadSendComment:
 			if cv.Cmm == nil {
-				return nicolive.MakeError(nicolive.ErrOther, "not connected to live")
+				return nicolive.MakeError(nicolive.ErrSendComment, "not connected to live")
 			}
+			if cv.Lw == nil {
+				return nicolive.MakeError(nicolive.ErrSendComment, "Error : cv.Lw is nil")
+			}
+
 			var ct CtQueryBroadSendComment
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
-			cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+
+			isowner := false
+			if ct.Type == "" {
+				isowner = cv.Settings.OwnerComment
+			} else {
+				isowner = ct.Type == CtQueryBroadSendCommentTypeOwner
+			}
+			if !cv.Lw.IsUserOwner() {
+				isowner = false
+			}
+
+			if isowner {
+				err := nicolive.CommentOwner(cv.Lw, ct.Text, "")
+				if err != nil {
+					return err
+				}
+			} else {
+				cv.Cmm.SendComment(ct.Text, ct.Iyayo)
+			}
 
 		case CommQueryAccountSet:
 			var ct CtQueryAccountSet

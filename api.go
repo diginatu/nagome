@@ -158,10 +158,17 @@ type CtQueryBroadConnect struct {
 	BroadID string `json:"broad_id"`
 }
 
+// type of CtQueryBroadSendComment
+const (
+	CtQueryBroadSendCommentTypeGeneral string = "General"
+	CtQueryBroadSendCommentTypeOwner          = "Owner" // ignored if the user is not the owner
+)
+
 // CtQueryBroadSendComment is a content of CommQueryBroadSendComment
 type CtQueryBroadSendComment struct {
 	Text  string `json:"text"`
 	Iyayo bool   `json:"iyayo"`
+	Type  string `json:"type,omitempty"` // if omitted, automatically selected depend on the settings
 }
 
 // CtQueryAccountSet is a content of CommQueryAccountSet

@@ -9,7 +9,7 @@ $(BINARY): $(SOURCES)
 
 .PHONY: install
 install:
-	go install ${LDFLAGS} ./...
+	go install ${LDFLAGS}
 
 .PHONY: cross
 cross:

@@ -13,6 +13,7 @@ type SettingsSlot struct {
 	AutoSaveTo0Slot    bool            `yaml:"auto_save_to0_slot"    json:"auto_save_to0_slot"`
 	UserNameGet        bool            `yaml:"user_name_get"         json:"user_name_get"`
 	AutoFollowNextWaku bool            `yaml:"auto_follow_next_waku" json:"auto_follow_next_waku"`
+	OwnerComment       bool            `yaml:"owner_comment"         json:"owner_comment"`
 	PluginDisable      map[string]bool `yaml:"plugin_disable"        json:"plugin_disable"`
 }
 
@@ -23,6 +24,7 @@ func NewSettingsSlot() *SettingsSlot {
 		AutoSaveTo0Slot:    true,
 		UserNameGet:        false,
 		AutoFollowNextWaku: true,
+		OwnerComment:       true,
 		PluginDisable:      make(map[string]bool),
 	}
 }
