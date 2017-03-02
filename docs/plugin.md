@@ -7,7 +7,7 @@ Plugin types
 ------------
 
 Nagome always creates one main plugin.
-Other user-defined plugin is called normal plugins.
+Another user-defined plugin is called normal plugins.
 
 +   main plugin
     +   Nagome
@@ -33,19 +33,19 @@ The plugin directory (plugin-name-1 above) name don't need to be same as its nam
 ### Main plugin
 
 Nagome always creates one main plugin.  You can't make more.
-Main plugin has plugin number 0.
-Typically, it is used to a plugin that provides user interface, and the plugin executes Nagome.
-So main plugin doesn't have plugin directory or fixed configuration file but you can pass -y(--ymlmain) command line option to specify the configuration file (same as plugin.yml in normal plugin).
+The main plugin has plugin number 0.
+Typically, it is used to a plugin that provides the user interface, and the plugin executes Nagome.
+So main plugin doesn't have plugin directory or fixed configuration file but you can pass -y(--ymlmain) command line option to specify the configuration file (same as plugin.yml in the normal plugin).
 
-You have to check below when you make a UI plugin.
+You have to check below when you make an UI plugin.
 
 +   Subscribe the Domain "nagome_ui" and use all events as you can.
 +   Do not use --dbgtostd command line option when you distribute it so users can see the log file later.
 
 Differences between normal and main plugins:
 
-+   Nagome will quit if the connection of main plugin is closed
-+   Typically, main plugin executes Nagome.  Normal plugins are executed by Nagome.
++   Nagome will quit if the connection of the main plugin is closed
++   Typically, the main plugin executes Nagome.  Normal plugins are executed by Nagome.
 
 plugin.yml
 ----------
@@ -77,7 +77,7 @@ subscribe:
 
     Nagome runs this code after loading this at startup.
     Write your command line options as array elements.
-    Following context will be replaced.
+    The following context will be replaced.
 
     +   {{path}} : Path to plugin directory.
     +   {{no}} : Plugin number (necessary in TCP).
@@ -89,7 +89,7 @@ subscribe:
 Connection
 ----------
 
-Plugins communicate with Nagome process using JSON in stdin/out or TCP connection.
+Plugins communicate with a Nagome process using JSON in stdin/out or TCP connection.
 Each JSON message is sent line by line from Nagome.
 Plugins don't have to keep this rule.
 
@@ -98,8 +98,8 @@ Plugins don't have to keep this rule.
 To use stdin/out connection, set 'std' to 'method' in your plugin.yml.
 
 You can directly use standard input and output for JSON communication.
-Normal plugin can naturally use its stdin/out.
-Main plugin should execute Nagome and grab the stdin/out of it.
+Normal plugins can naturally use its stdin/out.
+The main plugin should execute Nagome and grab the stdin/out of it.
 
 ### TCP
 
@@ -119,7 +119,7 @@ Then, at the beginning of the connection, send a message like below.
 }
 ~~~
 
-This message is special, so cannot be send at any time except this.
+This message is special, so cannot be sent at any time except this.
 
 Example
 -------
