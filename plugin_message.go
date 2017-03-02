@@ -90,6 +90,9 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			}
 
 		case CommQueryAccountSet:
+			if cv.Ac == nil {
+				return nicolive.MakeError(nicolive.ErrOther, "Account data (cv.Ac) is nil.")
+			}
 			var ct CtQueryAccountSet
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())

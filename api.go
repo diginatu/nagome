@@ -104,6 +104,7 @@ const (
 	// Event to be processed by UI plugin.
 	CommUIDialog        = "Dialog"
 	CommUIClearComments = "ClearComments"
+	CommUIConfigAccount = "ConfigAccount" // Open the window of account setting or suggest user to configure it.
 
 	// DomainAntenna
 	// All antenna items (started live).
