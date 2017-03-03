@@ -157,6 +157,7 @@ type CtNagomeBroadInfo struct {
 // CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
 	BroadID string `json:"broad_id"`
+	RetryN  int    `json:"retry_n,omitempty"`
 }
 
 // type of CtQueryBroadSendComment

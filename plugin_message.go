@@ -6,8 +6,14 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/diginatu/nagome/nicolive"
+)
+
+// Constant values for processing plugin messages.
+const (
+	NumFetchInformaionRetry = 3
 )
 
 var (
@@ -32,8 +38,27 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			}
 
 			lw := &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
-			if err = lw.FetchInformation(); err != nil {
-				return err
+
+			err = lw.FetchInformation()
+			if err != nil {
+				nerr, ok := err.(nicolive.Error)
+				if ok {
+					if nerr.No() == nicolive.ErrClosed ||
+						nerr.No() == nicolive.ErrIncorrectAccount {
+						return nerr
+					}
+				}
+				ct.RetryN++
+				log.Printf("Failed to connect to %s.\n", ct.BroadID)
+				if ct.RetryN >= NumFetchInformaionRetry {
+					log.Println("Reached the limit of retrying.")
+					return err
+				}
+				log.Println("Retrying...")
+				go func() {
+					<-time.After(time.Second)
+					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
+				}()
 			}
 
 			cv.Disconnect()
@@ -184,7 +209,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 					return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 				}
 				if cv.Lw != nil && cv.Lw.Stream.CommunityID == ct.CommunityID {
-					ct := CtQueryBroadConnect{ct.BroadID}
+					ct := CtQueryBroadConnect{ct.BroadID, 0}
 					log.Println("following to " + ct.BroadID)
 					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
 				}
