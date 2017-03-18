@@ -27,7 +27,8 @@ func init() {
 	}
 }
 
-// Account is a niconico account
+// An Account is a niconico account.
+// It is used to access APIs in this library.
 type Account struct {
 	Mail        string `yaml:"mail"`
 	Pass        string `yaml:"pass"`
@@ -83,7 +84,7 @@ func (a *Account) String() string {
 	return fmt.Sprintf("Account{%s..}", a.Mail[0:i])
 }
 
-// Save save Account to a file
+// Save save Account to a file.
 func (a *Account) Save(filePath string) error {
 	d, err := yaml.Marshal(a)
 	if err != nil {
@@ -98,29 +99,30 @@ func (a *Account) Save(filePath string) error {
 	return nil
 }
 
-// Load reads from a file and sets values
-func (a *Account) Load(filePath string) error {
+// AccountLoad reads from a file and return new Account.
+func AccountLoad(filePath string) (*Account, error) {
 	d, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	a := new(Account)
 	err = yaml.Unmarshal(d, a)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	a.UpdateClient()
-	return nil
+	return a, nil
 }
 
-// Login log in to niconico and update Usersession
+// Login logs in to niconico and updates its Usersession
 func (a *Account) Login() error {
-	return a.LoginImpl(loginAddr)
+	return a.loginImpl(loginAddr)
 }
 
-// LoginImpl is implementation of Login.
-func (a *Account) LoginImpl(addr string) (err error) {
+// loginImpl is implementation of Login.
+func (a *Account) loginImpl(addr string) (err error) {
 	if a.Mail == "" || a.Pass == "" {
 		return MakeError(ErrOther, "invalid account : mail or pass is not set")
 	}
@@ -156,5 +158,5 @@ func (a *Account) LoginImpl(addr string) (err error) {
 		}
 	}
 
-	return MakeError(ErrOther, "failed log in to niconico.  Could not find the key of the usersession cookie")
+	return MakeError(ErrOther, "failed to log in niconico.  Could not find the key of the usersession cookie")
 }

@@ -35,8 +35,7 @@ func TestAccountStringer(t *testing.T) {
 }
 
 func TestAccountLoad(t *testing.T) {
-	a := new(Account)
-	err := a.Load("testdata/success.yaml")
+	a, err := AccountLoad("testdata/success.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,8 +56,7 @@ func TestAccountLoad(t *testing.T) {
 	}
 }
 func TestAccountLoadFail(t *testing.T) {
-	a := new(Account)
-	err := a.Load("testdata/failing.yaml")
+	_, err := AccountLoad("testdata/failing.yaml")
 	if err == nil {
 		t.Fatal("Should be fail")
 	}
@@ -92,8 +90,7 @@ func TestAccountSave(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	b := new(Account)
-	err = b.Load(f.Name())
+	b, err := AccountLoad(f.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
