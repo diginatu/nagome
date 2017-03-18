@@ -94,7 +94,7 @@ func RunCli() {
 	err = ac.Load(filepath.Join(App.SavePath, accountFileName))
 	if err != nil {
 		log.Println(err)
-		cv.Ac = &nicolive.Account{}
+		cv.Ac = new(nicolive.Account)
 		cv.Evch <- NewMessageMust(DomainUI, CommUIConfigAccount, nil)
 	} else {
 		cv.Ac = ac

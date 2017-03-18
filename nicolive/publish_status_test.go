@@ -37,7 +37,8 @@ func TestPublishStatus(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	ps1, err := publishStatusImpl(ts.URL, &Account{Usersession: "example"})
+	ac := NewAccount("mail", "pass", "example")
+	ps1, err := publishStatusImpl(ts.URL, ac)
 	if err != nil {
 		t.Fatal(err)
 	}

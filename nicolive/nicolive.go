@@ -4,9 +4,6 @@ package nicolive
 
 import (
 	"fmt"
-	"net/http"
-	"net/http/cookiejar"
-	"net/url"
 	"runtime"
 
 	"gopkg.in/xmlpath.v2"
@@ -18,34 +15,6 @@ var (
 	xmlPathErrorCode = xmlpath.MustCompile("//error/code")
 	xmlPathErrorDesc = xmlpath.MustCompile("//error/description")
 )
-
-// NewNicoClient makes new http.Client with usersession
-func NewNicoClient(a *Account) (*http.Client, error) {
-	if a.Usersession == "" {
-		return nil, MakeError(ErrOther, "no usersession")
-	}
-
-	nicoURL, err := url.Parse("http://nicovideo.jp")
-	if err != nil {
-		return nil, ErrFromStdErr(err)
-	}
-
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, ErrFromStdErr(err)
-	}
-	c := http.Client{Jar: jar}
-	c.Jar.SetCookies(nicoURL, []*http.Cookie{
-		{
-			Domain: nicoURL.Host,
-			Path:   "/",
-			Name:   "user_session",
-			Value:  a.Usersession,
-			Secure: false,
-		},
-	})
-	return &c, nil
-}
 
 func caller(sk int) string {
 	_, file, line, ok := runtime.Caller(sk)

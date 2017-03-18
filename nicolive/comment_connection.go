@@ -293,15 +293,16 @@ func (cc *CommentConnection) routine() {
 }
 
 // FetchPostKey gets postkey using getpostkey API
+// This function is safe for concurrent use.
 func (cc *CommentConnection) FetchPostKey() (postkey string, err error) {
 	ac := cc.lv.Account
 	if ac == nil {
 		return "", MakeError(ErrOther, "nil account")
 	}
 
-	c, nicoerr := NewNicoClient(ac)
-	if nicoerr != nil {
-		return "", nicoerr
+	c := ac.client
+	if c == nil {
+		return "", MakeError(ErrOther, "nil account client")
 	}
 
 	url := fmt.Sprintf(

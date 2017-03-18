@@ -3,7 +3,6 @@ package nicolive
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -46,10 +45,11 @@ func TestUserFetchInfo(t *testing.T) {
 	defer ts.Close()
 
 	a := &Account{Usersession: "usersession_example"}
+	a.UpdateClient()
 
 	u, nerr := fetchUserInfoImpl(ts.URL+"/ok", a)
 	if nerr != nil {
-		log.Fatal(nerr)
+		t.Fatal(nerr)
 	}
 	if u.Name != userInfoResponseOkName {
 		t.Fatalf("Should be %v but %v", userInfoResponseOkName, u.Name)
@@ -60,7 +60,7 @@ func TestUserFetchInfo(t *testing.T) {
 
 	_, nerr = fetchUserInfoImpl(ts.URL+"/notfound", a)
 	if nerr == nil {
-		log.Fatal(nerr)
+		t.Fatal(nerr)
 	}
 }
 

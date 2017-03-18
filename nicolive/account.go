@@ -11,15 +11,68 @@ import (
 )
 
 const (
-	loginAddr           = "https://secure.nicovideo.jp/secure/login?site=nicolive"
-	usersessionBaseAddr = "http://nicovideo.jp"
+	loginAddr    = "https://secure.nicovideo.jp/secure/login?site=nicolive"
+	nicoBaseAddr = "http://nicovideo.jp"
 )
+
+var (
+	nicoBaseURL *url.URL
+)
+
+func init() {
+	var err error
+	nicoBaseURL, err = url.Parse(nicoBaseAddr)
+	if err != nil {
+		panic(err)
+	}
+}
 
 // Account is a niconico account
 type Account struct {
 	Mail        string `yaml:"mail"`
 	Pass        string `yaml:"pass"`
 	Usersession string `yaml:"usersession"`
+	client      *http.Client
+}
+
+// NewAccount makes new account with a http client.
+func NewAccount(mail, pass, usersession string) *Account {
+	a := &Account{mail, pass, usersession, nil}
+	a.UpdateClient()
+	return a
+}
+
+// UpdateClient updates Client with its Usersession.
+// If the Usersession of the account is empty string, clear the cookies jar.
+func (a *Account) UpdateClient() {
+	if a.Usersession == "" {
+		if a.client != nil {
+			a.client.Jar = nil
+		}
+		return
+	}
+
+	if a.client == nil {
+		a.client = &http.Client{}
+	}
+	if a.client.Jar == nil {
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			panic(err) // I think an error is never occurred.
+		}
+		a.client.Jar = jar
+	}
+
+	a.client.Jar.SetCookies(nicoBaseURL, []*http.Cookie{
+		{
+			Domain: nicoBaseURL.Host,
+			Path:   "/",
+			Name:   "user_session",
+			Value:  a.Usersession,
+			Secure: false,
+		},
+	})
+	return
 }
 
 func (a *Account) String() string {
@@ -57,16 +110,17 @@ func (a *Account) Load(filePath string) error {
 		return err
 	}
 
+	a.UpdateClient()
 	return nil
 }
 
 // Login log in to niconico and update Usersession
 func (a *Account) Login() error {
-	return a.LoginImpl(loginAddr, usersessionBaseAddr)
+	return a.LoginImpl(loginAddr)
 }
 
 // LoginImpl is implementation of Login.
-func (a *Account) LoginImpl(addr, baseAddr string) (err error) {
+func (a *Account) LoginImpl(addr string) (err error) {
 	if a.Mail == "" || a.Pass == "" {
 		return MakeError(ErrOther, "invalid account : mail or pass is not set")
 	}
@@ -92,18 +146,15 @@ func (a *Account) LoginImpl(addr, baseAddr string) (err error) {
 		}
 	}()
 
-	nicoURL, err := url.Parse(baseAddr)
-	if err != nil {
-		return ErrFromStdErr(err)
-	}
-	for _, ck := range cl.Jar.Cookies(nicoURL) {
+	for _, ck := range cl.Jar.Cookies(nicoBaseURL) {
 		if ck.Name == "user_session" {
 			if ck.Value != "deleted" && ck.Value != "" {
 				a.Usersession = ck.Value
+				a.UpdateClient()
 				return nil
 			}
 		}
 	}
 
-	return MakeError(ErrOther, "failed log in to niconico")
+	return MakeError(ErrOther, "failed log in to niconico.  Could not find the key of the usersession cookie")
 }

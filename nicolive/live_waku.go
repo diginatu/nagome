@@ -63,9 +63,9 @@ func (l *LiveWaku) FetchInformation() (err error) {
 		return MakeError(ErrOther, "BroadID is not set")
 	}
 
-	c, err := NewNicoClient(l.Account)
-	if err != nil {
-		return err
+	c := l.Account.client
+	if c == nil {
+		return MakeError(ErrOther, "nil Account http client in LiveWaku")
 	}
 
 	url := fmt.Sprintf("http://watch.live.nicovideo.jp/api/getplayerstatus/%s", l.BroadID)
@@ -159,6 +159,7 @@ func (l *LiveWaku) FetchInformation() (err error) {
 }
 
 // FetchHeartBeat gets watcher and comment count using heartbeat API
+// This function is safe for concurrent use.
 func (l *LiveWaku) FetchHeartBeat() (heartBeatValue HeartbeatValue, err error) {
 	var hb HeartbeatValue
 
@@ -169,9 +170,9 @@ func (l *LiveWaku) FetchHeartBeat() (heartBeatValue HeartbeatValue, err error) {
 		return hb, MakeError(ErrOther, "BroadID is not set")
 	}
 
-	c, nerr := NewNicoClient(l.Account)
-	if nerr != nil {
-		return hb, nerr
+	c := l.Account.client
+	if c == nil {
+		return hb, MakeError(ErrOther, "nil account client")
 	}
 
 	url := fmt.Sprintf("http://live.nicovideo.jp/api/heartbeat?v=%s", l.BroadID)

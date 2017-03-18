@@ -15,6 +15,7 @@ type PublishStatusItem struct {
 }
 
 // PublishStatus gets a token to comment as owner.
+// This function is safe for concurrent use.
 func PublishStatus(broadID string, a *Account) (*PublishStatusItem, error) {
 	return publishStatusImpl(
 		fmt.Sprintf("http://live.nicovideo.jp/api/getpublishstatus?v=%s", broadID), a)
@@ -31,9 +32,9 @@ func publishStatusImpl(url string, a *Account) (ps *PublishStatusItem, err error
 		Bitrate string `xml:"rtmp>bitrate"`
 	}
 
-	cl, nerr := NewNicoClient(a)
-	if nerr != nil {
-		return nil, nerr
+	cl := a.client
+	if cl == nil {
+		return nil, MakeError(ErrOther, "nil account http client")
 	}
 
 	res, err := cl.Get(url)

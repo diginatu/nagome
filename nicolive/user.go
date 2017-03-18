@@ -23,6 +23,7 @@ type User struct {
 }
 
 // FetchUserInfo fetches user name and Thumbnail URL from niconico.
+// This function is safe for concurrent use.
 func FetchUserInfo(id string, a *Account) (*User, error) {
 	url := fmt.Sprintf("http://api.ce.nicovideo.jp/api/v1/user.info?user_id=%s", id)
 	return fetchUserInfoImpl(url, a)
@@ -31,9 +32,9 @@ func FetchUserInfo(id string, a *Account) (*User, error) {
 func fetchUserInfoImpl(url string, a *Account) (user *User, err error) {
 	u := new(User)
 
-	c, nerr := NewNicoClient(a)
-	if nerr != nil {
-		return nil, nerr
+	c := a.client
+	if c == nil {
+		return nil, MakeError(ErrOther, "nil account http client")
 	}
 
 	res, err := c.Get(url)
