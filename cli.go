@@ -89,9 +89,7 @@ func RunCli() {
 
 	cv := NewCommentViewer(*tcpPort)
 
-	// load account data
-	ac := new(nicolive.Account)
-	err = ac.Load(filepath.Join(App.SavePath, accountFileName))
+	ac, err := nicolive.AccountLoad(filepath.Join(App.SavePath, accountFileName))
 	if err != nil {
 		log.Println(err)
 		cv.Ac = new(nicolive.Account)

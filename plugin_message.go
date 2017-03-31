@@ -148,7 +148,9 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			cv.CreateEvNewDialog(CtUIDialogTypeInfo, "login succeeded", "login succeeded")
 
 		case CommQueryAccountLoad:
-			return cv.Ac.Load(filepath.Join(App.SavePath, accountFileName))
+			var err error
+			cv.Ac, err = nicolive.AccountLoad(filepath.Join(App.SavePath, accountFileName))
+			return err
 
 		case CommQueryAccountSave:
 			return cv.Ac.Save(filepath.Join(App.SavePath, accountFileName))
