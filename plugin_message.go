@@ -106,7 +106,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			}
 
 			if isowner {
-				err := nicolive.CommentOwner(cv.Lw, ct.Text, "")
+				err := nicolive.CommentOwner(cv.Lw, ct.Text, "", cv.Ac)
 				if err != nil {
 					return err
 				}

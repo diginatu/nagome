@@ -3,12 +3,12 @@ package nicolive
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/url"
+	"os"
 )
 
 // CommentOwner sends a comment as the owner.
-func CommentOwner(lw *LiveWaku, text, name string) error {
+func CommentOwner(lw *LiveWaku, text, name string, ac *Account) error {
 	if lw.OwnerCommentToken == "" {
 		return MakeError(ErrOther, "empty token")
 	}
@@ -21,12 +21,11 @@ func CommentOwner(lw *LiveWaku, text, name string) error {
 	urls := fmt.Sprintf("http://watch.live.nicovideo.jp/api/broadcast/%s?%s",
 		lw.BroadID, v.Encode())
 
-	return commentOwnerImpl(urls)
+	return commentOwnerImpl(urls, ac)
 }
 
-func commentOwnerImpl(urls string) (err error) {
-	c := http.Client{}
-	res, err := c.Get(urls)
+func commentOwnerImpl(urls string, ac *Account) (err error) {
+	res, err := ac.client.Get(urls)
 	if err != nil {
 		return MakeError(ErrSendComment, err.Error())
 	}
@@ -38,7 +37,6 @@ func commentOwnerImpl(urls string) (err error) {
 		}
 	}()
 
-	fmt.Println()
 	brs, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return MakeError(ErrSendComment, err.Error())
@@ -49,7 +47,16 @@ func commentOwnerImpl(urls string) (err error) {
 		return MakeError(ErrSendComment, err.Error())
 	}
 
-	fmt.Println(v)
+	if len(v["status"]) > 0 {
+		if v["status"][0] == "error" {
+			if len(v["error"]) > 0 {
+				return MakeError(ErrSendComment, "error num : "+v["error"][0])
+			}
+			return MakeError(ErrSendComment, "unknown error")
+		}
+		return nil
+	}
 
-	return nil
+	fmt.Fprintln(os.Stderr, v)
+	return MakeError(ErrSendComment, "unknown error")
 }
