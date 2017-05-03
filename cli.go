@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,52 +21,71 @@ const (
 	settingsFileName = "setting.yml"
 )
 
-// RunCli processes flags and io
-func RunCli() {
+// CLI has valuables and settings for a CLI environment.
+type CLI struct {
+	InStream             io.Reader
+	OutStream, ErrStream io.Writer
+	SavePath             string
+	SettingsSlots        SettingsSlots
+	log                  *log.Logger
+}
+
+// RunCli runs CLI functions as one command line program.
+// This returns the CLI return value.
+func (c *CLI) RunCli(args []string) int {
+	c.log = log.New(c.ErrStream, "", log.Lshortfile|log.Ltime)
+
 	// set command line options
 	var (
 		printHelp bool
 		mainyml   string
 	)
 
-	flag.StringVar(&App.SavePath, "savepath", findUserConfigPath(), "Set <string> to save directory.")
-	tcpPort := flag.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
-	debugToStderr := flag.Bool("dbgtostd", false, `Output debug information to stderr.
+	flagst := flag.NewFlagSet("nagome-cli", flag.ContinueOnError)
+	flagst.SetOutput(c.ErrStream)
+
+	flagst.StringVar(&c.SavePath, "savepath", findUserConfigPath(), "Set <string> to save directory.")
+	tcpPort := flagst.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
+	debugToStderr := flagst.Bool("dbgtostd", false, `Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
-	flag.BoolVar(&printHelp, "help", false, "Print this help.")
-	flag.BoolVar(&printHelp, "h", false, "Print this help. (shorthand)")
-	printVersion := flag.Bool("v", false, "Print version information.")
-	mkplug := flag.String("makeplug", "", "Make new plugin template with given name.")
-	flag.StringVar(&mainyml, "ymlmain", "", `specfy the config file of main plugin.
+	flagst.BoolVar(&printHelp, "help", false, "Print this help.")
+	flagst.BoolVar(&printHelp, "h", false, "Print this help. (shorthand)")
+	printVersion := flagst.Bool("v", false, "Print version information.")
+	mkplug := flagst.String("makeplug", "", "Make new plugin template with given name.")
+	flagst.StringVar(&mainyml, "ymlmain", "", `specfy the config file of main plugin.
 	Its format is same as yml file of normal plugins.`)
-	flag.StringVar(&mainyml, "y", "", `specfy the config file of main plugin. (shorthand)`)
+	flagst.StringVar(&mainyml, "y", "", `specfy the config file of main plugin. (shorthand)`)
 
-	flag.Parse()
+	flagst.Parse(args[1:])
 
-	log.SetFlags(log.Lshortfile | log.Ltime)
-
-	err := App.SettingsSlots.Load()
+	err := c.SettingsSlots.Load(filepath.Join(c.SavePath, settingsFileName))
 	if err != nil {
-		log.Println(err)
+		c.log.Println(err)
+		return 1
 	}
 
-	pluginPath := filepath.Join(App.SavePath, pluginDirName)
+	pluginPath := filepath.Join(c.SavePath, pluginDirName)
 
 	if printHelp {
-		flag.Usage()
-		return
+		flagst.Usage()
+		return 0
 	}
 	if *printVersion {
 		fmt.Println(AppName, " ", Version)
-		return
+		return 0
 	}
 	if *mkplug != "" {
-		generatePluginTemplate(*mkplug, pluginPath)
-		return
+		err = generatePluginTemplate(*mkplug, pluginPath)
+		if err != nil {
+			c.log.Println(err)
+			return 1
+		}
+		return 0
 	}
 
 	if err := os.MkdirAll(pluginPath, 0777); err != nil {
-		log.Fatal("could not make save directory\n", err)
+		c.log.Println("could not make save directory\n", err)
+		return 1
 	}
 
 	// set log
@@ -74,24 +94,25 @@ func RunCli() {
 		file = os.Stderr
 	} else {
 		var err error
-		file, err = os.Create(filepath.Join(App.SavePath, logFileName))
+		file, err = os.Create(filepath.Join(c.SavePath, logFileName))
 		if err != nil {
-			log.Fatal("could not open log file\n", err)
+			c.log.Println("could not open log file\n", err)
+			return 1
 		}
 	}
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			log.Println(err)
+			c.log.Println(err)
 		}
 	}()
-	log.SetOutput(file)
+	c.log.SetOutput(file)
 
-	cv := NewCommentViewer(*tcpPort)
+	cv := NewCommentViewer(*tcpPort, c)
 
-	ac, err := nicolive.AccountLoad(filepath.Join(App.SavePath, accountFileName))
+	ac, err := nicolive.AccountLoad(filepath.Join(c.SavePath, accountFileName))
 	if err != nil {
-		log.Println(err)
+		c.log.Println(err)
 		cv.Ac = new(nicolive.Account)
 		cv.Evch <- NewMessageMust(DomainUI, CommUIConfigAccount, nil)
 	} else {
@@ -108,14 +129,16 @@ func RunCli() {
 	if mainyml != "" {
 		err = plug.Load(mainyml)
 		if err != nil {
-			log.Fatal(err)
+			c.log.Println(err)
+			return 1
 		}
 	}
 	cv.AddPlugin(plug)
 	if plug.Method == pluginMethodStd {
 		err := plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout}, true)
 		if err != nil {
-			log.Fatalln(err)
+			c.log.Println(err)
+			return 1
 		}
 	}
 
@@ -126,25 +149,28 @@ func RunCli() {
 	cv.Wait()
 
 	if cv.Settings.AutoSaveTo0Slot {
-		App.SettingsSlots.Config[0] = &cv.Settings
+		c.SettingsSlots.Config[0] = &cv.Settings
 	}
-	err = App.SettingsSlots.Save()
+	err = c.SettingsSlots.Save(filepath.Join(cv.cli.SavePath, settingsFileName))
 	if err != nil {
-		log.Fatalln(err)
+		c.log.Println(err)
+		return 1
 	}
+
+	return 0
 }
 
-func generatePluginTemplate(name, pluginPath string) {
+func generatePluginTemplate(name, pluginPath string) error {
 	p := filepath.Join(pluginPath, name)
 
 	// check if the directory already exists
 	_, err := os.Stat(p)
 	if err == nil {
-		log.Fatalln("Same name directory is already exists.")
+		return fmt.Errorf("same name directory is already exists")
 	}
 
 	if err := os.MkdirAll(p, 0777); err != nil {
-		log.Fatalln("Could not make save directory : ", err)
+		return fmt.Errorf("Could not make save directory : %s", err)
 	}
 
 	pl := Plugin{
@@ -156,8 +182,9 @@ func generatePluginTemplate(name, pluginPath string) {
 	}
 	err = pl.Save(filepath.Join(p, pluginConfigName))
 	if err != nil {
-		log.Fatalln("Failed to save file : ", err)
+		return fmt.Errorf("failed to save file : %s", err)
 	}
 
 	fmt.Printf("Create your plugin in : %s\n", p)
+	return nil
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func TestSettingsSlotsLoad(t *testing.T) {
-	App.SavePath = os.TempDir()
+	slotfilepath := filepath.Join(os.TempDir(), settingsFileName)
 
 	ss := SettingsSlots{}
 	testSetting := NewSettingsSlot()
@@ -18,19 +18,19 @@ func TestSettingsSlotsLoad(t *testing.T) {
 	ss.Add(testSetting)
 	ss.Add(testSetting2)
 
-	err := ss.Save()
+	err := ss.Save(slotfilepath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.Remove(filepath.Join(App.SavePath, settingsFileName))
+		err := os.Remove(slotfilepath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
 	nss := SettingsSlots{}
-	err = nss.Load()
+	err = nss.Load(slotfilepath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +47,10 @@ func TestSettingsSlotsLoad(t *testing.T) {
 }
 
 func TestSettingsSlotsOldLoad(t *testing.T) {
-	App.SavePath = "testdata/old-setting"
 	defaultss := NewSettingsSlot()
 
 	ss := SettingsSlots{}
-	err := ss.Load()
+	err := ss.Load(filepath.Join("testdata", "old-setting", settingsFileName))
 	if err != nil {
 		t.Fatal(err)
 	}

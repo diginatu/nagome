@@ -2,7 +2,6 @@ package main
 
 import (
 	"io/ioutil"
-	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -57,6 +56,7 @@ func (s *SettingsSlot) Duplicate() SettingsSlot {
 // SettingsSlots is struct for multiple configs file.
 type SettingsSlots struct {
 	Config []*SettingsSlot `yaml:"config" json:"config"`
+	cli    *CLI
 }
 
 // Add adds given slot to the list.
@@ -65,18 +65,18 @@ func (ss *SettingsSlots) Add(s *SettingsSlot) {
 }
 
 // Save saves to a file.
-func (ss *SettingsSlots) Save() error {
+func (ss *SettingsSlots) Save(path string) error {
 	s, err := yaml.Marshal(ss)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(App.SavePath, settingsFileName), s, 0600)
+	return ioutil.WriteFile(path, s, 0600)
 }
 
 // Load loads from a file.
-func (ss *SettingsSlots) Load() error {
-	f, err := ioutil.ReadFile(filepath.Join(App.SavePath, settingsFileName))
+func (ss *SettingsSlots) Load(path string) error {
+	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}

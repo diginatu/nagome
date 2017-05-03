@@ -29,18 +29,20 @@ type CommentViewer struct {
 	quit     chan struct{}
 	wg       sync.WaitGroup
 	prcdnle  *ProceedNicoliveEvent
+	cli      *CLI
 }
 
 // NewCommentViewer makes new CommentViewer
-func NewCommentViewer(tcpPort string) *CommentViewer {
-	if len(App.SettingsSlots.Config) == 0 {
-		App.SettingsSlots.Add(NewSettingsSlot())
+func NewCommentViewer(tcpPort string, cli *CLI) *CommentViewer {
+	if len(cli.SettingsSlots.Config) == 0 {
+		cli.SettingsSlots.Add(NewSettingsSlot())
 	}
 	cv := &CommentViewer{
-		Settings: App.SettingsSlots.Config[0].Duplicate(),
+		Settings: cli.SettingsSlots.Config[0].Duplicate(),
 		TCPPort:  tcpPort,
 		Evch:     make(chan *Message, eventBufferSize),
 		quit:     make(chan struct{}),
+		cli:      cli,
 	}
 	cv.prcdnle = NewProceedNicoliveEvent(cv)
 	return cv
@@ -105,7 +107,7 @@ func (cv *CommentViewer) AddPlugin(p *Plugin) {
 }
 
 func (cv *CommentViewer) loadPlugins() {
-	psPath := filepath.Join(App.SavePath, pluginDirName)
+	psPath := filepath.Join(cv.cli.SavePath, pluginDirName)
 
 	ds, err := ioutil.ReadDir(psPath)
 	if err != nil {

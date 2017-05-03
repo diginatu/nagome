@@ -5,17 +5,10 @@ import (
 	"os"
 )
 
-// Application holds app settings and valuables
-type Application struct {
-	SavePath      string
-	SettingsSlots SettingsSlots
-}
-
 // Application global information
 var (
 	AppName = "Nagome"
 	Version string
-	App     Application
 )
 
 func main() {
@@ -23,6 +16,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Version value was not set at build time.")
 		Version = "Unknown"
 	}
-	RunCli()
+
+	cli := &CLI{
+		InStream:  os.Stdin,
+		OutStream: os.Stdout,
+		ErrStream: os.Stderr,
+	}
+
+	os.Exit(cli.RunCli(os.Args))
 	return
 }

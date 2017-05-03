@@ -23,7 +23,7 @@ type ProceedNicoliveEvent struct {
 
 // NewProceedNicoliveEvent makes new ProceedNicoliveEvent and returns it.
 func NewProceedNicoliveEvent(cv *CommentViewer) *ProceedNicoliveEvent {
-	udb, err := nicolive.NewUserDB(filepath.Join(App.SavePath, userDBDirName))
+	udb, err := nicolive.NewUserDB(filepath.Join(cv.cli.SavePath, userDBDirName))
 	if err != nil {
 		log.Fatalln(err)
 	}

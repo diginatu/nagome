@@ -149,11 +149,11 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 		case CommQueryAccountLoad:
 			var err error
-			cv.Ac, err = nicolive.AccountLoad(filepath.Join(App.SavePath, accountFileName))
+			cv.Ac, err = nicolive.AccountLoad(filepath.Join(cv.cli.SavePath, accountFileName))
 			return err
 
 		case CommQueryAccountSave:
-			return cv.Ac.Save(filepath.Join(App.SavePath, accountFileName))
+			return cv.Ac.Save(filepath.Join(cv.cli.SavePath, accountFileName))
 
 		case CommQueryLogPrint:
 			var ct CtQueryLogPrint
@@ -180,7 +180,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
-			App.SettingsSlots = SettingsSlots(ct)
+			cv.cli.SettingsSlots = SettingsSlots(ct)
 
 		case CommQueryPlugEnable:
 			var ct CtQueryPlugEnable
@@ -238,7 +238,7 @@ func processDirectMessage(cv *CommentViewer, m *Message) error {
 		}
 		cv.Pgns[m.prgno].WriteMess(t)
 	case CommDirectSettingsAll:
-		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, CtDirectngmSettingsAll(App.SettingsSlots))
+		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, CtDirectngmSettingsAll(cv.cli.SettingsSlots))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}

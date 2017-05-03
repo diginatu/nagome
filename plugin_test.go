@@ -34,18 +34,23 @@ func (rwc *testRwc) Close() error {
 
 func TestPluginClose(t *testing.T) {
 	var err error
-	App.SavePath, err = ioutil.TempDir("", "nagome")
+	cli := &CLI{
+		InStream:  os.Stdin,
+		OutStream: os.Stdout,
+		ErrStream: os.Stderr,
+	}
+	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.RemoveAll(App.SavePath)
+		err := os.RemoveAll(cli.SavePath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	cv := NewCommentViewer("0")
+	cv := NewCommentViewer("0", cli)
 	cv.Ac = &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
 	p := newPlugin(cv)
 	p.Name = "main"
@@ -79,18 +84,23 @@ func TestPluginClose(t *testing.T) {
 
 func TestPluginErrorConnection(t *testing.T) {
 	var err error
-	App.SavePath, err = ioutil.TempDir("", "nagome")
+	cli := &CLI{
+		InStream:  os.Stdin,
+		OutStream: os.Stdout,
+		ErrStream: os.Stderr,
+	}
+	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.RemoveAll(App.SavePath)
+		err := os.RemoveAll(cli.SavePath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	cv := NewCommentViewer("0")
+	cv := NewCommentViewer("0", cli)
 	p := newPlugin(cv)
 	p.Name = "normal"
 	p.Description = "normal plugin"
@@ -127,18 +137,25 @@ func TestPluginErrorConnection(t *testing.T) {
 
 func TestPluginWrite(t *testing.T) {
 	var err error
-	App.SavePath, err = ioutil.TempDir("", "nagome")
+
+	cli := &CLI{
+		InStream:  os.Stdin,
+		OutStream: os.Stdout,
+		ErrStream: os.Stderr,
+	}
+
+	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.RemoveAll(App.SavePath)
+		err := os.RemoveAll(cli.SavePath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	cv := NewCommentViewer("0")
+	cv := NewCommentViewer("0", cli)
 	p := newPlugin(cv)
 	p.Name = "normal"
 	p.Description = "normal plugin"
