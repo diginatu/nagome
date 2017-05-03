@@ -19,7 +19,7 @@ type Message struct {
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("{%s %s %s plug:%d}", m.Domain, m.Command, m.Content, m.prgno)
+	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.prgno)
 }
 
 // NewMessage returns new Message with the given values.
