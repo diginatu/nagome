@@ -1,4 +1,4 @@
-package main
+package viewer
 
 import (
 	"io/ioutil"
@@ -56,7 +56,6 @@ func (s *SettingsSlot) Duplicate() SettingsSlot {
 // SettingsSlots is struct for multiple configs file.
 type SettingsSlots struct {
 	Config []*SettingsSlot `yaml:"config" json:"config"`
-	cli    *CLI
 }
 
 // Add adds given slot to the list.

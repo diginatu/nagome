@@ -1,4 +1,4 @@
-package main
+package viewer
 
 import (
 	"flag"
@@ -30,15 +30,17 @@ type CLI struct {
 	SavePath             string
 	SettingsSlots        SettingsSlots
 	log                  *log.Logger
+	AppName, Version     string
 }
 
 // NewCLI creates new default values CLI struct.
-func NewCLI(name string) *CLI {
+func NewCLI(name, appname string) *CLI {
 	return &CLI{
 		InStream:  os.Stdin,
 		OutStream: os.Stdout,
 		ErrStream: os.Stderr,
-		SavePath:  findUserConfigPath(),
+		AppName:   appname,
+		SavePath:  findUserConfigPath(appname),
 		log:       log.New(os.Stderr, name, logFlags),
 	}
 }
@@ -57,7 +59,7 @@ func (c *CLI) RunCli(args []string) int {
 	flagst := flag.NewFlagSet("nagome-cli", flag.ContinueOnError)
 	flagst.SetOutput(c.ErrStream)
 
-	flagst.StringVar(&c.SavePath, "savepath", findUserConfigPath(), "Set <string> to save directory.")
+	flagst.StringVar(&c.SavePath, "savepath", findUserConfigPath(c.AppName), "Set <string> to save directory.")
 	tcpPort := flagst.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
 	debugToStderr := flagst.Bool("dbgtostd", false, `Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
@@ -87,7 +89,7 @@ func (c *CLI) RunCli(args []string) int {
 		return 0
 	}
 	if *printVersion {
-		fmt.Fprintln(c.OutStream, AppName, " ", Version)
+		fmt.Fprintln(c.OutStream, c.AppName, " ", c.Version)
 		return 0
 	}
 	if *mkplug != "" {

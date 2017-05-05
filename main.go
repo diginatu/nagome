@@ -3,11 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/diginatu/nagome/viewer"
+)
+
+const (
+	// AppName is the application name
+	AppName = "Nagome"
 )
 
 // Application global information
 var (
-	AppName = "Nagome"
 	Version string
 )
 
@@ -17,7 +23,8 @@ func main() {
 		Version = "Unknown"
 	}
 
-	cli := NewCLI("")
+	cli := viewer.NewCLI("", AppName)
+	cli.Version = Version
 	os.Exit(cli.RunCli(os.Args))
 	return
 }

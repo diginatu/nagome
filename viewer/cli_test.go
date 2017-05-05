@@ -1,4 +1,4 @@
-package main
+package viewer
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 
 func TestTCPAPI(t *testing.T) {
 	var err error
-	cli := NewCLI("test")
+	cli := NewCLI("test", "nagome")
 	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
