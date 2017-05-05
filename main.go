@@ -17,12 +17,7 @@ func main() {
 		Version = "Unknown"
 	}
 
-	cli := &CLI{
-		InStream:  os.Stdin,
-		OutStream: os.Stdout,
-		ErrStream: os.Stderr,
-	}
-
+	cli := NewCLI("")
 	os.Exit(cli.RunCli(os.Args))
 	return
 }

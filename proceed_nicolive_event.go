@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,7 +24,7 @@ type ProceedNicoliveEvent struct {
 func NewProceedNicoliveEvent(cv *CommentViewer) *ProceedNicoliveEvent {
 	udb, err := nicolive.NewUserDB(filepath.Join(cv.cli.SavePath, userDBDirName))
 	if err != nil {
-		log.Fatalln(err)
+		cv.cli.log.Fatalln(err)
 	}
 	return &ProceedNicoliveEvent{
 		cv:     cv,
@@ -48,7 +47,7 @@ func (p *ProceedNicoliveEvent) getUserName(id string, useAPI bool) (*nicolive.Us
 			p.userNameAPIFastTime = time.Now()
 			p.userNameAPITimes = userNameAPITimesAMinute
 		}
-		log.Println(p.userNameAPITimes)
+		p.cv.cli.log.Println(p.userNameAPITimes)
 		if p.userNameAPITimes > 0 {
 			u, nerr := nicolive.FetchUserInfo(id, p.cv.Ac)
 			if nerr != nil {
@@ -83,7 +82,7 @@ func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 	useAPI := p.cv.Settings.UserNameGet && cm.Date.After(p.cv.Cmm.ConnectedTm) && !cm.IsAnonymity && !cm.IsCommand
 	u, err := p.getUserName(cm.UserID, useAPI)
 	if err != nil {
-		log.Println(err)
+		p.cv.cli.log.Println(err)
 	}
 	if u != nil {
 		ct.UserName = u.Name
@@ -106,7 +105,7 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 	case nicolive.EventTypeCommentOpen:
 		p.cv.Evch <- NewMessageMust(DomainUI, CommUIClearComments, nil)
 		lv := ev.Content.(*nicolive.LiveWaku)
-		log.Println(lv)
+		p.cv.cli.log.Println(lv)
 		ct := CtNagomeBroadOpen{
 			BroadID:     lv.BroadID,
 			Title:       lv.Stream.Title,
@@ -143,7 +142,7 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeAntennaClose, nil)
 
 	case nicolive.EventTypeAntennaErr:
-		log.Println(ev)
+		p.cv.cli.log.Println(ev)
 
 	case nicolive.EventTypeAntennaGot:
 		ai := ev.Content.(*nicolive.AntennaItem)
@@ -151,6 +150,6 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		p.cv.Evch <- NewMessageMust(DomainAntenna, CommAntennaGot, ct)
 
 	default:
-		log.Println(ev)
+		p.cv.cli.log.Println(ev)
 	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"path/filepath"
 	"regexp"
 	"time"
@@ -49,12 +48,12 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 					}
 				}
 				ct.RetryN++
-				log.Printf("Failed to connect to %s.\n", ct.BroadID)
+				cv.cli.log.Printf("Failed to connect to %s.\n", ct.BroadID)
 				if ct.RetryN >= NumFetchInformaionRetry {
-					log.Println("Reached the limit of retrying.")
+					cv.cli.log.Println("Reached the limit of retrying.")
 					return err
 				}
-				log.Println("Retrying...")
+				cv.cli.log.Println("Retrying...")
 				go func() {
 					<-time.After(time.Second)
 					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
@@ -77,7 +76,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				cv.Lw.OwnerCommentToken = ps.Token
 			}
 
-			log.Println("connected")
+			cv.cli.log.Println("connected")
 
 		case CommQueryBroadDisconnect:
 			cv.Disconnect()
@@ -144,7 +143,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				}
 				return err
 			}
-			log.Println("logged in")
+			cv.cli.log.Println("logged in")
 			cv.CreateEvNewDialog(CtUIDialogTypeInfo, "login succeeded", "login succeeded")
 
 		case CommQueryAccountLoad:
@@ -161,7 +160,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
-			log.Printf("plug[%s] %s\n", cv.PluginName(m.prgno), ct.Text)
+			cv.cli.log.Printf("plug[%s] %s\n", cv.PluginName(m.prgno), ct.Text)
 
 		case CommQuerySettingsSetCurrent:
 			var ct CtQuerySettingsSetCurrent
@@ -212,7 +211,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				}
 				if cv.Lw != nil && cv.Lw.Stream.CommunityID == ct.CommunityID {
 					ct := CtQueryBroadConnect{ct.BroadID, 0}
-					log.Println("following to " + ct.BroadID)
+					cv.cli.log.Println("following to " + ct.BroadID)
 					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
 				}
 			}

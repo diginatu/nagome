@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os/exec"
 	"sync"
 	"time"
@@ -124,8 +123,8 @@ func (pl *Plugin) SetState(enable bool) {
 func (pl *Plugin) WriteMess(m *Message) (fail bool) {
 	jm, err := json.Marshal(m)
 	if err != nil {
-		log.Println(err)
-		log.Println(m)
+		pl.cv.cli.log.Println(err)
+		pl.cv.cli.log.Println(m)
 		return
 	}
 	return pl.Write(jm)
@@ -187,13 +186,13 @@ func (pl *Plugin) evRoutine() {
 	defer func() {
 		err := pl.rwc.Close()
 		if err != nil {
-			log.Println(err)
+			pl.cv.cli.log.Println(err)
 		}
 		pl.stateMu.Lock()
 		pl.GetState = pluginStateClose
 		pl.stateMu.Unlock()
 	}()
-	defer log.Printf("plugin [%s] is closing", pl.Name)
+	defer pl.cv.cli.log.Printf("plugin [%s] is closing", pl.Name)
 
 	// Run decoder.  It puts a message into "mes".
 	dec := json.NewDecoder(pl.rwc)
@@ -212,7 +211,7 @@ func (pl *Plugin) evRoutine() {
 					if err != io.EOF {
 						pl.cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnected",
 							fmt.Sprintf("plugin [%s] : connection disconnected", pl.Name))
-						log.Println(err)
+						pl.cv.cli.log.Println(err)
 					}
 				}
 				m = nil
@@ -234,7 +233,7 @@ func (pl *Plugin) evRoutine() {
 		pl.flushTm.Reset(pluginFlashWaitDu)
 		_, err := fmt.Fprintf(bufw, "%s\n", p)
 		if err != nil {
-			log.Println(err)
+			pl.cv.cli.log.Println(err)
 			pl.cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to write a message : "+pl.Name)
 			// quit if UI plugin disconnect
 			if pl.IsMain() {
@@ -262,7 +261,7 @@ func (pl *Plugin) evRoutine() {
 				continue
 			}
 			m.prgno = pl.No
-			log.Printf("plugin message [%s] : %v", pl.Name, m)
+			pl.cv.cli.log.Printf("plugin message [%s] : %v", pl.Name, m)
 			pl.cv.Evch <- m
 
 		// Send a message
@@ -276,7 +275,7 @@ func (pl *Plugin) evRoutine() {
 		case <-pl.flushTm.C:
 			err := bufw.Flush()
 			if err != nil {
-				log.Println(err)
+				pl.cv.cli.log.Println(err)
 				continue
 			}
 
@@ -304,8 +303,8 @@ func (pl *Plugin) evRoutine() {
 				}
 				jm, err := json.Marshal(m)
 				if err != nil {
-					log.Println(err)
-					log.Println(m)
+					pl.cv.cli.log.Println(err)
+					pl.cv.cli.log.Println(m)
 					return
 				}
 				writeMess(jm)
@@ -330,13 +329,13 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 		case <-cv.quit:
 			err := c.Close()
 			if err != nil {
-				log.Println(err)
+				cv.cli.log.Println(err)
 			}
 		case iserr := <-endc:
 			if iserr {
 				err := c.Close()
 				if err != nil {
-					log.Println(err)
+					cv.cli.log.Println(err)
 				}
 			}
 		}
@@ -348,19 +347,19 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	// It may stop here long time
 	err := dec.Decode(m)
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		endc <- true
 		return
 	}
 	if m.Domain != DomainDirect || m.Command != CommDirectNo {
-		log.Println("send Direct.No message at first")
+		cv.cli.log.Println("send Direct.No message at first")
 		endc <- true
 		return
 	}
 
 	var ct CtDirectNo
 	if err := json.Unmarshal(m.Content, &ct); err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		endc <- true
 		return
 	}
@@ -368,17 +367,17 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 	n := ct.No
 	p, err := cv.Plugin(n)
 	if err != nil {
-		log.Panicln(err)
+		cv.cli.log.Panicln(err)
 		endc <- true
 		return
 	}
 	err = p.Open(c, !cv.Settings.PluginDisable[p.Name])
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		endc <- true
 		return
 	}
-	log.Printf("loaded plugin : %s\n", p.Name)
+	cv.cli.log.Printf("loaded plugin : %s\n", p.Name)
 	endc <- false
 }
 
@@ -386,7 +385,7 @@ func handleSTDPlugin(p *Plugin, cv *CommentViewer, path string) {
 	defer cv.wg.Done()
 
 	if len(p.Exec) < 1 {
-		log.Printf("exec is not specified in plugin [%s]\n", p.Name)
+		cv.cli.log.Printf("exec is not specified in plugin [%s]\n", p.Name)
 		return
 	}
 
@@ -394,7 +393,7 @@ func handleSTDPlugin(p *Plugin, cv *CommentViewer, path string) {
 	cmd.Dir = path
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		return
 	}
 	needClose := true
@@ -402,37 +401,37 @@ func handleSTDPlugin(p *Plugin, cv *CommentViewer, path string) {
 		if needClose {
 			err = stdin.Close()
 			if err != nil {
-				log.Println(err)
+				cv.cli.log.Println(err)
 			}
 		}
 	}()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		return
 	}
 	defer func() {
 		if needClose {
 			err = stdout.Close()
 			if err != nil {
-				log.Println(err)
+				cv.cli.log.Println(err)
 			}
 		}
 	}()
 	err = cmd.Start()
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		return
 	}
 
 	c := &stdReadWriteCloser{stdout, stdin}
 	err = p.Open(c, !cv.Settings.PluginDisable[p.Name])
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		return
 	}
 	needClose = false
-	log.Println("loaded plugin : ", p.Name)
+	cv.cli.log.Println("loaded plugin : ", p.Name)
 }
 
 // Close closes opened plugin.

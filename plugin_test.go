@@ -34,11 +34,7 @@ func (rwc *testRwc) Close() error {
 
 func TestPluginClose(t *testing.T) {
 	var err error
-	cli := &CLI{
-		InStream:  os.Stdin,
-		OutStream: os.Stdout,
-		ErrStream: os.Stderr,
-	}
+	cli := NewCLI("test")
 	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
@@ -84,11 +80,7 @@ func TestPluginClose(t *testing.T) {
 
 func TestPluginErrorConnection(t *testing.T) {
 	var err error
-	cli := &CLI{
-		InStream:  os.Stdin,
-		OutStream: os.Stdout,
-		ErrStream: os.Stderr,
-	}
+	cli := NewCLI("test")
 	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)
@@ -138,12 +130,7 @@ func TestPluginErrorConnection(t *testing.T) {
 func TestPluginWrite(t *testing.T) {
 	var err error
 
-	cli := &CLI{
-		InStream:  os.Stdin,
-		OutStream: os.Stdout,
-		ErrStream: os.Stderr,
-	}
-
+	cli := NewCLI("test")
 	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)

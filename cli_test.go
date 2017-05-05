@@ -14,11 +14,7 @@ import (
 
 func TestTCPAPI(t *testing.T) {
 	var err error
-	cli := &CLI{
-		InStream:  os.Stdin,
-		OutStream: os.Stdout,
-		ErrStream: os.Stderr,
-	}
+	cli := NewCLI("test")
 	cli.SavePath, err = ioutil.TempDir("", "nagome")
 	if err != nil {
 		t.Fatal(err)

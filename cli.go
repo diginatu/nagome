@@ -15,6 +15,7 @@ const (
 	eventBufferSize  = 50
 	accountFileName  = "account.yml"
 	logFileName      = "info.log"
+	logFlags         = log.Lshortfile | log.Ltime
 	pluginDirName    = "plugin"
 	pluginConfigName = "plugin.yml"
 	userDBDirName    = "userdb"
@@ -23,6 +24,7 @@ const (
 
 // CLI has valuables and settings for a CLI environment.
 type CLI struct {
+	Name                 string
 	InStream             io.Reader
 	OutStream, ErrStream io.Writer
 	SavePath             string
@@ -30,10 +32,21 @@ type CLI struct {
 	log                  *log.Logger
 }
 
+// NewCLI creates new default values CLI struct.
+func NewCLI(name string) *CLI {
+	return &CLI{
+		InStream:  os.Stdin,
+		OutStream: os.Stdout,
+		ErrStream: os.Stderr,
+		SavePath:  findUserConfigPath(),
+		log:       log.New(os.Stderr, name, logFlags),
+	}
+}
+
 // RunCli runs CLI functions as one command line program.
 // This returns the CLI return value.
 func (c *CLI) RunCli(args []string) int {
-	c.log = log.New(c.ErrStream, "", log.Lshortfile|log.Ltime)
+	c.log = log.New(c.ErrStream, c.Name, logFlags)
 
 	// set command line options
 	var (
@@ -56,9 +69,12 @@ func (c *CLI) RunCli(args []string) int {
 	Its format is same as yml file of normal plugins.`)
 	flagst.StringVar(&mainyml, "y", "", `specfy the config file of main plugin. (shorthand)`)
 
-	flagst.Parse(args[1:])
+	err := flagst.Parse(args[1:])
+	if err != nil {
+		return 1
+	}
 
-	err := c.SettingsSlots.Load(filepath.Join(c.SavePath, settingsFileName))
+	err = c.SettingsSlots.Load(filepath.Join(c.SavePath, settingsFileName))
 	if err != nil {
 		c.log.Println(err)
 		return 1
@@ -71,11 +87,11 @@ func (c *CLI) RunCli(args []string) int {
 		return 0
 	}
 	if *printVersion {
-		fmt.Println(AppName, " ", Version)
+		fmt.Fprintln(c.OutStream, AppName, " ", Version)
 		return 0
 	}
 	if *mkplug != "" {
-		err = generatePluginTemplate(*mkplug, pluginPath)
+		err = c.generatePluginTemplate(*mkplug, pluginPath)
 		if err != nil {
 			c.log.Println(err)
 			return 1
@@ -89,24 +105,25 @@ func (c *CLI) RunCli(args []string) int {
 	}
 
 	// set log
-	var file *os.File
+	var logw io.Writer
 	if *debugToStderr {
-		file = os.Stderr
+		logw = c.ErrStream
 	} else {
 		var err error
-		file, err = os.Create(filepath.Join(c.SavePath, logFileName))
+		file, err := os.Create(filepath.Join(c.SavePath, logFileName))
 		if err != nil {
 			c.log.Println("could not open log file\n", err)
 			return 1
 		}
+		defer func() {
+			err := file.Close()
+			if err != nil {
+				c.log.Println(err)
+			}
+		}()
+		logw = file
 	}
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			c.log.Println(err)
-		}
-	}()
-	c.log.SetOutput(file)
+	c.log.SetOutput(logw)
 
 	cv := NewCommentViewer(*tcpPort, c)
 
@@ -160,7 +177,7 @@ func (c *CLI) RunCli(args []string) int {
 	return 0
 }
 
-func generatePluginTemplate(name, pluginPath string) error {
+func (c *CLI) generatePluginTemplate(name, pluginPath string) error {
 	p := filepath.Join(pluginPath, name)
 
 	// check if the directory already exists
@@ -185,6 +202,6 @@ func generatePluginTemplate(name, pluginPath string) error {
 		return fmt.Errorf("failed to save file : %s", err)
 	}
 
-	fmt.Printf("Create your plugin in : %s\n", p)
+	fmt.Fprintf(c.OutStream, "Create your plugin in : %s\n", p)
 	return nil
 }

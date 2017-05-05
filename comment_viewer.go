@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os/exec"
 	"path/filepath"
@@ -68,7 +67,7 @@ func (cv *CommentViewer) AntennaConnect() {
 	var err error
 	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, cv.prcdnle)
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Antenna error", "Antenna login failed")
 	}
 }
@@ -91,7 +90,7 @@ func (cv *CommentViewer) Plugin(n int) (*Plugin, error) {
 // PluginName returns name of the plugin with given No.
 func (cv *CommentViewer) PluginName(n int) string {
 	if n < -1 || len(cv.Pgns) <= n {
-		log.Printf("invalid plugin num : %d\n", n)
+		cv.cli.log.Printf("invalid plugin num : %d\n", n)
 		return "???"
 	}
 	if n == -1 {
@@ -111,7 +110,7 @@ func (cv *CommentViewer) loadPlugins() {
 
 	ds, err := ioutil.ReadDir(psPath)
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 		return
 	}
 
@@ -121,8 +120,8 @@ func (cv *CommentViewer) loadPlugins() {
 			pPath := filepath.Join(psPath, d.Name())
 			err = p.Load(filepath.Join(pPath, "plugin.yml"))
 			if err != nil {
-				log.Println("failed load plugin : ", d.Name())
-				log.Println(err)
+				cv.cli.log.Println("failed load plugin : ", d.Name())
+				cv.cli.log.Println(err)
 				continue
 			}
 
@@ -141,7 +140,7 @@ func (cv *CommentViewer) loadPlugins() {
 					cmd.Dir = pPath
 					err := cmd.Start()
 					if err != nil {
-						log.Println(err)
+						cv.cli.log.Println(err)
 						continue
 					}
 				}
@@ -149,7 +148,7 @@ func (cv *CommentViewer) loadPlugins() {
 				cv.wg.Add(1)
 				go handleSTDPlugin(p, cv, pPath)
 			default:
-				log.Printf("invalid method in plugin [%s]\n", p.Name)
+				cv.cli.log.Printf("invalid method in plugin [%s]\n", p.Name)
 				continue
 			}
 		}
@@ -163,22 +162,22 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 
 	adr, err := net.ResolveTCPAddr("tcp", ":"+cv.TCPPort)
 	if err != nil {
-		log.Panicln(err)
+		cv.cli.log.Panicln(err)
 	}
 	l, err := net.ListenTCP("tcp", adr)
 	if err != nil {
-		log.Panicln(err)
+		cv.cli.log.Panicln(err)
 	}
 	defer func() {
 		err := l.Close()
 		if err != nil {
-			log.Println(err)
+			cv.cli.log.Println(err)
 		}
 	}()
 
 	_, cv.TCPPort, err = net.SplitHostPort(l.Addr().String())
 	if err != nil {
-		log.Panicln(err)
+		cv.cli.log.Panicln(err)
 	}
 
 	cv.wg.Add(1)
@@ -193,7 +192,7 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 				}
 				select {
 				default:
-					log.Println(err)
+					cv.cli.log.Println(err)
 					cv.Quit()
 				case <-cv.quit:
 				}
@@ -220,8 +219,8 @@ func (cv *CommentViewer) sendPluginMessage() {
 			if mes.Domain == DomainDirect {
 				nicoerr := processDirectMessage(cv, mes)
 				if nicoerr != nil {
-					log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.prgno), nicoerr)
-					log.Println(mes)
+					cv.cli.log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.prgno), nicoerr)
+					cv.cli.log.Println(mes)
 				}
 				continue
 			}
@@ -249,8 +248,8 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 			jmes, err := json.Marshal(mes)
 			if err != nil {
-				log.Println(err)
-				log.Println(mes)
+				cv.cli.log.Println(err)
+				cv.cli.log.Println(mes)
 				continue
 			}
 
@@ -263,14 +262,14 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 			nerr := processPluginMessage(cv, mes)
 			if nerr != nil {
-				log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.prgno), nerr)
-				log.Println(mes)
+				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.prgno), nerr)
+				cv.cli.log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)
 				if ok {
 					cv.ProceedNicoliveError(nicoerr)
 				} else {
-					log.Panicln(nerr)
+					cv.cli.log.Panicln(nerr)
 				}
 			}
 
@@ -285,7 +284,7 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 // CreateEvNewDialog emits new event for ask UI to display dialog.
 func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
-	log.Printf("[D] %s : %s", title, desc)
+	cv.cli.log.Printf("[D] %s : %s", title, desc)
 	cv.Evch <- NewMessageMust(DomainUI, CommUIDialog, CtUIDialog{typ, title, desc})
 }
 
@@ -297,7 +296,7 @@ func (cv *CommentViewer) Disconnect() {
 
 	err := cv.Cmm.Disconnect()
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 	}
 	cv.Cmm = nil
 	cv.Lw = nil
@@ -313,7 +312,7 @@ func (cv *CommentViewer) AntennaDisconnect() {
 
 	err := cv.Antn.Disconnect()
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 	}
 	cv.Antn = nil
 
@@ -328,7 +327,7 @@ func (cv *CommentViewer) Quit() {
 	close(cv.quit)
 	err := cv.prcdnle.userDB.Close()
 	if err != nil {
-		log.Println(err)
+		cv.cli.log.Println(err)
 	}
 }
 
@@ -344,7 +343,7 @@ func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
 	case nicolive.ErrClosed:
 	case nicolive.ErrIncorrectAccount:
 	default:
-		log.Println("Unknown nicolive Error")
+		cv.cli.log.Println("Unknown nicolive Error")
 	}
 	cv.CreateEvNewDialog(CtUIDialogTypeWarn, e.TypeString(), e.Description())
 }
