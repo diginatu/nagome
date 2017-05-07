@@ -56,7 +56,7 @@ func TestSettingsSlotsOldLoad(t *testing.T) {
 	}
 
 	// Settings that are set in the file
-	if got := ss.Config[0].SettingsName; got != "Old Settings" {
+	if got := ss.Config[0].Name; got != "Old Settings" {
 		t.Fatalf("Should be %v but %v", defaultss.AutoSaveTo0Slot, got)
 	}
 	if got := ss.Config[0].AutoFollowNextWaku; got != true {

@@ -35,7 +35,7 @@ type CommentViewer struct {
 func NewCommentViewer(tcpPort string, cli *CLI) *CommentViewer {
 	if len(cli.SettingsSlots.Config) == 0 {
 		nss := NewSettingsSlot()
-		nss.SettingsName = "Default"
+		nss.Name = "Default"
 		cli.SettingsSlots.Add(nss)
 	}
 	cv := &CommentViewer{
