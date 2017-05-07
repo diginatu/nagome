@@ -79,7 +79,6 @@ func (c *CLI) RunCli(args []string) int {
 	err = c.SettingsSlots.Load(filepath.Join(c.SavePath, settingsFileName))
 	if err != nil {
 		c.log.Println(err)
-		return 1
 	}
 
 	pluginPath := filepath.Join(c.SavePath, pluginDirName)
