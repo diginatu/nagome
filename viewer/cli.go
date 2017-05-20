@@ -25,8 +25,8 @@ const (
 // CLI has valuables and settings for a CLI environment.
 type CLI struct {
 	Name                 string
-	InStream             io.Reader
-	OutStream, ErrStream io.Writer
+	InStream             io.ReadCloser
+	OutStream, ErrStream io.WriteCloser
 	SavePath             string
 	SettingsSlots        SettingsSlots
 	log                  *log.Logger
@@ -153,7 +153,7 @@ func (c *CLI) RunCli(args []string) int {
 	}
 	cv.AddPlugin(plug)
 	if plug.Method == pluginMethodStd {
-		err := plug.Open(&stdReadWriteCloser{os.Stdin, os.Stdout}, true)
+		err := plug.Open(&stdReadWriteCloser{c.InStream, c.OutStream}, true)
 		if err != nil {
 			c.log.Println(err)
 			return 1

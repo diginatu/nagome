@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -16,18 +17,38 @@ const (
 	DefaultAppName = "nagome"
 )
 
+type WriteNoClose struct {
+	io.Writer
+}
+
+func (wnc *WriteNoClose) Close() error {
+	return nil
+}
+
+func NewDiscardWithoutClose() io.WriteCloser {
+	return &WriteNoClose{ioutil.Discard}
+}
+
+type ReadNoClose struct {
+	io.Reader
+}
+
+func (wnc *ReadNoClose) Close() error {
+	return nil
+}
+
 func makeTestCLI(savePath string) *CLI {
 	c := &CLI{
 		AppName:   DefaultAppName,
 		SavePath:  savePath,
-		OutStream: ioutil.Discard,
+		OutStream: NewDiscardWithoutClose(),
 	}
 
 	logFlags := log.Lshortfile
 	if testing.Verbose() {
 		c.ErrStream = os.Stderr
 	} else {
-		c.ErrStream = ioutil.Discard
+		c.ErrStream = NewDiscardWithoutClose()
 	}
 	c.log = log.New(c.ErrStream, "        ", logFlags)
 	return c
@@ -66,10 +87,7 @@ func TestCLIQuit(t *testing.T) {
 	}()
 
 	cli := makeTestCLI(savepath)
-	//cli.InStream = strings.NewReader("")
-	r, _ := io.Pipe()
-	cli.InStream = r
-	//r.Close()
+	cli.InStream = &ReadNoClose{strings.NewReader("")}
 
 	rt := cli.RunCli([]string{DefaultAppName, "-savepath", savepath, "-dbgtostd"})
 	if rt != 0 {
