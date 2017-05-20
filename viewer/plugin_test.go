@@ -33,18 +33,17 @@ func (rwc *testRwc) Close() error {
 }
 
 func TestPluginClose(t *testing.T) {
-	var err error
-	cli := NewCLI("test", "nagome")
-	cli.SavePath, err = ioutil.TempDir("", "nagome")
+	savepath, err := ioutil.TempDir("", DefaultAppName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.RemoveAll(cli.SavePath)
+		err := os.RemoveAll(savepath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
+	cli := makeTestCLI(savepath)
 
 	cv := NewCommentViewer("0", cli)
 	cv.Ac = &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
@@ -79,18 +78,17 @@ func TestPluginClose(t *testing.T) {
 }
 
 func TestPluginErrorConnection(t *testing.T) {
-	var err error
-	cli := NewCLI("test", "nagome")
-	cli.SavePath, err = ioutil.TempDir("", "nagome")
+	savepath, err := ioutil.TempDir("", DefaultAppName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.RemoveAll(cli.SavePath)
+		err := os.RemoveAll(savepath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
+	cli := makeTestCLI(savepath)
 
 	cv := NewCommentViewer("0", cli)
 	p := newPlugin(cv)
@@ -128,19 +126,17 @@ func TestPluginErrorConnection(t *testing.T) {
 }
 
 func TestPluginWrite(t *testing.T) {
-	var err error
-
-	cli := NewCLI("test", "nagome")
-	cli.SavePath, err = ioutil.TempDir("", "nagome")
+	savepath, err := ioutil.TempDir("", DefaultAppName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		err := os.RemoveAll(cli.SavePath)
+		err := os.RemoveAll(savepath)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
+	cli := makeTestCLI(savepath)
 
 	cv := NewCommentViewer("0", cli)
 	p := newPlugin(cv)

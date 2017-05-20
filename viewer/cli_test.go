@@ -2,8 +2,8 @@ package viewer
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -11,6 +11,71 @@ import (
 	"path/filepath"
 	"testing"
 )
+
+const (
+	DefaultAppName = "nagome"
+)
+
+func makeTestCLI(savePath string) *CLI {
+	c := &CLI{
+		AppName:   DefaultAppName,
+		SavePath:  savePath,
+		OutStream: ioutil.Discard,
+	}
+
+	logFlags := log.Lshortfile
+	if testing.Verbose() {
+		c.ErrStream = os.Stderr
+	} else {
+		c.ErrStream = ioutil.Discard
+	}
+	c.log = log.New(c.ErrStream, "        ", logFlags)
+	return c
+}
+
+func TestCLIVersion(t *testing.T) {
+	savepath, err := ioutil.TempDir("", DefaultAppName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := os.RemoveAll(savepath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	cli := makeTestCLI(savepath)
+
+	rt := cli.RunCli([]string{DefaultAppName, "-v", "-dbgtostd"})
+	if rt != 0 {
+		t.Fatalf("Return value should be %v but %v", 0, rt)
+	}
+}
+
+func TestCLIQuit(t *testing.T) {
+	savepath, err := ioutil.TempDir("", DefaultAppName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		err := os.RemoveAll(savepath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	cli := makeTestCLI(savepath)
+	//cli.InStream = strings.NewReader("")
+	r, _ := io.Pipe()
+	cli.InStream = r
+	//r.Close()
+
+	rt := cli.RunCli([]string{DefaultAppName, "-savepath", savepath, "-dbgtostd"})
+	if rt != 0 {
+		t.Fatalf("Return value should be %v but %v", 0, rt)
+	}
+}
 
 func TestTCPAPI(t *testing.T) {
 	var err error
@@ -68,19 +133,4 @@ func TestTCPAPI(t *testing.T) {
 	}
 	cv.Wait()
 	// shold quit because main plugin was closed
-}
-
-func setLogForTest() {
-	if testing.Verbose() {
-		log.SetFlags(log.Lshortfile)
-		log.SetPrefix("        ")
-	} else {
-		log.SetOutput(ioutil.Discard)
-	}
-}
-func TestMain(m *testing.M) {
-	flag.Parse()
-	setLogForTest()
-	code := m.Run()
-	os.Exit(code)
 }
