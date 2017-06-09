@@ -17,6 +17,7 @@ const (
 	ErrNotLogin
 	ErrClosed
 	ErrIncorrectAccount
+	ErrNetwork
 )
 
 // Error is an error struct in nicolive

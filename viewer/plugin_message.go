@@ -42,22 +42,22 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			if err != nil {
 				nerr, ok := err.(nicolive.Error)
 				if ok {
-					if nerr.No() == nicolive.ErrClosed ||
-						nerr.No() == nicolive.ErrIncorrectAccount {
-						return nerr
+					if nerr.No() == nicolive.ErrNetwork {
+						ct.RetryN++
+						cv.cli.log.Printf("Failed to connect to %s.\n", ct.BroadID)
+						cv.cli.log.Printf("FetchInformation : %s\n", nerr.Error())
+						if ct.RetryN >= NumFetchInformaionRetry {
+							cv.cli.log.Println("Reached the limit of retrying.")
+							return nerr
+						}
+						cv.cli.log.Println("Retrying...")
+						go func() {
+							<-time.After(time.Second)
+							cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
+						}()
 					}
 				}
-				ct.RetryN++
-				cv.cli.log.Printf("Failed to connect to %s.\n", ct.BroadID)
-				if ct.RetryN >= NumFetchInformaionRetry {
-					cv.cli.log.Println("Reached the limit of retrying.")
-					return err
-				}
-				cv.cli.log.Println("Retrying...")
-				go func() {
-					<-time.After(time.Second)
-					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
-				}()
+				return err
 			}
 
 			cv.Disconnect()

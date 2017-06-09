@@ -57,7 +57,7 @@ func (l *LiveWaku) IsUserOwner() bool {
 // FetchInformation gets information using getplayerstatus API
 func (l *LiveWaku) FetchInformation() (err error) {
 	if l.Account == nil {
-		return MakeError(ErrOther, "nil Account in LiveWaku")
+		return MakeError(ErrIncorrectAccount, "nil Account in LiveWaku")
 	}
 	if l.BroadID == "" {
 		return MakeError(ErrOther, "BroadID is not set")
@@ -71,7 +71,7 @@ func (l *LiveWaku) FetchInformation() (err error) {
 	url := fmt.Sprintf("http://watch.live.nicovideo.jp/api/getplayerstatus/%s", l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
-		return ErrFromStdErr(err)
+		return MakeError(ErrNetwork, "client.Get : "+err.Error())
 	}
 	defer func() {
 		lerr := res.Body.Close()
