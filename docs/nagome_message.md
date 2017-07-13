@@ -10,7 +10,7 @@ The basic structure of a Nagome message is like blow.
 +   Command
 +   Content (optional)
 
-All types of Nagome message are found in [api.go](../api.go).
+All types of Nagome message are found in [api.go](../viewer/api.go).
 
 Domain
 ------
