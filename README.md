@@ -1,6 +1,7 @@
 Nagome
 ======
 
+[![GoDoc](https://godoc.org/github.com/diginatu/nagome?status.svg)](https://godoc.org/github.com/diginatu/nagome)
 [![Build Status](https://travis-ci.org/diginatu/nagome.svg?branch=master)](https://travis-ci.org/diginatu/nagome)
 
 Advanced NicoLive Comment Viewer written in go.
@@ -10,8 +11,8 @@ So it doesn't depend on platforms or environments.
 You can make various UIs like native desktop app on any platform, modern app on the browser, even as Vim plugin.
 It can be also used for daemon like bots.
 
-Installation
-------------
+Install
+------- 
 
 Assume you have the go developing environment.
 
@@ -31,7 +32,7 @@ But some features work now.
 Licence
 -------
 
-[MIT Licence](LICENSE)
+[MIT.](LICENSE)
 
 Dependencies
 ------------
