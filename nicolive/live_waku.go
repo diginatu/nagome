@@ -95,6 +95,8 @@ func (l *LiveWaku) FetchInformation() (err error) {
 					errorNum = ErrClosed
 				case "notlogin":
 					errorNum = ErrNotLogin
+				case "require_community_member":
+					errorNum = ErrRequireCommunityMember
 				}
 				return MakeError(errorNum, v)
 			}

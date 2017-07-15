@@ -43,7 +43,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			if err != nil {
 				nerr, ok := err.(nicolive.Error)
 				if ok {
-					if nerr.No() == nicolive.ErrNetwork {
+					if nerr.Type() == nicolive.ErrNetwork {
 						ct.RetryN++
 						cv.cli.log.Printf("Failed to connect to %s.\n", ct.BroadID)
 						cv.cli.log.Printf("FetchInformation : %s\n", nerr.Error())

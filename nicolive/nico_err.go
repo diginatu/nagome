@@ -16,13 +16,14 @@ const (
 	ErrNicoLiveOther
 	ErrNotLogin
 	ErrClosed
+	ErrRequireCommunityMember
 	ErrIncorrectAccount
 	ErrNetwork
 )
 
 // Error is an error struct in nicolive
 type Error struct {
-	no    ErrNum
+	etype ErrNum
 	desc  string
 	where string
 }
@@ -30,19 +31,21 @@ type Error struct {
 // TypeString returns name of the error type.
 func (e Error) TypeString() string {
 	var s string
-	switch e.no {
+	switch e.etype {
 	case ErrOther:
-		s = "error"
+		s = "other"
 	case ErrSendComment:
-		s = "send comment error"
+		s = "sending comment"
 	case ErrConnection:
-		s = "connection error"
+		s = "connection"
 	case ErrNicoLiveOther:
-		s = "nico live error"
+		s = "nico live other"
 	case ErrNotLogin:
 		s = "not login"
 	case ErrClosed:
 		s = "closed live"
+	case ErrRequireCommunityMember:
+		s = "require_community_member"
 	case ErrIncorrectAccount:
 		s = "incorrect account"
 	}
@@ -50,13 +53,13 @@ func (e Error) TypeString() string {
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("[%s] %s", e.where, e.desc)
+	return fmt.Sprintf("[%s] <%s> %s", e.where, e.TypeString(), e.desc)
 }
 
-// No returns errorNum for identifying by application.
+// Type returns errorNum for identifying by application.
 // (ie. select messages to the user)
-func (e Error) No() ErrNum {
-	return e.no
+func (e Error) Type() ErrNum {
+	return e.etype
 }
 
 // Description returns description

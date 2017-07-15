@@ -335,7 +335,7 @@ func (cv *CommentViewer) Quit() {
 
 // ProceedNicoliveError proceeds Error of nicolive.
 func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
-	switch e.No() {
+	switch e.Type() {
 	case nicolive.ErrOther:
 	case nicolive.ErrSendComment:
 		cv.CreateEvNewDialog(CtUIDialogTypeWarn, e.TypeString(), e.Description())
