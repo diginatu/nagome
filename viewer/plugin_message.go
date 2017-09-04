@@ -197,6 +197,116 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			}
 			cv.Settings.PluginDisable[pl.Name] = !ct.Enable
 
+		case CommQueryUserSet:
+			var ct nicolive.User // CtQueryUserSet
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user info failed", "JSON parse error")
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			err := cv.prcdnle.userDB.Store(&ct)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user info failed", "DB error : "+err.Error())
+				return err
+			}
+
+			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(ct))
+
+		case CommQueryUserSetName:
+			var ct CtQueryUserSetName
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user name failed", "JSON parse error")
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			if ct.Name == "" {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Blank name", "You can't set blank name")
+				return nicolive.MakeError(nicolive.ErrOther, "format error : Name is empty")
+			}
+
+			user, err := cv.prcdnle.userDB.Fetch(ct.ID)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user name failed", "DB error")
+				return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
+			}
+			if user == nil {
+				user, err = cv.prcdnle.FetchUserName(ct.ID)
+				if err != nil {
+					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user name failed", "DB error")
+					return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
+				}
+			}
+
+			user.Name = ct.Name
+			err = cv.prcdnle.userDB.Store(user)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user name failed", "DB error : "+err.Error())
+				return err
+			}
+
+			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(*user))
+
+		case CommQueryUserDelete:
+			var ct CtQueryUserDelete
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Deleting the user info failed", "JSON parse error")
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			err := cv.prcdnle.userDB.Remove(ct.ID)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				return err
+			}
+
+		case CommQueryUserFetch:
+			var ct CtQueryUserFetch
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Fetching the user info failed", "JSON parse error")
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			user, err := cv.prcdnle.FetchUserName(ct.ID)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				return err
+			}
+
+			user_current, err := cv.prcdnle.userDB.Fetch(ct.ID)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				return err
+			}
+			if user_current == nil {
+				// If the user was not in the DB
+				user_current = user
+			} else {
+				user_current.ThumbnailURL = user.ThumbnailURL
+			}
+
+			err = cv.prcdnle.userDB.Store(user_current)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				return err
+			}
+
+			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(*user))
+
+		case CommDirectUserGet:
+			var ct CtDirectUserGet
+			if err := json.Unmarshal(m.Content, &ct); err != nil {
+				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+			}
+
+			user, err := cv.prcdnle.userDB.Fetch(ct.ID)
+			if err != nil {
+				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				cv.cli.log.Printf("Removing the user info failed.\n DB error : %s", err.Error())
+				return err
+			}
+
+			cv.Evch <- NewMessageMust(DomainDirectngm, CommDirectngmUserGet, CtDirectngmUserGet(*user))
+
 		default:
 			return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 		}

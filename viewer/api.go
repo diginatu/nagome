@@ -77,6 +77,7 @@ const (
 	CommNagomeCommentSend  = "Comment.Send"
 	CommNagomeAntennaOpen  = "Antenna.Open"
 	CommNagomeAntennaClose = "Antenna.Close"
+	CommNagomeUserUpdate   = "User.Update"
 
 	// DomainComment
 	// This domain is for only sending comments.
@@ -100,6 +101,11 @@ const (
 
 	CommQueryPlugEnable = "Plug.Enable" // Enable or disable a plugin.
 
+	CommQueryUserSet     = "User.Set"     // Set user info like name to the DB.
+	CommQueryUserSetName = "User.SetName" // Set user name to the DB.
+	CommQueryUserDelete  = "User.Delete"  // Delete user info from the DB.
+	CommQueryUserFetch   = "User.Fetch"   // Fetch user name from web page and update the internal user database.
+
 	// DomainUI
 	// Event to be processed by UI plugin.
 	CommUIDialog        = "Dialog"
@@ -120,6 +126,8 @@ const (
 	CommDirectSettingsCurrent = "Settings.Current" // Request current settings message.
 	CommDirectSettingsAll     = "Settings.All"     // Request all slots of settings message.
 
+	CommDirectUserGet = "User.Get" // Get user info like name form the user DB.
+
 	// Nagome to plugin
 	CommDirectngmPlugEnabled  = "Plug.Enabled"  // Sent when the plugin is enabled.
 	CommDirectngmPlugDisabled = "Plug.Disabled" // Sent when the plugin is disabled.
@@ -127,6 +135,8 @@ const (
 
 	CommDirectngmSettingsCurrent = "Settings.Current"
 	CommDirectngmSettingsAll     = "Settings.All"
+
+	CommDirectngmUserGet = "User.Get"
 )
 
 // Contents
@@ -153,6 +163,9 @@ type CtNagomeBroadInfo struct {
 	WatchCount   string `json:"watch_count"`
 	CommentCount string `json:"comment_count"`
 }
+
+// CtNagomeUserUpdate is a content of CommNagomeUserUpdate
+type CtNagomeUserUpdate nicolive.User
 
 // CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
@@ -191,6 +204,25 @@ type CtQuerySettingsSetAll SettingsSlots
 type CtQueryPlugEnable struct {
 	No     int  `json:"no"`
 	Enable bool `json:"enable"`
+}
+
+// CtQueryUserSet is a content for CommQueryUserSet
+type CtQueryUserSet nicolive.User
+
+// CtQueryUserSetName is a content for CommQueryUserSetName
+type CtQueryUserSetName struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// CtQueryUserDelete is a content for CommQueryUserDelete
+type CtQueryUserDelete struct {
+	ID string `json:"id"`
+}
+
+// CtQueryUserFetch is a content for CommQueryUserFetch
+type CtQueryUserFetch struct {
+	ID string `json:"id"`
 }
 
 // A CtCommentGot is a content of CommCommentGot
@@ -246,3 +278,11 @@ type CtDirectngmSettingsCurrent SettingsSlot
 
 // CtDirectngmSettingsAll is a content for CommDirectngmSettingsAll
 type CtDirectngmSettingsAll SettingsSlots
+
+// CtDirectUserGet is a content for CommDirectUserGet
+type CtDirectUserGet struct {
+	ID string `json:"id"`
+}
+
+// CtDirectngmUserGet is a content for CommDirectngmUserGet
+type CtDirectngmUserGet nicolive.User
