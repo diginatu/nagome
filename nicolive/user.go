@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"unicode"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"gopkg.in/xmlpath.v2"
@@ -13,13 +14,40 @@ const (
 	userDBDirName = "userdb"
 )
 
+// Is184UserId returns whether the ID is 184
+func Is184UserId(id string) bool {
+	for _, c := range id {
+		if !unicode.IsDigit(c) {
+			return true
+		}
+	}
+	return false
+}
+
 // User is a niconico user.
 type User struct {
 	ID           string    `json:"id"`
 	Name         string    `json:"name"`
-	GotTime      time.Time `json:"got_time"`
+	CreateTime   time.Time `json:"create_time"`
 	Is184        bool      `json:"is184"`
 	ThumbnailURL string    `json:"thumbnail_url"`
+}
+
+// CreateUser gather the user infomation of the given user id and returns pointer to new User struct.
+func CreateUser(id string, a *Account) (*User, error) {
+	if Is184UserId(id) {
+		return &User{
+			ID:    id,
+			Is184: true,
+		}, nil
+	}
+
+	u, err := FetchUserInfo(id, a)
+	if err != nil {
+		return nil, err
+	}
+	u.CreateTime = time.Now()
+	return u, nil
 }
 
 // FetchUserInfo fetches user name and Thumbnail URL from niconico.
@@ -75,8 +103,6 @@ func fetchUserInfoImpl(url string, a *Account) (user *User, err error) {
 		u.ThumbnailURL = v
 	}
 
-	u.GotTime = time.Now()
-
 	return u, nil
 }
 
@@ -84,7 +110,7 @@ func fetchUserInfoImpl(url string, a *Account) (user *User, err error) {
 func (u *User) Equal(x *User) bool {
 	return u.ID == x.ID &&
 		u.Name == x.Name &&
-		u.GotTime.Unix() == x.GotTime.Unix() &&
+		u.CreateTime.Unix() == x.CreateTime.Unix() &&
 		u.Is184 == x.Is184 &&
 		u.ThumbnailURL == x.ThumbnailURL
 }

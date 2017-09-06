@@ -230,7 +230,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
 			}
 			if user == nil {
-				user, err = cv.prcdnle.FetchUserName(ct.ID)
+				user, err = cv.prcdnle.CheckIntervalAndCreateUser(ct.ID)
 				if err != nil {
 					cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Storing the user name failed", "DB error")
 					return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
@@ -266,7 +266,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
-			user, err := cv.prcdnle.FetchUserName(ct.ID)
+			user, err := cv.prcdnle.CheckIntervalAndCreateUser(ct.ID)
 			if err != nil {
 				cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err

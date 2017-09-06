@@ -33,14 +33,14 @@ func NewProceedNicoliveEvent(cv *CommentViewer) *ProceedNicoliveEvent {
 	}
 }
 
-func (p *ProceedNicoliveEvent) FetchUserName(id string) (*nicolive.User, error) {
+func (p *ProceedNicoliveEvent) CheckIntervalAndCreateUser(id string) (*nicolive.User, error) {
 	// reset API limit
 	if time.Now().After(p.userNameAPIFastTime.Add(time.Minute)) {
 		p.userNameAPIFastTime = time.Now()
 		p.userNameAPITimes = userNameAPITimesAMinute
 	}
 	if p.userNameAPITimes > 0 {
-		u, nerr := nicolive.FetchUserInfo(id, p.cv.Ac)
+		u, nerr := nicolive.CreateUser(id, p.cv.Ac)
 		if nerr != nil {
 			return nil, nerr
 		}
@@ -60,7 +60,7 @@ func (p *ProceedNicoliveEvent) GetUserNameForNewComment(id string, useAPI bool) 
 	}
 
 	if useAPI {
-		u, err = p.FetchUserName(id)
+		u, err = p.CheckIntervalAndCreateUser(id)
 		if err != nil {
 			return nil, err
 		}

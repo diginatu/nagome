@@ -90,7 +90,7 @@ func TestUserDB(t *testing.T) {
 	su := &User{
 		ID:           "testid",
 		Name:         "name",
-		GotTime:      time.Now(),
+		CreateTime:   time.Now(),
 		Is184:        false,
 		ThumbnailURL: "url",
 	}
