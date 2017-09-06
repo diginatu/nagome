@@ -281,6 +281,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				// If the user was not in the DB
 				user_current = user
 			} else {
+				user_current.Name = user.Name
 				user_current.ThumbnailURL = user.ThumbnailURL
 			}
 
@@ -290,7 +291,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				return err
 			}
 
-			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(*user))
+			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(*user_current))
 
 		case CommDirectUserGet:
 			var ct CtDirectUserGet
