@@ -54,8 +54,8 @@ func publishStatusImpl(url string, a *Account) (ps *PublishStatusItem, err error
 		return nil, ErrFromStdErr(err)
 	}
 
-	if r.Status == "fail" {
-		return nil, MakeError(ErrOther, "PublishStatus failed : "+r.Code)
+	if r.Status != "ok" {
+		return nil, MakeError(ErrNicoLiveOther, "PublishStatus failed : "+r.Code)
 	}
 
 	return &PublishStatusItem{

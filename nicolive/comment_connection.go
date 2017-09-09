@@ -15,7 +15,7 @@ import (
 
 const (
 	postKeyDuration   = 30 * time.Second
-	heartbeatDuration = 90 * time.Second
+	heartbeatDuration = 60 * time.Second
 )
 
 // A Comment is a received comment.
@@ -242,18 +242,24 @@ func (cc *CommentConnection) routine() {
 		case <-cc.postKeyTmr.C:
 			postkeyNeedUpdate = true
 		case <-cc.heartbeatTmr.C:
-			cc.heartbeatTmr.Reset(heartbeatDuration)
-			hbv, nerr := cc.lv.FetchHeartBeat()
+			hbv, waitTime, nerr := cc.lv.FetchHeartBeat()
 			if nerr != nil {
+				cc.heartbeatTmr.Reset(heartbeatDuration)
 				cc.Ev.ProceedNicoEvent(&Event{
 					Type:    EventTypeCommentErr,
 					Content: nerr,
 				})
 				continue
 			}
+
+			if waitTime != 0 {
+				cc.heartbeatTmr.Reset(time.Duration(waitTime) * time.Second)
+			} else {
+				cc.heartbeatTmr.Reset(heartbeatDuration)
+			}
 			cc.Ev.ProceedNicoEvent(&Event{
 				Type:    EventTypeHeartBeatGot,
-				Content: &hbv,
+				Content: hbv,
 			})
 		case ev := <-cc.event:
 			switch a := ev.(type) {

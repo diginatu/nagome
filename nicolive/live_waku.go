@@ -1,6 +1,7 @@
 package nicolive
 
 import (
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"time"
@@ -160,25 +161,32 @@ func (l *LiveWaku) FetchInformation() (err error) {
 
 // FetchHeartBeat gets watcher and comment count using heartbeat API
 // This function is safe for concurrent use.
-func (l *LiveWaku) FetchHeartBeat() (heartBeatValue HeartbeatValue, err error) {
-	var hb HeartbeatValue
-
+func (l *LiveWaku) FetchHeartBeat() (heartBeatValue *HeartbeatValue, waitTime int, err error) {
 	if l.Account == nil {
-		return hb, MakeError(ErrOther, "nil account in LiveWaku")
+		return nil, 0, MakeError(ErrOther, "nil account in LiveWaku")
 	}
 	if l.BroadID == "" {
-		return hb, MakeError(ErrOther, "BroadID is not set")
+		return nil, 0, MakeError(ErrOther, "BroadID is not set")
+	}
+
+	type heartbeatXML struct {
+		Status       string `xml:"status,attr"`
+		Code         string `xml:"error>code"`
+		Description  string `xml:"error>description"`
+		WatchCount   string `xml:"watchCount"`
+		CommentCount string `xml:"commentCount"`
+		WaitTime     int    `xml:"waitTime"`
 	}
 
 	c := l.Account.client
 	if c == nil {
-		return hb, MakeError(ErrOther, "nil account client")
+		return nil, 0, MakeError(ErrOther, "nil account client")
 	}
 
 	url := fmt.Sprintf("http://live.nicovideo.jp/api/heartbeat?v=%s", l.BroadID)
 	res, err := c.Get(url)
 	if err != nil {
-		return hb, ErrFromStdErr(err)
+		return nil, 0, ErrFromStdErr(err)
 	}
 	defer func() {
 		lerr := res.Body.Close()
@@ -187,40 +195,27 @@ func (l *LiveWaku) FetchHeartBeat() (heartBeatValue HeartbeatValue, err error) {
 		}
 	}()
 
-	root, err := xmlpath.Parse(res.Body)
+	r := new(heartbeatXML)
+	dec := xml.NewDecoder(res.Body)
+	err = dec.Decode(r)
 	if err != nil {
-		return hb, ErrFromStdErr(err)
+		return nil, 0, ErrFromStdErr(err)
 	}
 
-	if v, ok := xmlPathStatus.String(root); ok {
-		if v != "ok" {
-			if v, ok := xmlPathErrorCode.String(root); ok {
-				errorNum := ErrNicoLiveOther
-				if v == "NOTLOGIN" {
-					errorNum = ErrNotLogin
-				}
-
-				var desc string
-				if v, ok := xmlPathErrorDesc.String(root); ok {
-					desc = v
-				}
-				return hb, MakeError(errorNum, v+desc)
-			}
-			return hb, MakeError(ErrOther, "request failed with unknown error")
+	if r.Status != "ok" {
+		errorNum := ErrNicoLiveOther
+		if r.Code == "NOTLOGIN" {
+			errorNum = ErrNotLogin
 		}
+		return nil, 0, MakeError(errorNum, "HeartbeatStatus failed : "+r.Code+" : "+r.Description)
 	}
 
-	// stream
-	if v, ok := xmlpath.MustCompile("/heartbeat/watchCount").String(root); ok {
-		hb.WatchCount = v
-	}
-	if v, ok := xmlpath.MustCompile("/heartbeat/commentCount").String(root); ok {
-		hb.CommentCount = v
+	if r.CommentCount == "" || r.WatchCount == "" {
+		return nil, 0, MakeError(ErrOther, "heartbeat : unknown err")
 	}
 
-	if hb.CommentCount == "" || hb.WatchCount == "" {
-		return hb, MakeError(ErrOther, "heartbeat : unknown err")
-	}
-
-	return hb, nil
+	return &HeartbeatValue{
+		WatchCount:   r.WatchCount,
+		CommentCount: r.CommentCount,
+	}, r.WaitTime, nil
 }
