@@ -57,13 +57,9 @@ Or, about plugins.
 Tasks
 -----
 
-+   [ ] improve flags
-+   [ ] nagomever
-+   [ ] quit message
-+   [ ] dynamic plugin add/remove
-+   [ ] make direct domain available by plugin
-+   [ ] translation function
-+   [ ] more document
-+   [ ] function for NicoLive
-    -   [ ] prepare new Waku
-
+* [ ] nagomever
+* [ ] Nagome message for quitting Nagome
+* [ ] dynamic plugin add/remove
+* [ ] make direct domain available by plugin
+* [ ] translation function
+* [ ] add more document
