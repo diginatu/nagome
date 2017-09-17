@@ -3,6 +3,7 @@ package viewer
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"path/filepath"
 	"regexp"
 	"time"
@@ -105,7 +106,13 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			}
 
 			if isowner {
-				err := nicolive.CommentOwner(cv.Lw, ct.Text, "", cv.Ac)
+				rq := nicolive.CommentOwnerRequest{
+					Text:        ct.Text,
+					Color:       "",
+					IsPermanent: false,
+					UserName:    "",
+				}
+				err := nicolive.CommentOwner(cv.Lw.BroadID, http.MethodPut, &rq, cv.Ac)
 				if err != nil {
 					return err
 				}

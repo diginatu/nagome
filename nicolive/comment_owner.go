@@ -1,31 +1,46 @@
 package nicolive
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/url"
-	"os"
+	"net/http"
 )
 
-// CommentOwner sends a comment as the owner.
-func CommentOwner(lw *LiveWaku, text, name string, ac *Account) error {
-	if lw.OwnerCommentToken == "" {
-		return MakeError(ErrOther, "empty token")
-	}
-
-	v := url.Values{}
-	v.Add("body", text)
-	v.Add("token", lw.OwnerCommentToken)
-	v.Add("name", name)
-
-	urls := fmt.Sprintf("http://watch.live.nicovideo.jp/api/broadcast/%s?%s",
-		lw.BroadID, v.Encode())
-
-	return commentOwnerImpl(urls, ac)
+type CommentOwnerRequest struct {
+	Text        string `json:"text"`
+	IsPermanent bool   `json:"isPermanent"`
+	Color       string `json:"color"`
+	UserName    string `json:"userName,omitempty"`
 }
 
-func commentOwnerImpl(urls string, ac *Account) (err error) {
-	res, err := ac.client.Get(urls)
+// CommentOwner sends a comment as the owner.
+func CommentOwner(broadID string, method string, commreq *CommentOwnerRequest, ac *Account) error {
+	url := fmt.Sprintf("http://live2.nicovideo.jp/watch/%s/operator_comment", broadID)
+
+	return commentOwnerImpl(method, commreq, url, ac)
+}
+
+func commentOwnerImpl(method string, commreq *CommentOwnerRequest, url string, ac *Account) (err error) {
+	type CommentOwnerResponse struct {
+		Meta struct {
+			ErrorCode    string `json:"errorCode"`
+			Status       int    `json:"status"`
+			ErrorMessage string `json:"errorMessage"`
+		} `json:"meta"`
+	}
+
+	commreqBytes, err := json.Marshal(commreq)
+	if err != nil {
+		return MakeError(ErrSendComment, err.Error())
+	}
+
+	req, err := http.NewRequest(method, url, bytes.NewReader(commreqBytes))
+	if err != nil {
+		return MakeError(ErrSendComment, err.Error())
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := ac.client.Do(req)
 	if err != nil {
 		return MakeError(ErrSendComment, err.Error())
 	}
@@ -37,26 +52,16 @@ func commentOwnerImpl(urls string, ac *Account) (err error) {
 		}
 	}()
 
-	brs, err := ioutil.ReadAll(res.Body)
+	commResp := new(CommentOwnerResponse)
+	dec := json.NewDecoder(res.Body)
+	err = dec.Decode(commResp)
 	if err != nil {
 		return MakeError(ErrSendComment, err.Error())
 	}
 
-	v, err := url.ParseQuery(string(brs))
-	if err != nil {
-		return MakeError(ErrSendComment, err.Error())
+	if commResp.Meta.Status != 200 {
+		return MakeError(ErrSendComment, fmt.Sprintf("failed to send owner comment with an error Status: %d Code: %s Message: %s", commResp.Meta.Status, commResp.Meta.ErrorCode, commResp.Meta.ErrorMessage))
 	}
 
-	if len(v["status"]) > 0 {
-		if v["status"][0] == "error" {
-			if len(v["error"]) > 0 {
-				return MakeError(ErrSendComment, "error num : "+v["error"][0])
-			}
-			return MakeError(ErrSendComment, "unknown error")
-		}
-		return nil
-	}
-
-	fmt.Fprintln(os.Stderr, v)
-	return MakeError(ErrSendComment, "unknown error")
+	return nil
 }
