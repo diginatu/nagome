@@ -209,7 +209,7 @@ func (pl *Plugin) evRoutine() {
 				case <-pl.quit:
 				default:
 					if err != io.EOF {
-						pl.cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin disconnected",
+						pl.cv.CreateEvNewNotification(CtUINotificationTypeInfo, "plugin disconnected",
 							fmt.Sprintf("plugin [%s] : connection disconnected", pl.Name))
 						pl.cv.cli.log.Println(err)
 					}
@@ -234,7 +234,7 @@ func (pl *Plugin) evRoutine() {
 		_, err := fmt.Fprintf(bufw, "%s\n", p)
 		if err != nil {
 			pl.cv.cli.log.Println(err)
-			pl.cv.CreateEvNewDialog(CtUIDialogTypeInfo, "plugin", "failed to write a message : "+pl.Name)
+			pl.cv.CreateEvNewNotification(CtUINotificationTypeInfo, "plugin", "failed to write a message : "+pl.Name)
 			// quit if UI plugin disconnect
 			if pl.IsMain() {
 				pl.cv.Quit()

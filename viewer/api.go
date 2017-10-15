@@ -108,7 +108,7 @@ const (
 
 	// DomainUI
 	// Event to be processed by UI plugin.
-	CommUIDialog        = "Dialog"
+	CommUINotification  = "Notification"
 	CommUIClearComments = "ClearComments"
 	CommUIConfigAccount = "ConfigAccount" // Open the window of account setting or suggest user to configure it.
 
@@ -242,8 +242,8 @@ type CtCommentGot struct {
 	IsAnonymity      bool   `json:"is_anonymity"`
 }
 
-// CtUIDialog is a content of CommUIDialog
-type CtUIDialog struct {
+// CtUINotification is a content of CommUINotification
+type CtUINotification struct {
 	// Select type from below const string
 	Type        string `json:"type"`
 	Title       string `json:"title"`
@@ -257,10 +257,10 @@ type CtAntennaGot struct {
 	UserID      string `json:"user_id"`
 }
 
-// type of CtUIDialog
+// type of CtUINotification
 const (
-	CtUIDialogTypeInfo string = "Info"
-	CtUIDialogTypeWarn        = "Warn"
+	CtUINotificationTypeInfo string = "Info"
+	CtUINotificationTypeWarn        = "Warn"
 )
 
 // CtDirectNo is a content for CommDirectNo

@@ -70,7 +70,7 @@ func (cv *CommentViewer) AntennaConnect() {
 	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, cv.prcdnle)
 	if err != nil {
 		cv.cli.log.Println(err)
-		cv.CreateEvNewDialog(CtUIDialogTypeWarn, "Antenna error", "Antenna login failed")
+		cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Antenna error", "Antenna login failed")
 	}
 }
 
@@ -284,10 +284,10 @@ func (cv *CommentViewer) sendPluginMessage() {
 	}
 }
 
-// CreateEvNewDialog emits new event for ask UI to display dialog.
-func (cv *CommentViewer) CreateEvNewDialog(typ, title, desc string) {
+// CreateEvNewNotification emits new event for ask UI to display a notification.
+func (cv *CommentViewer) CreateEvNewNotification(typ, title, desc string) {
 	cv.cli.log.Printf("[D] %s : %s", title, desc)
-	cv.Evch <- NewMessageMust(DomainUI, CommUIDialog, CtUIDialog{typ, title, desc})
+	cv.Evch <- NewMessageMust(DomainUI, CommUINotification, CtUINotification{typ, title, desc})
 }
 
 // Disconnect disconnects current comment connection if connected.
@@ -338,7 +338,7 @@ func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
 	switch e.Type() {
 	case nicolive.ErrOther:
 	case nicolive.ErrSendComment:
-		cv.CreateEvNewDialog(CtUIDialogTypeWarn, e.TypeString(), e.Description())
+		cv.CreateEvNewNotification(CtUINotificationTypeWarn, e.TypeString(), e.Description())
 	case nicolive.ErrConnection:
 	case nicolive.ErrNicoLiveOther:
 	case nicolive.ErrNotLogin:
@@ -347,5 +347,5 @@ func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
 	default:
 		cv.cli.log.Println("Unknown nicolive Error")
 	}
-	cv.CreateEvNewDialog(CtUIDialogTypeWarn, e.TypeString(), e.Description())
+	cv.CreateEvNewNotification(CtUINotificationTypeWarn, e.TypeString(), e.Description())
 }
