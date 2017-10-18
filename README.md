@@ -32,7 +32,7 @@ But some features work now.
 Licence
 -------
 
-[MIT.](LICENSE)
+[MIT License](LICENSE)
 
 Dependencies
 ------------
@@ -57,9 +57,10 @@ Or, about plugins.
 Tasks
 -----
 
-* [ ] nagomever
-* [ ] Nagome message for quitting Nagome
-* [ ] dynamic plugin add/remove
-* [ ] make direct domain available by plugin
-* [ ] translation function
-* [ ] add more document
+* [ ] Add a function to automatically avoid busy TCP port
+* [ ] Check the settings value nagomever for a plugin
+* [ ] Add a Nagome Message for quitting Nagome itself
+* [ ] Add a feature to Add/remove a plugin dynamically
+* [ ] Make Direct Domain available to plugin
+* [ ] Translation of the UI
+* [ ] Add more document
