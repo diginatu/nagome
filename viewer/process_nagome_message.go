@@ -20,7 +20,7 @@ var (
 	broadIDRegex = regexp.MustCompile(`(lv|co)\d+`)
 )
 
-func processPluginMessage(cv *CommentViewer, m *Message) error {
+func processNagomeMessage(cv *CommentViewer, m *Message) error {
 	switch m.Domain {
 	case DomainQuery:
 		switch m.Command {
@@ -28,7 +28,6 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			if err := processQueryBroadConnect(cv, m); err != nil {
 				return err
 			}
-
 			cv.cli.log.Println("connected")
 
 		case CommQueryBroadDisconnect:
@@ -96,14 +95,14 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			err := cv.Ac.Login()
 			if err != nil {
 				if nerr, ok := err.(nicolive.Error); ok {
-					cv.CreateEvNewNotification(CtUINotificationTypeWarn, "login error", nerr.Description())
+					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "login error", nerr.Description())
 				} else {
-					cv.CreateEvNewNotification(CtUINotificationTypeWarn, "login error", err.Error())
+					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "login error", err.Error())
 				}
 				return err
 			}
 			cv.cli.log.Println("logged in")
-			cv.CreateEvNewNotification(CtUINotificationTypeInfo, "login succeeded", "login succeeded")
+			cv.EmitEvNewNotification(CtUINotificationTypeInfo, "login succeeded", "login succeeded")
 
 		case CommQueryAccountLoad:
 			var err error
@@ -159,13 +158,13 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 		case CommQueryUserSet:
 			var ct nicolive.User // CtQueryUserSet
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Storing the user info failed", "JSON parse error")
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user info failed", "JSON parse error")
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
 			err := cv.prcdnle.userDB.Store(&ct)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Storing the user info failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user info failed", "DB error : "+err.Error())
 				return err
 			}
 
@@ -174,24 +173,24 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 		case CommQueryUserSetName:
 			var ct CtQueryUserSetName
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "JSON parse error")
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "JSON parse error")
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
 			if ct.Name == "" {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Blank name", "You can't set blank name")
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Blank name", "You can't set blank name")
 				return nicolive.MakeError(nicolive.ErrOther, "format error : Name is empty")
 			}
 
 			user, err := cv.prcdnle.userDB.Fetch(ct.ID)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
 				return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
 			}
 			if user == nil {
 				user, err = cv.prcdnle.CheckIntervalAndCreateUser(ct.ID)
 				if err != nil {
-					cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
+					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
 					return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
 				}
 			}
@@ -199,7 +198,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 			user.Name = ct.Name
 			err = cv.prcdnle.userDB.Store(user)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error : "+err.Error())
 				return err
 			}
 
@@ -208,32 +207,32 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 		case CommQueryUserDelete:
 			var ct CtQueryUserDelete
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Deleting the user info failed", "JSON parse error")
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Deleting the user info failed", "JSON parse error")
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
 			err := cv.prcdnle.userDB.Remove(ct.ID)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err
 			}
 
 		case CommQueryUserFetch:
 			var ct CtQueryUserFetch
 			if err := json.Unmarshal(m.Content, &ct); err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Fetching the user info failed", "JSON parse error")
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Fetching the user info failed", "JSON parse error")
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
 			user, err := cv.prcdnle.CheckIntervalAndCreateUser(ct.ID)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err
 			}
 
 			user_current, err := cv.prcdnle.userDB.Fetch(ct.ID)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err
 			}
 			if user_current == nil {
@@ -246,7 +245,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 			err = cv.prcdnle.userDB.Store(user_current)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err
 			}
 
@@ -260,7 +259,7 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 
 			user, err := cv.prcdnle.userDB.Fetch(ct.ID)
 			if err != nil {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				cv.cli.log.Printf("Removing the user info failed.\n DB error : %s", err.Error())
 				return err
 			}
@@ -300,7 +299,7 @@ func processQueryBroadConnect(cv *CommentViewer, m *Message) error {
 
 	broadMch := broadIDRegex.FindString(ct.BroadID)
 	if broadMch == "" {
-		cv.CreateEvNewNotification(CtUINotificationTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
+		cv.EmitEvNewNotification(CtUINotificationTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
 		return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
 	}
 

@@ -141,7 +141,7 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 
 	case nicolive.EventTypeCommentErr:
 		nerr := ev.Content.(nicolive.Error)
-		p.cv.CreateEvNewNotification(CtUINotificationTypeWarn, nerr.TypeString(), nerr.Description())
+		p.cv.EmitEvNewNotification(CtUINotificationTypeWarn, nerr.TypeString(), nerr.Description())
 
 	case nicolive.EventTypeAntennaOpen:
 		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeAntennaOpen, nil)

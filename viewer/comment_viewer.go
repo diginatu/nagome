@@ -55,7 +55,7 @@ func (cv *CommentViewer) Start() {
 
 	cv.wg.Add(2)
 	go cv.pluginTCPServer(waitWakeServer)
-	go cv.sendPluginMessage()
+	go cv.sendNagomeMessage()
 
 	<-waitWakeServer
 	cv.loadPlugins()
@@ -70,7 +70,7 @@ func (cv *CommentViewer) AntennaConnect() {
 	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, cv.prcdnle)
 	if err != nil {
 		cv.cli.log.Println(err)
-		cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Antenna error", "Antenna login failed")
+		cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Antenna error", "Antenna login failed")
 	}
 }
 
@@ -210,7 +210,7 @@ func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
 	<-cv.quit
 }
 
-func (cv *CommentViewer) sendPluginMessage() {
+func (cv *CommentViewer) sendNagomeMessage() {
 	defer cv.wg.Done()
 
 	for {
@@ -262,16 +262,16 @@ func (cv *CommentViewer) sendPluginMessage() {
 				}
 			}
 
-			nerr := processPluginMessage(cv, mes)
+			nerr := processNagomeMessage(cv, mes)
 			if nerr != nil {
 				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.prgno), nerr)
 				cv.cli.log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)
 				if ok {
-					cv.CreateEvNewNotification(CtUINotificationTypeWarn, nicoerr.TypeString(), nicoerr.Description())
+					cv.EmitEvNewNotification(CtUINotificationTypeWarn, nicoerr.TypeString(), nicoerr.Description())
 				} else {
-					cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Error", nerr.Error())
+					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Error", nerr.Error())
 				}
 			}
 
@@ -284,8 +284,8 @@ func (cv *CommentViewer) sendPluginMessage() {
 	}
 }
 
-// CreateEvNewNotification emits new event for ask UI to display a notification.
-func (cv *CommentViewer) CreateEvNewNotification(typ, title, desc string) {
+// EmitEvNewNotification emits new event for ask UI to display a notification.
+func (cv *CommentViewer) EmitEvNewNotification(typ, title, desc string) {
 	cv.cli.log.Printf("[D] %s : %s", title, desc)
 	cv.Evch <- NewMessageMust(DomainUI, CommUINotification, CtUINotification{typ, title, desc})
 }
