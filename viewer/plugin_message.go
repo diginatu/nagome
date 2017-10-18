@@ -25,56 +25,8 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 	case DomainQuery:
 		switch m.Command {
 		case CommQueryBroadConnect:
-			var err error
-			var ct CtQueryBroadConnect
-			if err = json.Unmarshal(m.Content, &ct); err != nil {
-				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-			}
-
-			broadMch := broadIDRegex.FindString(ct.BroadID)
-			if broadMch == "" {
-				cv.CreateEvNewNotification(CtUINotificationTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
-				return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
-			}
-
-			lw := &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
-
-			err = lw.FetchInformation()
-			if err != nil {
-				nerr, ok := err.(nicolive.Error)
-				if ok {
-					if nerr.Type() == nicolive.ErrNetwork {
-						ct.RetryN++
-						cv.cli.log.Printf("Failed to connect to %s.\n", ct.BroadID)
-						cv.cli.log.Printf("FetchInformation : %s\n", nerr.Error())
-						if ct.RetryN >= NumFetchInformaionRetry {
-							cv.cli.log.Println("Reached the limit of retrying.")
-							return nerr
-						}
-						cv.cli.log.Println("Retrying...")
-						go func() {
-							<-time.After(time.Second)
-							cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
-						}()
-					}
-				}
+			if err := processQueryBroadConnect(cv, m); err != nil {
 				return err
-			}
-
-			cv.Disconnect()
-
-			cv.Lw = lw
-			cv.Cmm, err = nicolive.CommentConnect(context.TODO(), *cv.Lw, cv.prcdnle)
-			if err != nil {
-				return err
-			}
-
-			if lw.IsUserOwner() {
-				ps, err := nicolive.PublishStatus(lw.BroadID, cv.Ac)
-				if err != nil {
-					return err
-				}
-				cv.Lw.OwnerCommentToken = ps.Token
 			}
 
 			cv.cli.log.Println("connected")
@@ -334,6 +286,62 @@ func processPluginMessage(cv *CommentViewer, m *Message) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func processQueryBroadConnect(cv *CommentViewer, m *Message) error {
+	var err error
+	var ct CtQueryBroadConnect
+	if err = json.Unmarshal(m.Content, &ct); err != nil {
+		return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
+	}
+
+	broadMch := broadIDRegex.FindString(ct.BroadID)
+	if broadMch == "" {
+		cv.CreateEvNewNotification(CtUINotificationTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text")
+		return nicolive.MakeError(nicolive.ErrOther, "no valid BroadID found in the ID text")
+	}
+
+	lw := &nicolive.LiveWaku{Account: cv.Ac, BroadID: broadMch}
+
+	err = lw.FetchInformation()
+	if err != nil {
+		nerr, ok := err.(nicolive.Error)
+		if ok {
+			if nerr.Type() == nicolive.ErrNetwork {
+				ct.RetryN++
+				cv.cli.log.Printf("Failed to connect to %s.\n", ct.BroadID)
+				cv.cli.log.Printf("FetchInformation : %s\n", nerr.Error())
+				if ct.RetryN >= NumFetchInformaionRetry {
+					cv.cli.log.Println("Reached the limit of retrying.")
+					return nerr
+				}
+				cv.cli.log.Println("Retrying...")
+				go func() {
+					<-time.After(time.Second)
+					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
+				}()
+			}
+		}
+		return err
+	}
+
+	cv.Disconnect()
+
+	cv.Lw = lw
+	cv.Cmm, err = nicolive.CommentConnect(context.TODO(), *cv.Lw, cv.prcdnle)
+	if err != nil {
+		return err
+	}
+
+	if lw.IsUserOwner() {
+		ps, err := nicolive.PublishStatus(lw.BroadID, cv.Ac)
+		if err != nil {
+			return err
+		}
+		cv.Lw.OwnerCommentToken = ps.Token
 	}
 
 	return nil

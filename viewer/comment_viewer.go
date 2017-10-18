@@ -269,9 +269,9 @@ func (cv *CommentViewer) sendPluginMessage() {
 
 				nicoerr, ok := nerr.(nicolive.Error)
 				if ok {
-					cv.ProceedNicoliveError(nicoerr)
+					cv.CreateEvNewNotification(CtUINotificationTypeWarn, nicoerr.TypeString(), nicoerr.Description())
 				} else {
-					cv.cli.log.Panicln(nerr)
+					cv.CreateEvNewNotification(CtUINotificationTypeWarn, "Error", nerr.Error())
 				}
 			}
 
@@ -331,21 +331,4 @@ func (cv *CommentViewer) Quit() {
 	if err != nil {
 		cv.cli.log.Println(err)
 	}
-}
-
-// ProceedNicoliveError proceeds Error of nicolive.
-func (cv *CommentViewer) ProceedNicoliveError(e nicolive.Error) {
-	switch e.Type() {
-	case nicolive.ErrOther:
-	case nicolive.ErrSendComment:
-		cv.CreateEvNewNotification(CtUINotificationTypeWarn, e.TypeString(), e.Description())
-	case nicolive.ErrConnection:
-	case nicolive.ErrNicoLiveOther:
-	case nicolive.ErrNotLogin:
-	case nicolive.ErrClosed:
-	case nicolive.ErrIncorrectAccount:
-	default:
-		cv.cli.log.Println("Unknown nicolive Error")
-	}
-	cv.CreateEvNewNotification(CtUINotificationTypeWarn, e.TypeString(), e.Description())
 }
