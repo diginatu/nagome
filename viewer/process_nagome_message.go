@@ -38,7 +38,7 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrSendComment, "not connected to live")
 			}
 			if cv.Lw == nil {
-				return nicolive.MakeError(nicolive.ErrSendComment, "Error : cv.Lw is nil")
+				return nicolive.MakeError(nicolive.ErrSendComment, "cv.Lw is nil")
 			}
 
 			var ct CtQueryBroadSendComment
