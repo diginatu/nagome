@@ -1,7 +1,7 @@
 language: go
 
 go:
-    - 1.7
+    - 1.8
 
 install:
     - go get github.com/golang/lint/golint
@@ -13,7 +13,7 @@ script:
     - go fmt ./...
     - golint ./...
     - go vet ./...
-    - go test -v -race ./...
+    - make test
 
 notifications:
     slack:

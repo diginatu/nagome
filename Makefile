@@ -25,4 +25,4 @@ clean:
 
 .PHONY: test
 test:
-	go test -v $(GOPACKAGES)
+	go test -v -race $(GOPACKAGES)
