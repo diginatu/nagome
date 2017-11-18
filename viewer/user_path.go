@@ -9,7 +9,7 @@ import (
 
 func findUserConfigPath(appname string) string {
 	home := os.Getenv("HOME")
-	dir := filepath.Join(home, ".config")
+	dir := filepath.Join(home, ".config", appname)
 
-	return filepath.Join(dir, appname)
+	return dir
 }
