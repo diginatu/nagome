@@ -33,9 +33,8 @@ func ConnectAntenna(ctx context.Context, ac *Account, ev EventReceiver) (*Antenn
 	a := &Antenna{
 		ac: ac,
 	}
-	var err error
 
-	err = a.Login()
+	err := a.Login()
 	if err != nil {
 		return nil, err
 	}

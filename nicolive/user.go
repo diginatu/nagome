@@ -14,8 +14,8 @@ const (
 	userDBDirName = "userdb"
 )
 
-// Is184UserId returns whether the ID is 184
-func Is184UserId(id string) bool {
+// Is184UserID returns whether the ID is 184
+func Is184UserID(id string) bool {
 	for _, c := range id {
 		if !unicode.IsDigit(c) {
 			return true
@@ -35,7 +35,7 @@ type User struct {
 
 // CreateUser gather the user infomation of the given user id and returns pointer to new User struct.
 func CreateUser(id string, a *Account) (*User, error) {
-	if Is184UserId(id) {
+	if Is184UserID(id) {
 		return &User{
 			ID:    id,
 			Is184: true,
@@ -173,9 +173,5 @@ func (d *UserDB) Remove(id string) error {
 
 // Close closes the DB.
 func (d *UserDB) Close() error {
-	err := d.db.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return d.db.Close()
 }

@@ -73,7 +73,6 @@ func (a *Account) UpdateClient() {
 			Secure: false,
 		},
 	})
-	return
 }
 
 func (a *Account) String() string {
@@ -92,11 +91,7 @@ func (a *Account) Save(filePath string) error {
 	}
 
 	err = ioutil.WriteFile(filePath, d, 0600)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // AccountLoad reads from a file and return new Account.

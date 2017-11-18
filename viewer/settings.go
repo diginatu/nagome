@@ -44,8 +44,7 @@ func (s *SettingsSlot) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Duplicate creates new copy.
 func (s *SettingsSlot) Duplicate() SettingsSlot {
-	var ns SettingsSlot
-	ns = *s
+	ns := *s
 	ns.PluginDisable = make(map[string]bool)
 	for k, c := range s.PluginDisable {
 		ns.PluginDisable[k] = c

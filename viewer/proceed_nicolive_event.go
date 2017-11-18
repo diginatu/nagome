@@ -33,6 +33,7 @@ func NewProceedNicoliveEvent(cv *CommentViewer) *ProceedNicoliveEvent {
 	}
 }
 
+// CheckIntervalAndCreateUser returns a pointer to new struct nicolive.User with fetched user information unless it exceed the limitation of API
 func (p *ProceedNicoliveEvent) CheckIntervalAndCreateUser(id string) (*nicolive.User, error) {
 	// reset API limit
 	if time.Now().After(p.userNameAPIFastTime.Add(time.Minute)) {
@@ -50,7 +51,7 @@ func (p *ProceedNicoliveEvent) CheckIntervalAndCreateUser(id string) (*nicolive.
 	return nil, fmt.Errorf("exceed the limit of fetching user name from web page")
 }
 
-func (p *ProceedNicoliveEvent) GetUserNameForNewComment(id string, useAPI bool) (*nicolive.User, error) {
+func (p *ProceedNicoliveEvent) getUserNameForNewComment(id string, useAPI bool) (*nicolive.User, error) {
 	u, err := p.userDB.Fetch(id)
 	if err != nil {
 		return nil, err
@@ -88,7 +89,7 @@ func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 
 	// user info
 	useAPI := p.cv.Settings.UserNameGet && cm.Date.After(p.cv.Cmm.ConnectedTm) && !cm.IsAnonymity && !cm.IsCommand
-	u, err := p.GetUserNameForNewComment(cm.UserID, useAPI)
+	u, err := p.getUserNameForNewComment(cm.UserID, useAPI)
 	if err != nil {
 		p.cv.cli.log.Println(err)
 	}

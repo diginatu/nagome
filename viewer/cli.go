@@ -110,7 +110,6 @@ func (c *CLI) RunCli(args []string) int {
 	if *debugToStderr {
 		logw = c.ErrStream
 	} else {
-		var err error
 		file, err := os.Create(filepath.Join(c.SavePath, logFileName))
 		if err != nil {
 			c.log.Println("could not open log file\n", err)

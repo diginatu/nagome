@@ -26,5 +26,4 @@ func main() {
 	cli := viewer.NewCLI("", AppName)
 	cli.Version = Version
 	os.Exit(cli.RunCli(os.Args))
-	return
 }

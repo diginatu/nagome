@@ -59,7 +59,7 @@ func TestSettingsSlotsOldLoad(t *testing.T) {
 	if got := ss.Config[0].Name; got != "Old Settings" {
 		t.Fatalf("Should be \"%v\" but \"%v\"", "Old Settings", got)
 	}
-	if got := ss.Config[0].AutoFollowNextWaku; got != true {
+	if got := ss.Config[0].AutoFollowNextWaku; got != true { // nolint: megacheck
 		t.Fatalf("Should be %v but %v", true, got)
 	}
 	// Settings that are NOT set in the file

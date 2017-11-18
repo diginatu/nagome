@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// CommentOwnerRequest is a request of an owner comment.
 type CommentOwnerRequest struct {
 	Text        string `json:"text"`
 	IsPermanent bool   `json:"isPermanent"`

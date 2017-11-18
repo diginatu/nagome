@@ -59,8 +59,6 @@ func (cv *CommentViewer) Start() {
 
 	<-waitWakeServer
 	cv.loadPlugins()
-
-	return
 }
 
 // AntennaConnect connects Antenna and start processing.
@@ -155,8 +153,6 @@ func (cv *CommentViewer) loadPlugins() {
 			}
 		}
 	}
-
-	return
 }
 
 func (cv *CommentViewer) pluginTCPServer(waitWakeServer chan struct{}) {
@@ -302,8 +298,6 @@ func (cv *CommentViewer) Disconnect() {
 	}
 	cv.Cmm = nil
 	cv.Lw = nil
-
-	return
 }
 
 // AntennaDisconnect disconnects current antenna connection if connected.
@@ -317,8 +311,6 @@ func (cv *CommentViewer) AntennaDisconnect() {
 		cv.cli.log.Println(err)
 	}
 	cv.Antn = nil
-
-	return
 }
 
 // Quit quits the CommentViewer.

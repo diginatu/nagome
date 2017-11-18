@@ -30,8 +30,7 @@ func TestPublishStatus(t *testing.T) {
 <getpublishstatus status="fail" time="1486052405"><error><code>notfound</code></error></getpublishstatus>`
 	)
 
-	var responce string
-	responce = publishStatus1
+	responce := publishStatus1
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, responce)
 	}))

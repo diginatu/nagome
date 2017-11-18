@@ -47,13 +47,11 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 			}
 
 			isowner := false
-			if ct.Type == "" {
+			if cv.Lw.IsUserOwner() {
 				isowner = cv.Settings.OwnerComment
-			} else {
-				isowner = ct.Type == CtQueryBroadSendCommentTypeOwner
-			}
-			if !cv.Lw.IsUserOwner() {
-				isowner = false
+				if ct.Type != "" {
+					isowner = ct.Type == CtQueryBroadSendCommentTypeOwner
+				}
 			}
 
 			if isowner {
@@ -230,26 +228,26 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 				return err
 			}
 
-			user_current, err := cv.prcdnle.userDB.Fetch(ct.ID)
+			userCurrent, err := cv.prcdnle.userDB.Fetch(ct.ID)
 			if err != nil {
 				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err
 			}
-			if user_current == nil {
+			if userCurrent == nil {
 				// If the user was not in the DB
-				user_current = user
+				userCurrent = user
 			} else {
-				user_current.Name = user.Name
-				user_current.ThumbnailURL = user.ThumbnailURL
+				userCurrent.Name = user.Name
+				userCurrent.ThumbnailURL = user.ThumbnailURL
 			}
 
-			err = cv.prcdnle.userDB.Store(user_current)
+			err = cv.prcdnle.userDB.Store(userCurrent)
 			if err != nil {
 				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
 				return err
 			}
 
-			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(*user_current))
+			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, CtNagomeUserUpdate(*userCurrent))
 
 		case CommDirectUserGet:
 			var ct CtDirectUserGet

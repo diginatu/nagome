@@ -126,7 +126,7 @@ func (cc *CommentConnection) proceedMessage(m string) {
 		if v, ok := xmlpath.MustCompile("/thread/@server_time").String(rt); ok {
 			i, _ := strconv.ParseInt(v, 10, 64)
 			cc.ConnectedTm = time.Unix(i, 0)
-			cc.svrDu = cc.ConnectedTm.Sub(time.Now())
+			cc.svrDu = time.Until(cc.ConnectedTm)
 		}
 
 		// immediately get heartbeat
@@ -373,11 +373,7 @@ func (cc *CommentConnection) sendComment(ct commentConnectionEventSend, postkey 
 		html.EscapeString(ct.text))
 
 	nerr := cc.connection.Send(sdcomm)
-	if nerr != nil {
-		return nerr
-	}
-
-	return nil
+	return nerr
 }
 
 // Disconnect quit all routines and disconnect.

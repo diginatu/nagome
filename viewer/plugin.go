@@ -242,7 +242,6 @@ func (pl *Plugin) evRoutine() {
 				pl.close()
 			}
 		}
-		return
 	}
 	for {
 		select {
