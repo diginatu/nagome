@@ -2,7 +2,7 @@ GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
 GOPACKAGES = $(shell go list ./...  | grep -v /vendor/)
 BINARY = nagome
 RELEASEDIR = release
-LDFLAGS = -ldflags "-X main.Version=`git describe --tags`"
+LDFLAGS = -ldflags "-X main.Version=`git describe --tags --abbrev=0`"
 
 default: build
 
