@@ -60,7 +60,7 @@ func (c *CLI) RunCli(args []string) int {
 	flagst.SetOutput(c.ErrStream)
 
 	flagst.StringVar(&c.SavePath, "savepath", findUserConfigPath(c.AppName), "Set <string> to save directory.")
-	tcpPort := flagst.String("p", "8025", `Port to wait TCP server for UI. (see uitcp)`)
+	tcpPort := flagst.String("p", "8025", `Port to wait TCP server for plugins.  Set 0 to try to find free port.  (see docs/plugin.md)`)
 	debugToStderr := flagst.Bool("dbgtostd", false, `Output debug information to stderr.
 	(in default, output to the log file in the save directory)`)
 	flagst.BoolVar(&printHelp, "help", false, "Print this help.")
