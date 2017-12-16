@@ -57,6 +57,7 @@ Or, about plugins.
 Tasks
 -----
 
+* [ ] Show error when loading plugin failed
 * [ ] Add a function to automatically avoid busy TCP port
 * [ ] Check the settings value nagomever for a plugin
 * [ ] Add a Nagome Message for quitting Nagome itself
