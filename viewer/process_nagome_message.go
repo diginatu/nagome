@@ -215,6 +215,15 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 				return err
 			}
 
+			usr := CtNagomeUserUpdate{
+				ID:           ct.ID,
+				Name:         "",
+				CreateTime:   time.Unix(0, 0),
+				Is184:        nicolive.Is184UserID(ct.ID),
+				ThumbnailURL: "",
+			}
+			cv.Evch <- NewMessageMust(DomainNagome, CommNagomeUserUpdate, usr)
+
 		case CommQueryUserFetch:
 			var ct CtQueryUserFetch
 			if err := json.Unmarshal(m.Content, &ct); err != nil {

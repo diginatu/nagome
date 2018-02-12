@@ -77,7 +77,7 @@ const (
 	CommNagomeCommentSend  = "Comment.Send"
 	CommNagomeAntennaOpen  = "Antenna.Open"
 	CommNagomeAntennaClose = "Antenna.Close"
-	CommNagomeUserUpdate   = "User.Update"
+	CommNagomeUserUpdate   = "User.Update" // CommNagomeUserUpdate is Emitted when User info is updated by fetching or setting name etc.
 
 	// DomainComment
 	// This domain is for only sending comments.
@@ -126,7 +126,7 @@ const (
 	CommDirectSettingsCurrent = "Settings.Current" // Request current settings message.
 	CommDirectSettingsAll     = "Settings.All"     // Request all slots of settings message.
 
-	CommDirectUserGet = "User.Get" // Get user info like name form the user DB.
+	CommDirectUserGet = "User.Get" // Get user info from the user DB.
 
 	// Nagome to plugin
 	CommDirectngmPlugEnabled  = "Plug.Enabled"  // Sent when the plugin is enabled.
