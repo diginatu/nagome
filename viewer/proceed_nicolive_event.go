@@ -51,28 +51,6 @@ func (p *ProceedNicoliveEvent) CheckIntervalAndCreateUser(id string) (*nicolive.
 	return nil, fmt.Errorf("exceed the limit of fetching user name from web page")
 }
 
-func (p *ProceedNicoliveEvent) getUserNameForNewComment(id string, useAPI bool) (*nicolive.User, error) {
-	u, err := p.userDB.Fetch(id)
-	if err != nil {
-		return nil, err
-	}
-	if u != nil {
-		return u, nil
-	}
-
-	if useAPI {
-		u, err = p.CheckIntervalAndCreateUser(id)
-		if err != nil {
-			return nil, err
-		}
-		err := p.userDB.Store(u)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return u, nil
-}
-
 func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 	cm, _ := ev.Content.(nicolive.Comment)
 	ct := CtCommentGot{
@@ -87,22 +65,34 @@ func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 		Score:         cm.Score,
 	}
 
-	// user info
-	useAPI := p.cv.Settings.UserNameGet && cm.Date.After(p.cv.Cmm.ConnectedTm) && !cm.IsAnonymity && !cm.IsCommand
-	u, err := p.getUserNameForNewComment(cm.UserID, useAPI)
+	// Get user name from DB
+	u, err := p.userDB.Fetch(cm.UserID)
 	if err != nil {
-		p.cv.cli.log.Println(err)
-	}
-	if u != nil {
+		if err, ok := err.(nicolive.Error); ok {
+			if err.Type() == nicolive.ErrDBUserNotFound {
+			} else {
+				p.cv.cli.log.Println(err)
+			}
+		} else {
+			p.cv.cli.log.Println(err)
+		}
+	} else {
 		ct.UserName = u.Name
 		ct.UserThumbnailURL = u.ThumbnailURL
 	}
+
 	if cm.IsCommand {
 		ct.UserName = "Broadcaster"
 	}
 
 	ct.Comment = strings.Replace(cm.Comment, "\n", "<br>", -1)
 	p.cv.Evch <- NewMessageMust(DomainComment, CommCommentGot, ct)
+
+	useAPI := p.cv.Settings.UserNameGet && cm.Date.After(p.cv.Cmm.ConnectedTm) && !cm.IsAnonymity && !cm.IsCommand
+	if ct.UserName == "" && useAPI {
+		p.cv.Evch <- NewMessageMust(DomainQuery, CommQueryUserFetch,
+			CtQueryUserFetch{ID: ct.UserID})
+	}
 }
 
 // ProceedNicoEvent will receive events and emits it.

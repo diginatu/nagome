@@ -15,11 +15,11 @@ type Message struct {
 	Command string          `json:"command"`
 	Content json.RawMessage `json:"content,omitempty"` // The structure of Content is depend on the Command (and Domain).
 
-	prgno int
+	plgno int
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.prgno)
+	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.plgno)
 }
 
 // NewMessage returns new Message with the given values.
@@ -40,7 +40,7 @@ func NewMessage(dom, com string, con interface{}) (*Message, error) {
 		Domain:  dom,
 		Command: com,
 		Content: conj,
-		prgno:   -1,
+		plgno:   -1,
 	}
 	return m, nil
 }

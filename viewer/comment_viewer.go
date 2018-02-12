@@ -217,7 +217,7 @@ func (cv *CommentViewer) sendNagomeMessage() {
 			if mes.Domain == DomainDirect {
 				nicoerr := processDirectMessage(cv, mes)
 				if nicoerr != nil {
-					cv.cli.log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.prgno), nicoerr)
+					cv.cli.log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.plgno), nicoerr)
 					cv.cli.log.Println(mes)
 				}
 				continue
@@ -228,7 +228,7 @@ func (cv *CommentViewer) sendNagomeMessage() {
 			// Messages from filter plugin will not send same plugin.
 			var st int
 			if strings.HasSuffix(mes.Domain, DomainSuffixFilter) {
-				st = mes.prgno + 1
+				st = mes.plgno + 1
 				mes.Domain = strings.TrimSuffix(mes.Domain, DomainSuffixFilter)
 			}
 			for i := st; i < len(cv.Pgns); i++ {
@@ -260,7 +260,7 @@ func (cv *CommentViewer) sendNagomeMessage() {
 
 			nerr := processNagomeMessage(cv, mes)
 			if nerr != nil {
-				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.prgno), nerr)
+				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.plgno), nerr)
 				cv.cli.log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)

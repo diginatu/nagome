@@ -19,6 +19,7 @@ const (
 	ErrRequireCommunityMember
 	ErrIncorrectAccount
 	ErrNetwork
+	ErrDBUserNotFound
 )
 
 // Error is an error struct in nicolive

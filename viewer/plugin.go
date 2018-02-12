@@ -259,7 +259,7 @@ func (pl *Plugin) evRoutine() {
 			if pl.GetState != pluginStateEnable {
 				continue
 			}
-			m.prgno = pl.No
+			m.plgno = pl.No
 			pl.cv.cli.log.Printf("plugin message [%s] : %v", pl.Name, m)
 			pl.cv.Evch <- m
 

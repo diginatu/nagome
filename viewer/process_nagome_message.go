@@ -116,7 +116,7 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 				return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
 			}
 
-			cv.cli.log.Printf("plug[%s] %s\n", cv.PluginName(m.prgno), ct.Text)
+			cv.cli.log.Printf("plug[%s] %s\n", cv.PluginName(m.plgno), ct.Text)
 
 		case CommQuerySettingsSetCurrent:
 			var ct CtQuerySettingsSetCurrent
@@ -361,19 +361,19 @@ func processDirectMessage(cv *CommentViewer, m *Message) error {
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
-		cv.Pgns[m.prgno].WriteMess(t)
+		cv.Pgns[m.plgno].WriteMess(t)
 	case CommDirectSettingsCurrent:
 		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsCurrent, CtDirectngmSettingsCurrent(cv.Settings))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
-		cv.Pgns[m.prgno].WriteMess(t)
+		cv.Pgns[m.plgno].WriteMess(t)
 	case CommDirectSettingsAll:
 		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, CtDirectngmSettingsAll(cv.cli.SettingsSlots))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
-		cv.Pgns[m.prgno].WriteMess(t)
+		cv.Pgns[m.plgno].WriteMess(t)
 	default:
 		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 	}

@@ -144,14 +144,12 @@ func (d *UserDB) Store(u *User) error {
 }
 
 // Fetch fetches a user of given ID from the DB.
-// If no user is found, return (nil, nil).
-// So you should check if user is nil.
 func (d *UserDB) Fetch(id string) (*User, error) {
 	var u = new(User)
 	b, err := d.db.Get([]byte(id), nil)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
-			return nil, nil
+			return nil, MakeError(ErrDBUserNotFound, err.Error())
 		}
 		return nil, ErrFromStdErr(err)
 	}

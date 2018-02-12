@@ -109,11 +109,15 @@ func TestUserDB(t *testing.T) {
 	}
 
 	fu, err = db.Fetch("fail")
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatalf("Should be failed")
 	}
-	if fu != nil {
-		t.Fatalf("Should be %v but %v", nil, fu)
+	nerr, ok := err.(Error)
+	if !ok {
+		t.Fatalf("Should be nicolive.Error")
+	}
+	if nerr.Type() != ErrDBUserNotFound {
+		t.Fatalf("Should be %v but %v", ErrDBUserNotFound, nerr.Type())
 	}
 
 	err = db.Remove("testid")
@@ -121,8 +125,8 @@ func TestUserDB(t *testing.T) {
 		t.Fatal(err)
 	}
 	fu, err = db.Fetch("testid")
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatalf("Should be failed")
 	}
 	if fu != nil {
 		t.Fatalf("Should be %v but %v", nil, fu)
