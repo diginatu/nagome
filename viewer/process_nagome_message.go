@@ -182,12 +182,14 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 
 			user, err := cv.prcdnle.userDB.Fetch(ct.ID)
 			if err != nil {
-				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
-				return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
-			}
-			if user == nil {
-				user, err = cv.prcdnle.CheckIntervalAndCreateUser(ct.ID)
-				if err != nil {
+				nerr, ok := err.(nicolive.Error)
+				if ok && nerr.Type() == nicolive.ErrDBUserNotFound {
+					user, err = cv.prcdnle.CheckIntervalAndCreateUser(ct.ID)
+					if err != nil {
+						cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
+						return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
+					}
+				} else {
 					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Storing the user name failed", "DB error")
 					return nicolive.MakeError(nicolive.ErrOther, "Storing the user name failed: DB error : "+err.Error())
 				}
@@ -239,12 +241,14 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 
 			userCurrent, err := cv.prcdnle.userDB.Fetch(ct.ID)
 			if err != nil {
-				cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
-				return err
-			}
-			if userCurrent == nil {
-				// If the user was not in the DB
-				userCurrent = user
+				nerr, ok := err.(nicolive.Error)
+				if ok && nerr.Type() == nicolive.ErrDBUserNotFound {
+					// If the user was not in the DB
+					userCurrent = user
+				} else {
+					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Removing the user info failed", "DB error : "+err.Error())
+					return err
+				}
 			} else {
 				userCurrent.Name = user.Name
 				userCurrent.ThumbnailURL = user.ThumbnailURL

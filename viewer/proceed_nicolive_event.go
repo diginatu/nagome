@@ -68,11 +68,8 @@ func (p *ProceedNicoliveEvent) proceedComment(ev *nicolive.Event) {
 	// Get user name from DB
 	u, err := p.userDB.Fetch(cm.UserID)
 	if err != nil {
-		if err, ok := err.(nicolive.Error); ok {
-			if err.Type() == nicolive.ErrDBUserNotFound {
-			} else {
-				p.cv.cli.log.Println(err)
-			}
+		err, ok := err.(nicolive.Error)
+		if ok && err.Type() == nicolive.ErrDBUserNotFound {
 		} else {
 			p.cv.cli.log.Println(err)
 		}
