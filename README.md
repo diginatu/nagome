@@ -11,8 +11,22 @@ So it doesn't depend on platforms or environments.
 You can make various UIs like native desktop app on any platform, modern app on the browser, even as Vim plugin.
 It can be also used for daemon like bots.
 
+UI Implementation
+-----------------
+
+### [Nagome Electron](https://github.com/diginatu/nagome-electron)
+
+Desktop app implementation using the Web UI below.
+All you need is packed as an app.  You can just download it and use now.
+
+### [Nagome WebUI](https://github.com/diginatu/nagome-webui)
+
+Static web SPA.
+Can be used as a part of an app or embedded in another web UI.
+It doesn't work as a stand alone.
+
 Install
-------- 
+-------
 
 Assume you have the go developing environment.
 
@@ -51,17 +65,18 @@ Contribution is welcome, about anything like fixing issues, adding new features,
 You can contact me via [my twitter](https://twitter.com/diginatu).
 Also, [my niconico community](http://com.nicovideo.jp/community/co2345471) here.
 
-Feel free to send a message and tell me what feature you want to work in.
-Or, about plugins.
+Feel free to send a message and tell me what feature you want to work in or plugins you want to make.
+I can help you.
 
 Tasks
 -----
 
-* [ ] Show error when loading plugin failed
-* [ ] Add a function to automatically avoid busy TCP port
-* [ ] Check the settings value nagomever for a plugin
-* [ ] Add a Nagome Message for quitting Nagome itself
+* [ ] Show error when a plugin failed to load
+* [ ] Check the settings value of "nagomever" for plugins
 * [ ] Add a feature to Add/remove a plugin dynamically
-* [ ] Make Direct Domain available to plugin
 * [ ] Translation of the UI
 * [ ] Add more document
+* API
+    * [ ] Get the version
+    * [ ] Make Direct Domain available to plugin
+    * [ ] Add a Nagome Message for quitting Nagome itself
