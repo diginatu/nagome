@@ -24,7 +24,6 @@ const (
 
 // CLI has valuables and settings for a CLI environment.
 type CLI struct {
-	Name                 string
 	InStream             io.ReadCloser
 	OutStream, ErrStream io.WriteCloser
 	SavePath             string
@@ -48,8 +47,6 @@ func NewCLI(name, appname string) *CLI {
 // RunCli runs CLI functions as one command line program.
 // This returns the CLI return value.
 func (c *CLI) RunCli(args []string) int {
-	c.log = log.New(c.ErrStream, c.Name, logFlags)
-
 	// set command line options
 	var (
 		printHelp bool
