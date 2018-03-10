@@ -89,7 +89,7 @@ func TestCLIQuit(t *testing.T) {
 	cli := makeTestCLI(savepath)
 	cli.InStream = &ReadNoClose{strings.NewReader("")}
 
-	rt := cli.RunCli([]string{DefaultAppName, "-savepath", savepath, "-dbgtostd"})
+	rt := cli.RunCli([]string{DefaultAppName, "-savepath", savepath, "-dbgtostd", "-p", "0"})
 	if rt != 0 {
 		t.Fatalf("Return value should be %v but %v", 0, rt)
 	}
