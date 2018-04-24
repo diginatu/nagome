@@ -77,6 +77,5 @@ Tasks
 * [ ] Translation of the UI
 * [ ] Add more document
 * API
-    * [ ] Get the version
     * [ ] Make Direct Domain available to plugin
     * [ ] Add a Nagome Message for quitting Nagome itself

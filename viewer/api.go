@@ -119,7 +119,9 @@ const (
 	// DomainDirect (special domain)
 	// The messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
 
-	// plugin to Nagome
+	// from plugin to Nagome
+	CommDirectAppVersion = "App.Version"
+
 	CommDirectNo       = "No"        // Tell plugin number to Nagome when the connection started.  (TCP at first time only)
 	CommDirectPlugList = "Plug.List" // Request a list of plugins.
 
@@ -128,7 +130,9 @@ const (
 
 	CommDirectUserGet = "User.Get" // Get user info from the user DB.
 
-	// Nagome to plugin
+	// from Nagome to plugin
+	CommDirectngmAppVersion = "App.Version"
+
 	CommDirectngmPlugEnabled  = "Plug.Enabled"  // Sent when the plugin is enabled.
 	CommDirectngmPlugDisabled = "Plug.Disabled" // Sent when the plugin is disabled.
 	CommDirectngmPlugList     = "Plug.List"
@@ -266,6 +270,12 @@ const (
 // CtDirectNo is a content for CommDirectNo
 type CtDirectNo struct {
 	No int `json:"no"`
+}
+
+// CtDirectngmAppVersion is a content for CommDirectngmAppVersion
+type CtDirectngmAppVersion struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 // CtDirectngmPlugList is a content for CommDirectngmPlugList

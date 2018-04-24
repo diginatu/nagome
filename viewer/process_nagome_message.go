@@ -358,29 +358,38 @@ func processQueryBroadConnect(cv *CommentViewer, m *Message) error {
 }
 
 func processDirectMessage(cv *CommentViewer, m *Message) error {
+	var t *Message
+	var err error
+
 	switch m.Command {
+	case CommDirectngmAppVersion:
+		t, err = NewMessage(DomainDirectngm, CommDirectngmAppVersion, CtDirectngmAppVersion{
+			Name:    cv.cli.AppName,
+			Version: cv.cli.Version,
+		})
+		if err != nil {
+			return nicolive.ErrFromStdErr(err)
+		}
 	case CommDirectPlugList:
 		c := CtDirectngmPlugList{&cv.Pgns}
-		t, err := NewMessage(DomainDirectngm, CommDirectngmPlugList, c)
+		t, err = NewMessage(DomainDirectngm, CommDirectngmPlugList, c)
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
-		cv.Pgns[m.plgno].WriteMess(t)
 	case CommDirectSettingsCurrent:
-		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsCurrent, CtDirectngmSettingsCurrent(cv.Settings))
+		t, err = NewMessage(DomainDirectngm, CommDirectngmSettingsCurrent, CtDirectngmSettingsCurrent(cv.Settings))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
-		cv.Pgns[m.plgno].WriteMess(t)
 	case CommDirectSettingsAll:
-		t, err := NewMessage(DomainDirectngm, CommDirectngmSettingsAll, CtDirectngmSettingsAll(cv.cli.SettingsSlots))
+		t, err = NewMessage(DomainDirectngm, CommDirectngmSettingsAll, CtDirectngmSettingsAll(cv.cli.SettingsSlots))
 		if err != nil {
 			return nicolive.ErrFromStdErr(err)
 		}
-		cv.Pgns[m.plgno].WriteMess(t)
 	default:
 		return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
 	}
 
+	cv.Pgns[m.plgno].WriteMess(t)
 	return nil
 }
