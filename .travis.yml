@@ -1,10 +1,10 @@
 language: go
 
 go:
-    - 1.8
+    - 1.9
 
 install:
-    - go get github.com/golang/lint/golint
+    - go get golang.org/x/lint/golint
     - go get github.com/mitchellh/gox
 
 script:
