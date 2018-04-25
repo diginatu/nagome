@@ -26,3 +26,14 @@ clean:
 .PHONY: test
 test:
 	go test -v -race $(GOPACKAGES)
+
+.PHONY: coverage
+coverage:
+	echo "" > coverage.txt
+	for d in $(GOPACKAGES); do \
+		go test -coverprofile=profile.out -covermode=atomic "$$d"; \
+		if [ -f profile.out ]; then \
+			cat profile.out >> coverage.txt; \
+			rm profile.out; \
+		fi \
+	done

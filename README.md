@@ -3,6 +3,7 @@ Nagome
 
 [![GoDoc](https://godoc.org/github.com/diginatu/nagome?status.svg)](https://godoc.org/github.com/diginatu/nagome)
 [![Build Status](https://travis-ci.org/diginatu/nagome.svg?branch=master)](https://travis-ci.org/diginatu/nagome)
+[![codecov](https://codecov.io/gh/diginatu/nagome/branch/master/graph/badge.svg)](https://codecov.io/gh/diginatu/nagome)
 
 Advanced NicoLive Comment Viewer written in go.
 
