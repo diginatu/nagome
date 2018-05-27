@@ -26,6 +26,13 @@ Static web SPA.
 Can be used as a part of an app or embedded in another web UI.
 It doesn't work as a stand alone.
 
+Plugins
+-------
+
+Nagome plugins recomended to add github topic "nagome-plugin".
+
+https://github.com/topics/nagome-plugin
+
 Install
 -------
 
