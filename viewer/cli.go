@@ -73,6 +73,26 @@ func (c *CLI) RunCli(args []string) int {
 		return 1
 	}
 
+	// set log
+	var logw io.Writer
+	if *debugToStderr {
+		logw = c.ErrStream
+	} else {
+		file, err := os.Create(filepath.Join(c.SavePath, logFileName))
+		if err != nil {
+			c.log.Println("could not open log file\n", err)
+			return 1
+		}
+		defer func() {
+			err := file.Close()
+			if err != nil {
+				c.log.Println(err)
+			}
+		}()
+		logw = file
+	}
+	c.log.SetOutput(logw)
+
 	err = c.SettingsSlots.Load(filepath.Join(c.SavePath, settingsFileName))
 	if err != nil {
 		c.log.Println(err)
@@ -101,26 +121,6 @@ func (c *CLI) RunCli(args []string) int {
 		c.log.Println("could not make save directory\n", err)
 		return 1
 	}
-
-	// set log
-	var logw io.Writer
-	if *debugToStderr {
-		logw = c.ErrStream
-	} else {
-		file, err := os.Create(filepath.Join(c.SavePath, logFileName))
-		if err != nil {
-			c.log.Println("could not open log file\n", err)
-			return 1
-		}
-		defer func() {
-			err := file.Close()
-			if err != nil {
-				c.log.Println(err)
-			}
-		}()
-		logw = file
-	}
-	c.log.SetOutput(logw)
 
 	cv := NewCommentViewer(*tcpPort, c)
 
