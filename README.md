@@ -87,3 +87,11 @@ Tasks
 * API
     * [ ] Make Direct Domain available to plugin
     * [ ] Add a Nagome Message for quitting Nagome itself
+
+Release
+-------
+
+``` sh
+git tag [version] -a
+git push --tags
+```
