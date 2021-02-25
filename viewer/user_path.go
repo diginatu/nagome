@@ -5,11 +5,17 @@ package viewer
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func findUserConfigPath(appname string) string {
-	home := os.Getenv("HOME")
-	dir := filepath.Join(home, ".config", appname)
+	xdgConf := os.Getenv("XDG_CONFIG_HOME")
+	if xdgConf == "" {
+		home := os.Getenv("HOME")
+		xdgConf = filepath.Join(home, ".config")
+	}
+
+	dir := filepath.Join(xdgConf, strings.ToLower(appname))
 
 	return dir
 }
