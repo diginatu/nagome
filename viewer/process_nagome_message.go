@@ -87,8 +87,6 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 				cv.Ac.Usersession = ct.Usersession
 			}
 
-			cv.AntennaConnect()
-
 		case CommQueryAccountLogin:
 			err := cv.Ac.Login()
 			if err != nil {
@@ -279,22 +277,6 @@ func processNagomeMessage(cv *CommentViewer, m *Message) error {
 
 		default:
 			return nicolive.MakeError(nicolive.ErrOther, "Message : invalid query command : "+m.Command)
-		}
-
-	case DomainAntenna:
-		switch m.Command {
-		case CommAntennaGot:
-			if cv.Settings.AutoFollowNextWaku {
-				var ct CtAntennaGot
-				if err := json.Unmarshal(m.Content, &ct); err != nil {
-					return nicolive.MakeError(nicolive.ErrOther, "JSON error in the content : "+err.Error())
-				}
-				if cv.Lw != nil && cv.Lw.Stream.CommunityID == ct.CommunityID {
-					ct := CtQueryBroadConnect{ct.BroadID, 0}
-					cv.cli.log.Println("following to " + ct.BroadID)
-					cv.Evch <- NewMessageMust(DomainQuery, CommQueryBroadConnect, ct)
-				}
-			}
 		}
 	}
 

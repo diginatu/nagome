@@ -1,7 +1,6 @@
 package viewer
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,7 +19,6 @@ type CommentViewer struct {
 	Ac       *nicolive.Account
 	Lw       *nicolive.LiveWaku
 	Cmm      *nicolive.CommentConnection
-	Antn     *nicolive.Antenna
 	Pgns     []*Plugin
 	Settings SettingsSlot
 	TCPPort  string
@@ -61,20 +59,8 @@ func (cv *CommentViewer) Start() {
 	cv.loadPlugins()
 }
 
-// AntennaConnect connects Antenna and start processing.
-func (cv *CommentViewer) AntennaConnect() {
-	cv.AntennaDisconnect()
-	var err error
-	cv.Antn, err = nicolive.ConnectAntenna(context.TODO(), cv.Ac, cv.prcdnle)
-	if err != nil {
-		cv.cli.log.Println(err)
-		cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Antenna error", "Antenna login failed")
-	}
-}
-
 // Wait waits for quiting after Start().
 func (cv *CommentViewer) Wait() {
-	defer cv.AntennaDisconnect()
 	defer cv.Disconnect()
 	cv.wg.Wait()
 }
@@ -298,19 +284,6 @@ func (cv *CommentViewer) Disconnect() {
 	}
 	cv.Cmm = nil
 	cv.Lw = nil
-}
-
-// AntennaDisconnect disconnects current antenna connection if connected.
-func (cv *CommentViewer) AntennaDisconnect() {
-	if cv.Antn == nil {
-		return
-	}
-
-	err := cv.Antn.Disconnect()
-	if err != nil {
-		cv.cli.log.Println(err)
-	}
-	cv.Antn = nil
 }
 
 // Quit quits the CommentViewer.

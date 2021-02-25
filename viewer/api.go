@@ -60,7 +60,6 @@ const (
 	DomainQuery     = "nagome_query"
 	DomainComment   = "nagome_comment"
 	DomainUI        = "nagome_ui"
-	DomainAntenna   = "nagome_antenna"
 	DomainDirect    = "nagome_direct"    // DomainDirect is a special domain (from plugin).
 	DomainDirectngm = "nagome_directngm" // DomainDirectNgm is a domain for direct message from Nagome.
 
@@ -71,13 +70,11 @@ const (
 // Command names
 const (
 	// DomainNagome
-	CommNagomeBroadOpen    = "Broad.Open"
-	CommNagomeBroadClose   = "Broad.Close"
-	CommNagomeBroadInfo    = "Broad.Info"
-	CommNagomeCommentSend  = "Comment.Send"
-	CommNagomeAntennaOpen  = "Antenna.Open"
-	CommNagomeAntennaClose = "Antenna.Close"
-	CommNagomeUserUpdate   = "User.Update" // CommNagomeUserUpdate is Emitted when User info is updated by fetching or setting name etc.
+	CommNagomeBroadOpen   = "Broad.Open"
+	CommNagomeBroadClose  = "Broad.Close"
+	CommNagomeBroadInfo   = "Broad.Info"
+	CommNagomeCommentSend = "Comment.Send"
+	CommNagomeUserUpdate  = "User.Update" // CommNagomeUserUpdate is Emitted when User info is updated by fetching or setting name etc.
 
 	// DomainComment
 	// This domain is for only sending comments.
@@ -111,10 +108,6 @@ const (
 	CommUINotification  = "Notification"
 	CommUIClearComments = "ClearComments"
 	CommUIConfigAccount = "ConfigAccount" // Open the window of account setting or suggest user to configure it.
-
-	// DomainAntenna
-	// All antenna items (started live).
-	CommAntennaGot = "Got"
 
 	// DomainDirect (special domain)
 	// The messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
@@ -252,13 +245,6 @@ type CtUINotification struct {
 	Type        string `json:"type"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-}
-
-// CtAntennaGot is a content of CommAntennaGot
-type CtAntennaGot struct {
-	BroadID     string `json:"broad_id"`
-	CommunityID string `json:"community_id"`
-	UserID      string `json:"user_id"`
 }
 
 // type of CtUINotification

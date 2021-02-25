@@ -157,9 +157,6 @@ func (c *CLI) RunCli(args []string) int {
 	}
 
 	cv.Start()
-	if cv.Ac != nil {
-		cv.AntennaConnect()
-	}
 	cv.Wait()
 
 	if cv.Settings.AutoSaveTo0Slot {

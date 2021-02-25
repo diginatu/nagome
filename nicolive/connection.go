@@ -17,7 +17,7 @@ const (
 
 type proceedConnMes func(m string)
 
-// connection is an abstract struct to manage connection for comment and antenna.
+// connection is an abstract struct to manage connection for comment.
 type connection struct {
 	Wg     sync.WaitGroup
 	Ctx    context.Context

@@ -131,20 +131,6 @@ func (p *ProceedNicoliveEvent) ProceedNicoEvent(ev *nicolive.Event) {
 		nerr := ev.Content.(nicolive.Error)
 		p.cv.EmitEvNewNotification(CtUINotificationTypeWarn, nerr.TypeString(), nerr.Description())
 
-	case nicolive.EventTypeAntennaOpen:
-		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeAntennaOpen, nil)
-
-	case nicolive.EventTypeAntennaClose:
-		p.cv.Evch <- NewMessageMust(DomainNagome, CommNagomeAntennaClose, nil)
-
-	case nicolive.EventTypeAntennaErr:
-		p.cv.cli.log.Println(ev)
-
-	case nicolive.EventTypeAntennaGot:
-		ai := ev.Content.(*nicolive.AntennaItem)
-		ct := CtAntennaGot{ai.BroadID, ai.CommunityID, ai.UserID}
-		p.cv.Evch <- NewMessageMust(DomainAntenna, CommAntennaGot, ct)
-
 	default:
 		p.cv.cli.log.Println(ev)
 	}
