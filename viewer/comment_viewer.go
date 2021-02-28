@@ -11,22 +11,22 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/diginatu/nagome/nicolive"
+	"github.com/diginatu/nagome/api"
+	"github.com/diginatu/nagome/services/nicolive"
+	"github.com/diginatu/nagome/services/utils"
 )
 
 // A CommentViewer is a pair of an Account and a LiveWaku.
 type CommentViewer struct {
-	Ac       *nicolive.Account
-	Lw       *nicolive.LiveWaku
-	Cmm      *nicolive.CommentConnection
 	Pgns     []*Plugin
 	Settings SettingsSlot
 	TCPPort  string
-	Evch     chan *Message
+	Evch     chan *api.Message
 	quit     chan struct{}
 	wg       sync.WaitGroup
-	prcdnle  *ProceedNicoliveEvent
 	cli      *CLI
+
+	viewerNicolive *nicolive.Viewer
 }
 
 // NewCommentViewer makes new CommentViewer
@@ -36,14 +36,22 @@ func NewCommentViewer(tcpPort string, cli *CLI) *CommentViewer {
 		nss.Name = "Default"
 		cli.SettingsSlots.Add(nss)
 	}
+
 	cv := &CommentViewer{
 		Settings: cli.SettingsSlots.Config[0].Duplicate(),
 		TCPPort:  tcpPort,
-		Evch:     make(chan *Message, eventBufferSize),
+		Evch:     make(chan *api.Message, eventBufferSize),
 		quit:     make(chan struct{}),
 		cli:      cli,
 	}
-	cv.prcdnle = NewProceedNicoliveEvent(cv)
+
+	viewerNicolive, err := nicolive.NewViewer(
+		filepath.Join(cli.SavePath, "nicolive"),
+		cv.Settings.Nicolive, cv.Evch, cli.log)
+	if err != nil {
+		cli.log.Fatalln(err)
+	}
+	cv.viewerNicolive = viewerNicolive
 	return cv
 }
 
@@ -61,7 +69,13 @@ func (cv *CommentViewer) Start() {
 
 // Wait waits for quiting after Start().
 func (cv *CommentViewer) Wait() {
-	defer cv.Disconnect()
+	defer func() {
+		err := cv.viewerNicolive.Disconnect()
+		if err != nil {
+			cv.cli.log.Println(err)
+		}
+	}()
+
 	cv.wg.Wait()
 }
 
@@ -200,10 +214,10 @@ func (cv *CommentViewer) sendNagomeMessage() {
 		select {
 		case mes := <-cv.Evch:
 			// Direct
-			if mes.Domain == DomainDirect {
+			if mes.Domain == api.DomainDirect {
 				nicoerr := processDirectMessage(cv, mes)
 				if nicoerr != nil {
-					cv.cli.log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.plgno), nicoerr)
+					cv.cli.log.Printf("plugin message error form [%s] : %s\n", cv.PluginName(mes.Plgno), nicoerr)
 					cv.cli.log.Println(mes)
 				}
 				continue
@@ -213,15 +227,15 @@ func (cv *CommentViewer) sendNagomeMessage() {
 
 			// Messages from filter plugin will not send same plugin.
 			var st int
-			if strings.HasSuffix(mes.Domain, DomainSuffixFilter) {
-				st = mes.plgno + 1
-				mes.Domain = strings.TrimSuffix(mes.Domain, DomainSuffixFilter)
+			if strings.HasSuffix(mes.Domain, api.DomainSuffixFilter) {
+				st = mes.Plgno + 1
+				mes.Domain = strings.TrimSuffix(mes.Domain, api.DomainSuffixFilter)
 			}
 			for i := st; i < len(cv.Pgns); i++ {
-				if cv.Pgns[i].IsSubscribe(mes.Domain + DomainSuffixFilter) {
+				if cv.Pgns[i].IsSubscribe(mes.Domain + api.DomainSuffixFilter) {
 					// Add suffix to a message for filter plugin.
 					tmes := *mes
-					tmes.Domain = mes.Domain + DomainSuffixFilter
+					tmes.Domain = mes.Domain + api.DomainSuffixFilter
 					fail := cv.Pgns[i].WriteMess(&tmes)
 					if fail {
 						continue
@@ -246,14 +260,14 @@ func (cv *CommentViewer) sendNagomeMessage() {
 
 			nerr := processNagomeMessage(cv, mes)
 			if nerr != nil {
-				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.plgno), nerr)
+				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.Plgno), nerr)
 				cv.cli.log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)
 				if ok {
-					cv.EmitEvNewNotification(CtUINotificationTypeWarn, nicoerr.TypeString(), nicoerr.Description())
+					utils.EmitEvNewNotification(api.CtUINotificationTypeWarn, nicoerr.TypeString(), nicoerr.Description(), cv.Evch, cv.cli.log)
 				} else {
-					cv.EmitEvNewNotification(CtUINotificationTypeWarn, "Error", nerr.Error())
+					utils.EmitEvNewNotification(api.CtUINotificationTypeWarn, "Error", nerr.Error(), cv.Evch, cv.cli.log)
 				}
 			}
 
@@ -266,33 +280,13 @@ func (cv *CommentViewer) sendNagomeMessage() {
 	}
 }
 
-// EmitEvNewNotification emits new event for ask UI to display a notification.
-func (cv *CommentViewer) EmitEvNewNotification(typ, title, desc string) {
-	cv.cli.log.Printf("[D] %s : %s", title, desc)
-	cv.Evch <- NewMessageMust(DomainUI, CommUINotification, CtUINotification{typ, title, desc})
-}
-
-// Disconnect disconnects current comment connection if connected.
-func (cv *CommentViewer) Disconnect() {
-	if cv.Cmm == nil {
-		return
-	}
-
-	err := cv.Cmm.Disconnect()
-	if err != nil {
-		cv.cli.log.Println(err)
-	}
-	cv.Cmm = nil
-	cv.Lw = nil
-}
-
 // Quit quits the CommentViewer.
 func (cv *CommentViewer) Quit() {
 	cv.wg.Add(1)
 	defer cv.wg.Done()
 
 	close(cv.quit)
-	err := cv.prcdnle.userDB.Close()
+	err := cv.viewerNicolive.Quit()
 	if err != nil {
 		cv.cli.log.Println(err)
 	}

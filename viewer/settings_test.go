@@ -13,7 +13,7 @@ func TestSettingsSlotsLoad(t *testing.T) {
 	ss := SettingsSlots{}
 	testSetting := NewSettingsSlot()
 	testSetting2 := NewSettingsSlot()
-	testSetting2.UserNameGet = true
+	testSetting2.Nicolive.UserNameGet = true
 	testSetting2.PluginDisable["test"] = true
 	ss.Add(testSetting)
 	ss.Add(testSetting2)
@@ -59,15 +59,12 @@ func TestSettingsSlotsOldLoad(t *testing.T) {
 	if got := ss.Config[0].Name; got != "Old Settings" {
 		t.Fatalf("Should be \"%v\" but \"%v\"", "Old Settings", got)
 	}
-	if got := ss.Config[0].AutoFollowNextWaku; got != true { // nolint: megacheck
-		t.Fatalf("Should be %v but %v", true, got)
-	}
 	// Settings that are NOT set in the file
 	if got := ss.Config[0].AutoSaveTo0Slot; got != defaultss.AutoSaveTo0Slot {
 		t.Fatalf("Should be %v but %v", defaultss.AutoSaveTo0Slot, got)
 	}
-	if got := ss.Config[0].UserNameGet; got != defaultss.UserNameGet {
-		t.Fatalf("Should be %v but %v", defaultss.UserNameGet, got)
+	if got := ss.Config[0].Nicolive.UserNameGet; got != defaultss.Nicolive.UserNameGet {
+		t.Fatalf("Should be %v but %v", defaultss.Nicolive.UserNameGet, got)
 	}
 	if ss.Config[0].PluginDisable == nil {
 		t.Fatalf("Should be initialized")

@@ -26,11 +26,11 @@ func Is184UserID(id string) bool {
 
 // User is a niconico user.
 type User struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	CreateTime   time.Time `json:"create_time"`
-	Is184        bool      `json:"is184"`
-	ThumbnailURL string    `json:"thumbnail_url"`
+	ID           string
+	Name         string
+	CreateTime   time.Time
+	Is184        bool
+	ThumbnailURL string
 }
 
 // CreateUser gather the user infomation of the given user id and returns pointer to new User struct.

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/diginatu/nagome/api"
 )
 
 const (
@@ -118,7 +120,7 @@ func TestTCPAPI(t *testing.T) {
 	plug.Description = "main plugin"
 	plug.Version = "0.0"
 	plug.Method = "tcp"
-	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
+	plug.Subscribe = []string{api.DomainNagome, api.DomainComment, api.DomainUI}
 	cv.AddPlugin(plug)
 
 	cv.TCPPort = "0"
@@ -134,13 +136,13 @@ func TestTCPAPI(t *testing.T) {
 	fmt.Fprintf(conn, "{ \"domain\": \"nagome_direct\", \"command\": \"No\", \"content\": { \"no\": 0 } }\n")
 
 	dec := json.NewDecoder(conn)
-	m := new(Message)
+	m := new(api.Message)
 	for {
 		err := dec.Decode(m)
 		if err != nil {
 			t.Fatal("Should be accepted : ", err)
 		}
-		if m.Domain == DomainDirectngm && m.Command == CommDirectngmPlugEnabled {
+		if m.Domain == api.DomainDirectngm && m.Command == api.CommDirectngmPlugEnabled {
 			break
 		}
 	}

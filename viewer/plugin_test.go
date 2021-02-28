@@ -7,7 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/diginatu/nagome/nicolive"
+	"github.com/diginatu/nagome/api"
+	"github.com/diginatu/nagome/services/nicolive"
 )
 
 type testRwc struct {
@@ -46,13 +47,13 @@ func TestPluginClose(t *testing.T) {
 	cli := makeTestCLI(savepath)
 
 	cv := NewCommentViewer("0", cli)
-	cv.Ac = &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
+	cv.viewerNicolive.Ac = &nicolive.Account{Mail: "mail", Pass: "pass", Usersession: "session"}
 	p := newPlugin(cv)
 	p.Name = "main"
 	p.Description = "main plugin"
 	p.Version = "0.0"
 	p.Method = pluginMethodTCP
-	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
+	p.Subscribe = []string{api.DomainNagome, api.DomainComment, api.DomainUI}
 
 	// assume be added as main plugin.
 	p.No = 0
@@ -96,7 +97,7 @@ func TestPluginErrorConnection(t *testing.T) {
 	p.Description = "normal plugin"
 	p.Version = "0.0"
 	p.Method = pluginMethodTCP
-	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
+	p.Subscribe = []string{api.DomainNagome, api.DomainComment, api.DomainUI}
 
 	// assume be added as normal plugin.
 	p.No = 1
@@ -144,13 +145,13 @@ func TestPluginWrite(t *testing.T) {
 	p.Description = "normal plugin"
 	p.Version = "0.0"
 	p.Method = pluginMethodTCP
-	p.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
+	p.Subscribe = []string{api.DomainNagome, api.DomainComment, api.DomainUI}
 
 	// assume be added as normal plugin.
 	p.No = 1
 
 	// no effect before opening
-	p.WriteMess(&Message{
+	p.WriteMess(&api.Message{
 		Domain:  "fail",
 		Command: "This message should not be send.",
 	})
@@ -171,14 +172,14 @@ func TestPluginWrite(t *testing.T) {
 	}()
 	<-wait
 
-	p.WriteMess(&Message{
+	p.WriteMess(&api.Message{
 		Domain:  "ok",
 		Command: "This message must be send.",
 	})
 
 	dec := json.NewDecoder(pwreader)
 	for {
-		m := new(Message)
+		m := new(api.Message)
 		err := dec.Decode(m)
 		if err != nil {
 			t.Fatal(err)

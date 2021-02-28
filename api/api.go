@@ -1,25 +1,23 @@
-package viewer
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/diginatu/nagome/nicolive"
 )
 
 // Message is base API struct for plugin
 type Message struct {
-	Domain  string          `json:"domain"`
-	Command string          `json:"command"`
+	Domain  string          `json:"domain,omitempty"`
+	Command string          `json:"command,omitempty"`
 	Content json.RawMessage `json:"content,omitempty"` // The structure of Content is depend on the Command (and Domain).
 
-	plgno int
+	Plgno int `json:"-"`
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.plgno)
+	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.Plgno)
 }
 
 // NewMessage returns new Message with the given values.
@@ -40,7 +38,7 @@ func NewMessage(dom, com string, con interface{}) (*Message, error) {
 		Domain:  dom,
 		Command: com,
 		Content: conj,
-		plgno:   -1,
+		Plgno:   -1,
 	}
 	return m, nil
 }
@@ -70,6 +68,7 @@ const (
 // Command names
 const (
 	// DomainNagome
+	// Event that is mainly sent from Nagome
 	CommNagomeBroadOpen   = "Broad.Open"
 	CommNagomeBroadClose  = "Broad.Close"
 	CommNagomeBroadInfo   = "Broad.Info"
@@ -77,7 +76,7 @@ const (
 	CommNagomeUserUpdate  = "User.Update" // CommNagomeUserUpdate is Emitted when User info is updated by fetching or setting name etc.
 
 	// DomainComment
-	// This domain is for only sending comments.
+	// Event that is mainly sent from Nagome
 	CommCommentGot = "Got"
 
 	// DomainQuery
@@ -161,9 +160,6 @@ type CtNagomeBroadInfo struct {
 	CommentCount string `json:"comment_count"`
 }
 
-// CtNagomeUserUpdate is a content of CommNagomeUserUpdate
-type CtNagomeUserUpdate nicolive.User
-
 // CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
 	BroadID string `json:"broad_id"`
@@ -183,16 +179,31 @@ type CtQueryBroadSendComment struct {
 	Type  string `json:"type,omitempty"` // if omitted, automatically selected depend on the settings
 }
 
-// CtQueryAccountSet is a content of CommQueryAccountSet
-type CtQueryAccountSet nicolive.Account
-
 // CtQueryLogPrint is a content of CommQueryLogPrint
 type CtQueryLogPrint struct {
 	Text string `json:"text"`
 }
 
+type SettingsSlot struct {
+	Name            string          `yaml:"name"`
+	AutoSaveTo0Slot bool            `yaml:"auto_save_to0_slot"`
+	PluginDisable   map[string]bool `yaml:"plugin_disable"`
+
+	Nicolive SettingsNicolive `yaml:"nicolive"`
+}
+
+type SettingsNicolive struct {
+	UserNameGet        bool `yaml:"user_name_get"`
+	AutoFollowNextWaku bool `yaml:"auto_follow_next_waku"`
+	OwnerComment       bool `yaml:"owner_comment"`
+}
+
 // CtQuerySettingsSetCurrent is a content of CommQuerySettingsSetCurrent
 type CtQuerySettingsSetCurrent SettingsSlot
+
+type SettingsSlots struct {
+	Config []*SettingsSlot `json:"config"`
+}
 
 // CtQuerySettingsSetAll is a content of CommQuerySettingsSetAll
 type CtQuerySettingsSetAll SettingsSlots
@@ -202,9 +213,6 @@ type CtQueryPlugEnable struct {
 	No     int  `json:"no"`
 	Enable bool `json:"enable"`
 }
-
-// CtQueryUserSet is a content for CommQueryUserSet
-type CtQueryUserSet nicolive.User
 
 // CtQueryUserSetName is a content for CommQueryUserSetName
 type CtQueryUserSetName struct {
@@ -266,7 +274,19 @@ type CtDirectngmAppVersion struct {
 
 // CtDirectngmPlugList is a content for CommDirectngmPlugList
 type CtDirectngmPlugList struct {
-	Plugins *[]*Plugin `json:"plugins"`
+	Plugins []*Plugin `json:"plugins"`
+}
+
+// A Plugin is a Nagome plugin.
+type Plugin struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Version     string   `json:"version"`
+	Author      string   `json:"author"`
+	Method      string   `json:"method"`
+	Subscribe   []string `json:"subscribe"`
+	No          int      `json:"no"`
+	State       int      `json:"state"` // Don't change directly
 }
 
 // CtDirectngmSettingsCurrent is a content for CommDirectngmSettingsCurrent
@@ -279,6 +299,3 @@ type CtDirectngmSettingsAll SettingsSlots
 type CtDirectUserGet struct {
 	ID string `json:"id"`
 }
-
-// CtDirectngmUserGet is a content for CommDirectngmUserGet
-type CtDirectngmUserGet nicolive.User
