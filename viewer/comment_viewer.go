@@ -260,7 +260,7 @@ func (cv *CommentViewer) sendNagomeMessage() {
 
 			nerr := processNagomeMessage(cv, mes)
 			if nerr != nil {
-				cv.cli.log.Printf("Error : message form [%s] %s\n", cv.PluginName(mes.Plgno), nerr)
+				cv.cli.log.Printf("Error : message from [%s] %s\n", cv.PluginName(mes.Plgno), nerr)
 				cv.cli.log.Println(mes)
 
 				nicoerr, ok := nerr.(nicolive.Error)

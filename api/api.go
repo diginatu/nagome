@@ -135,35 +135,61 @@ const (
 	CommDirectngmUserGet = "User.Get"
 )
 
+// Live Platforms
+const (
+	PlatformNiconicoLive = "NL"
+)
+
 // Contents
 //
 // Contents in the Message API
 
 // CtNagomeBroadOpen is a content of CommNagomeBroadOpen
 type CtNagomeBroadOpen struct {
+	Platform    string `json:"platform"`
 	BroadID     string `json:"broad_id"`
+	BroadURL    string `json:"broad_url"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	CommunityID string `json:"community_id"`
-	OwnerID     string `json:"owner_id"`
-	OwnerName   string `json:"owner_name"`
-	OwnerBroad  bool   `json:"owner_broad"`
+	ChannelName string `json:"channel_name,omitempty"`
+	ChannelID   string `json:"channel_id,omitempty"`
+	ChannelURL  string `json:"channel_url,omitempty"`
+	OwnerName   string `json:"owner_name,omitempty"`
+	OwnerID     string `json:"owner_id,omitempty"`
+	OwnerURL    string `json:"owner_url,omitempty"`
+	OwnerBroad  bool   `json:"owner_broad,omitempty"`
 
-	OpenTime  time.Time `json:"open_time"`
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
+	ScheduledStartTime time.Time `json:"scheduled_start_time,omitempty"`
+	StartTime          time.Time `json:"start_time"`
+	EndTime            time.Time `json:"end_time"`
 }
 
 // CtNagomeBroadInfo is a content of CommNagomeBroadInfo
 type CtNagomeBroadInfo struct {
-	WatchCount   string `json:"watch_count"`
-	CommentCount string `json:"comment_count"`
+	Platform            string `json:"platform"`
+	ViewCount           string `json:"view_count,omitempty"`
+	ConcurrentViewCount string `json:"concurrent_view_count,omitempty"`
+	CommentCount        string `json:"comment_count,omitempty"`
+	LikeCount           string `json:"like_count,omitempty"`
+	DislikeCount        string `json:"dislike_count,omitempty"`
 }
+
+type User struct {
+	Platform     string    `json:"platform"`
+	ID           string    `json:"id,omitempty"`
+	Name         string    `json:"name"`
+	CreateTime   time.Time `json:"create_time,omitempty"`
+	Is184        bool      `json:"is184,omitempty"`
+	ThumbnailURL string    `json:"thumbnail_url,omitempty"`
+}
+
+// CtNagomeUserUpdate is a content of CommNagomeUserUpdate
+type CtNagomeUserUpdate User
 
 // CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
-	BroadID string `json:"broad_id"`
-	RetryN  int    `json:"retry_n,omitempty"`
+	URL    string `json:"url"`
+	RetryN int    `json:"retry_n,omitempty"` // Internal valuable that holds how many retries have done
 }
 
 // type of CtQueryBroadSendComment
@@ -174,9 +200,20 @@ const (
 
 // CtQueryBroadSendComment is a content of CommQueryBroadSendComment
 type CtQueryBroadSendComment struct {
-	Text  string `json:"text"`
-	Iyayo bool   `json:"iyayo"`
-	Type  string `json:"type,omitempty"` // if omitted, automatically selected depend on the settings
+	Platform string `json:"platform"`
+	Text     string `json:"text"`
+	Iyayo    bool   `json:"iyayo,omitempty"`
+	Type     string `json:"type,omitempty"` // if omitted, automatically selected depend on the settings
+}
+
+// CtQueryAccountSet is a content of CommQueryAccountSet
+type CtQueryAccountSet struct {
+	NicoLive *NicoLiveAccount `json:"nico_live,omitempty"`
+}
+type NicoLiveAccount struct {
+	Mail        string `json:"mail"`
+	Pass        string `json:"pass"`
+	Usersession string `json:"usersession"`
 }
 
 // CtQueryLogPrint is a content of CommQueryLogPrint
@@ -193,9 +230,8 @@ type SettingsSlot struct {
 }
 
 type SettingsNicolive struct {
-	UserNameGet        bool `yaml:"user_name_get"`
-	AutoFollowNextWaku bool `yaml:"auto_follow_next_waku"`
-	OwnerComment       bool `yaml:"owner_comment"`
+	UserNameGet  bool `yaml:"user_name_get"`
+	OwnerComment bool `yaml:"owner_comment"`
 }
 
 // CtQuerySettingsSetCurrent is a content of CommQuerySettingsSetCurrent
@@ -214,10 +250,14 @@ type CtQueryPlugEnable struct {
 	Enable bool `json:"enable"`
 }
 
+// CtQueryUserSet is a content for CommQueryUserSet
+type CtQueryUserSet User
+
 // CtQueryUserSetName is a content for CommQueryUserSetName
 type CtQueryUserSetName struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	Platform string `json:"platform"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
 }
 
 // CtQueryUserDelete is a content for CommQueryUserDelete
@@ -232,18 +272,20 @@ type CtQueryUserFetch struct {
 
 // A CtCommentGot is a content of CommCommentGot
 type CtCommentGot struct {
-	No      int       `json:"no"`
-	Date    time.Time `json:"date"`
-	Raw     string    `json:"raw"`
-	Comment string    `json:"comment"`
+	Platform string    `json:"platform"`
+	No       int       `json:"no"`
+	Date     time.Time `json:"date"`
+	Raw      string    `json:"raw"` // Untouched comment message.  Mainly for logging purpose.
+	Comment  string    `json:"comment"`
 
-	UserID           string `json:"user_id"`
+	UserID           string `json:"user_id,omitempty"`
 	UserName         string `json:"user_name"`
 	UserThumbnailURL string `json:"user_thumbnail_url,omitempty"`
+	UserUrl          string `json:"user_url,omitempty"`
 	Score            int    `json:"score,omitempty"`
-	IsPremium        bool   `json:"is_premium"`
+	IsPremium        bool   `json:"is_premium,omitempty"`
 	IsBroadcaster    bool   `json:"is_broadcaster"`
-	IsStaff          bool   `json:"is_staff"`
+	IsStaff          bool   `json:"is_staff,omitempty"`
 	IsAnonymity      bool   `json:"is_anonymity"`
 }
 
@@ -264,6 +306,12 @@ const (
 // CtDirectNo is a content for CommDirectNo
 type CtDirectNo struct {
 	No int `json:"no"`
+}
+
+// CtDirectUserGet is a content for CommDirectUserGet
+type CtDirectUserGet struct {
+	Platform string `json:"platform"`
+	ID       string `json:"id"`
 }
 
 // CtDirectngmAppVersion is a content for CommDirectngmAppVersion
@@ -295,7 +343,5 @@ type CtDirectngmSettingsCurrent SettingsSlot
 // CtDirectngmSettingsAll is a content for CommDirectngmSettingsAll
 type CtDirectngmSettingsAll SettingsSlots
 
-// CtDirectUserGet is a content for CommDirectUserGet
-type CtDirectUserGet struct {
-	ID string `json:"id"`
-}
+// CtDirectngmUserGet is a content for CommDirectngmUserGet
+type CtDirectngmUserGet User

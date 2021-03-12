@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	broadIDRegex = regexp.MustCompile(`(lv|co)\d+`)
+	urlRegexNicoLive = regexp.MustCompile(`nicovideo\.jp.*((?:lv|co)\d+)`)
 )
 
 func ensureAccountLoaded(v *Viewer) {
@@ -45,11 +45,12 @@ func NagomeQueryBroadConnectHandler(v *Viewer, m *api.Message) error {
 		return MakeError(ErrOther, "JSON error in the content : "+err.Error())
 	}
 
-	broadMch := broadIDRegex.FindString(ct.BroadID)
-	if broadMch == "" {
-		utils.EmitEvNewNotification(api.CtUINotificationTypeWarn, "invalid BroadID", "no valid BroadID found in the ID text", v.Evch, v.log)
-		return MakeError(ErrOther, "no valid BroadID found in the ID text")
+	broadMches := urlRegexNicoLive.FindStringSubmatch(ct.URL)
+	if len(broadMches) < 2 {
+		return MakeError(ErrInvalidLiveURL, "no live platform matched with the URL")
 	}
+
+	broadMch := broadMches[1]
 
 	lw := &LiveWaku{Account: v.Ac, BroadID: broadMch}
 
@@ -59,7 +60,7 @@ func NagomeQueryBroadConnectHandler(v *Viewer, m *api.Message) error {
 		if ok {
 			if nerr.Type() == ErrNetwork {
 				ct.RetryN++
-				v.log.Printf("Failed to connect to %s.\n", ct.BroadID)
+				v.log.Printf("Failed to connect to %s.\n", ct.URL)
 				v.log.Printf("FetchInformation : %s\n", nerr.Error())
 				if ct.RetryN >= NumFetchInformaionRetry {
 					v.log.Println("Reached the limit of retrying.")
@@ -74,6 +75,8 @@ func NagomeQueryBroadConnectHandler(v *Viewer, m *api.Message) error {
 		}
 		return err
 	}
+
+	v.log.Printf("%#v", lw)
 
 	v.Disconnect()
 
@@ -145,14 +148,14 @@ func NagomeQueryAccountSetHandler(v *Viewer, m *api.Message) error {
 	if err := json.Unmarshal(m.Content, &ct); err != nil {
 		return MakeError(ErrOther, "JSON error in the content : "+err.Error())
 	}
-	if ct.Mail != "" {
-		v.Ac.Mail = ct.Mail
+	if ct.NicoLive.Mail != "" {
+		v.Ac.Mail = ct.NicoLive.Mail
 	}
-	if ct.Pass != "" {
-		v.Ac.Pass = ct.Pass
+	if ct.NicoLive.Pass != "" {
+		v.Ac.Pass = ct.NicoLive.Pass
 	}
-	if ct.Usersession != "" {
-		v.Ac.Usersession = ct.Usersession
+	if ct.NicoLive.Usersession != "" {
+		v.Ac.Usersession = ct.NicoLive.Usersession
 	}
 
 	return nil
@@ -207,7 +210,7 @@ func NagomeQueryUserSetHandler(v *Viewer, m *api.Message) error {
 		return err
 	}
 
-	v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeUserUpdate, api.CtNagomeUserUpdate(ct))
+	v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeUserUpdate, ct.API())
 
 	return nil
 }
@@ -246,7 +249,7 @@ func NagomeQueryUserSetNameHandler(v *Viewer, m *api.Message) error {
 		return err
 	}
 
-	v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeUserUpdate, api.CtNagomeUserUpdate(*user))
+	v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeUserUpdate, user.API())
 	return nil
 }
 
@@ -308,7 +311,7 @@ func NagomeQueryUserFetchHandler(v *Viewer, m *api.Message) error {
 		return err
 	}
 
-	v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeUserUpdate, api.CtNagomeUserUpdate(*userCurrent))
+	v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeUserUpdate, userCurrent.API())
 
 	return nil
 }
@@ -326,7 +329,7 @@ func NagomeDirectUserGetHandler(v *Viewer, m *api.Message) error {
 		return err
 	}
 
-	v.Evch <- api.NewMessageMust(api.DomainDirectngm, api.CommDirectngmUserGet, api.CtDirectngmUserGet(*user))
+	v.Evch <- api.NewMessageMust(api.DomainDirectngm, api.CommDirectngmUserGet, user.API())
 
 	return nil
 }

@@ -95,16 +95,16 @@ func (v *Viewer) ProceedNicoEvent(ev *Event) {
 		lv := ev.Content.(*LiveWaku)
 		v.log.Println(lv)
 		ct := api.CtNagomeBroadOpen{
-			BroadID:     lv.BroadID,
-			Title:       lv.Stream.Title,
-			Description: lv.Stream.Description,
-			CommunityID: lv.Stream.CommunityID,
-			OwnerID:     lv.Stream.OwnerID,
-			OwnerName:   lv.Stream.OwnerName,
-			OwnerBroad:  lv.OwnerBroad,
-			OpenTime:    lv.Stream.OpenTime,
-			StartTime:   lv.Stream.StartTime,
-			EndTime:     lv.Stream.EndTime,
+			BroadID:            lv.BroadID,
+			Title:              lv.Stream.Title,
+			Description:        lv.Stream.Description,
+			ChannelID:          lv.Stream.CommunityID,
+			OwnerID:            lv.Stream.OwnerID,
+			OwnerName:          lv.Stream.OwnerName,
+			OwnerBroad:         lv.OwnerBroad,
+			ScheduledStartTime: lv.Stream.OpenTime,
+			StartTime:          lv.Stream.StartTime,
+			EndTime:            lv.Stream.EndTime,
 		}
 		v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeBroadOpen, ct)
 
@@ -113,7 +113,11 @@ func (v *Viewer) ProceedNicoEvent(ev *Event) {
 
 	case EventTypeHeartBeatGot:
 		hb := ev.Content.(*HeartbeatValue)
-		ct := api.CtNagomeBroadInfo{hb.WatchCount, hb.CommentCount}
+		ct := api.CtNagomeBroadInfo{
+			Platform:     api.PlatformNiconicoLive,
+			ViewCount:    hb.WatchCount,
+			CommentCount: hb.CommentCount,
+		}
 		v.Evch <- api.NewMessageMust(api.DomainNagome, api.CommNagomeBroadInfo, ct)
 
 	case EventTypeCommentSend:

@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/diginatu/nagome/api"
 	"github.com/syndtr/goleveldb/leveldb"
 	"gopkg.in/xmlpath.v2"
 )
@@ -113,6 +114,18 @@ func (u *User) Equal(x *User) bool {
 		u.CreateTime.Unix() == x.CreateTime.Unix() &&
 		u.Is184 == x.Is184 &&
 		u.ThumbnailURL == x.ThumbnailURL
+}
+
+// API creates new API representation of the User
+func (u *User) API() (x *api.User) {
+	return &api.User{
+		Platform:     api.PlatformNiconicoLive,
+		ID:           u.ID,
+		Name:         u.Name,
+		CreateTime:   u.CreateTime,
+		Is184:        u.Is184,
+		ThumbnailURL: u.ThumbnailURL,
+	}
 }
 
 // UserDB is database of Users.
