@@ -222,16 +222,16 @@ type CtQueryLogPrint struct {
 }
 
 type SettingsSlot struct {
-	Name            string          `yaml:"name"`
-	AutoSaveTo0Slot bool            `yaml:"auto_save_to0_slot"`
-	PluginDisable   map[string]bool `yaml:"plugin_disable"`
+	Name            string          `json:"name"`
+	AutoSaveTo0Slot bool            `json:"auto_save_to0_slot"`
+	PluginDisable   map[string]bool `json:"plugin_disable"`
 
-	Nicolive SettingsNicolive `yaml:"nicolive"`
+	Nicolive SettingsNicolive `json:"nicolive"`
 }
 
 type SettingsNicolive struct {
-	UserNameGet  bool `yaml:"user_name_get"`
-	OwnerComment bool `yaml:"owner_comment"`
+	UserNameGet  bool `json:"user_name_get"`
+	OwnerComment bool `json:"owner_comment"`
 }
 
 // CtQuerySettingsSetCurrent is a content of CommQuerySettingsSetCurrent
