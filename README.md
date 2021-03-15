@@ -5,26 +5,35 @@ Nagome
 [![Build Status](https://travis-ci.org/diginatu/nagome.svg?branch=master)](https://travis-ci.org/diginatu/nagome)
 [![codecov](https://codecov.io/gh/diginatu/nagome/branch/master/graph/badge.svg)](https://codecov.io/gh/diginatu/nagome)
 
-Advanced NicoLive Comment Viewer written in go.
+General comment viewer for live streams written in go.
 
-Nagome has no UI but API to communicate with plugins.
-So it doesn't depend on platforms or environments.
-You can make various UIs like native desktop app on any platform, modern app on the browser, even as Vim plugin.
-It can be also used for daemon like bots.
+Nagome doesn't have user interface.
+It only provides APIs to communicate with plugins.
+A UI application can be implemented as a plugin using this API.
+Because it doesn't depend on environment, you can make various kind of UI (e.g. native desktop app, web app, CUI).
+You can also easily create an app something like a bot which interact with comments.
+
+Features
+--------
+
+### Supported Live Stream
+
+* YouTube
+* ~~NicoNico Live~~ (outdated)
 
 UI Implementation
 -----------------
 
 ### [Nagome Electron](https://github.com/diginatu/nagome-electron)
 
-Desktop app implementation using the Web UI below.
-All you need is packed as an app.  You can just download it and use now.
+Desktop app implementation using Nagome Web UI below.
+All dependencies is packed as an app.  You can just download it and use it.
 
 ### [Nagome WebUI](https://github.com/diginatu/nagome-webui)
 
 Static web SPA.
-Can be used as a part of an app or embedded in another web UI.
-It doesn't work as a stand alone.
+It can be used as a part of an app or embedded in another web UI.
+It runs with nagome-webui-server which run as a Nagome plugin and provides web socket.
 
 Plugins
 -------
@@ -39,17 +48,13 @@ Install
 Assume you have the go developing environment.
 
 ~~~ sh
-go get -u github.com/diginatu/nagome
+go install github.com/diginatu/nagome
 ~~~
 
 Document
 --------
 
 [Index](docs/README.md)
-
-Nagome is initial development yet.
-APIs may be changed.
-But some features work now.
 
 Licence
 -------
@@ -68,22 +73,17 @@ Dependencies
 Contribution
 ------------
 
-Contribution is welcome, about anything like fixing issues, adding new features, etc.
-
 You can contact me via [my twitter](https://twitter.com/diginatu).
-Also, [my niconico community](http://com.nicovideo.jp/community/co2345471) here.
 
-Feel free to send a message and tell me what feature you want to work in or plugins you want to make.
-I can help you.
+Feel free to send a message and tell me what feature you want to work in or even your plugins you want to make.
 
 Tasks
 -----
 
 * [ ] Show error when a plugin failed to load
-* [ ] Check the settings value of "nagomever" for plugins
+* [ ] Check "nagomever" in the plugin setting
 * [ ] Add a feature to Add/remove a plugin dynamically
-* [ ] Translation of the UI
-* [ ] Add more document
+* [ ] Localization
 * API
     * [ ] Make Direct Domain available to plugin
     * [ ] Add a Nagome Message for quitting Nagome itself
