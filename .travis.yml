@@ -1,41 +1,41 @@
 language: go
 
 go:
-    - 1.9
+  - 1.16.x
 
 install:
-    - go get golang.org/x/lint/golint
-    - go get github.com/mitchellh/gox
+  - go get golang.org/x/lint/golint
+  - go get github.com/mitchellh/gox
 
 script:
-    - go get -t -v ./...
-    - make
-    - go fmt ./...
-    - golint ./...
-    - go vet ./...
-    - make test
-    - make coverage
+  - go get -t -v ./...
+  - make
+  - go fmt ./...
+  - golint ./...
+  - go vet ./...
+  - make test
+  - make coverage
 
 after_success:
-    - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash)
 
 notifications:
-    slack:
-        secure: QteIM/R6b62A5ldnhIBm5IS8dJ3ppeVD+VD+IPYemtzeq4nkPZDUZ2SscvyDoVthetdRznVFewI8QzJ/8qWpo7urrhSp/RXkVXM6Q76POgdIKC9sAXSkvgStnJ3a6wx8Le4g6rUTriG8tM7O+ehLPCcmyEmqqiqfWywtBwIdgAkYKoNwNCcCWP6HUZA6NAlCbI/zGRSuFcDGIdV4bi9697OQyEi3M7xBYZlK+6mEftJwsDrgMpfjiLUlFXVbZKQnBLTgyDlP9qgWhwIi4Zjgo/iGKtE9Ii3AVpwKGlMgXgL6tEa2fQiX7VQXao3owUunKg8OTnfWdqO3qAHIHi65v+8xdqofdTu6nRb1w4uXzWDEyVbLma77YHYxs/O8PGTyjH2xeiSTlE07T8lgFmtXc4czkCkib2UuULluQioSiUznTCm1PjvDSfuXelPEUG+QFrWGj0J1c7U4F8TIqnLjZTJOiO+rGCLgI6MdQikXOcbP0ujJAC3+S6eNBvQfXuLsYMM5vegQ9+iUDArJ503pPCo+JPh9Bar2QOBwm8NqbTzKq+A3UW5og5M21cG3miFWZGuZyXGkzX7gMglH6af1MF77Q9QofKptygq2Kb5ai39xkgSenVKGZDy7E+z8yeYEtWLFm5fawLOLzoYMv8Rpar0Hz2RaZfRnVVvccC3is0U=
-        on_success: never
-        on_failure: always
-    email: false
+  slack:
+    secure: QteIM/R6b62A5ldnhIBm5IS8dJ3ppeVD+VD+IPYemtzeq4nkPZDUZ2SscvyDoVthetdRznVFewI8QzJ/8qWpo7urrhSp/RXkVXM6Q76POgdIKC9sAXSkvgStnJ3a6wx8Le4g6rUTriG8tM7O+ehLPCcmyEmqqiqfWywtBwIdgAkYKoNwNCcCWP6HUZA6NAlCbI/zGRSuFcDGIdV4bi9697OQyEi3M7xBYZlK+6mEftJwsDrgMpfjiLUlFXVbZKQnBLTgyDlP9qgWhwIi4Zjgo/iGKtE9Ii3AVpwKGlMgXgL6tEa2fQiX7VQXao3owUunKg8OTnfWdqO3qAHIHi65v+8xdqofdTu6nRb1w4uXzWDEyVbLma77YHYxs/O8PGTyjH2xeiSTlE07T8lgFmtXc4czkCkib2UuULluQioSiUznTCm1PjvDSfuXelPEUG+QFrWGj0J1c7U4F8TIqnLjZTJOiO+rGCLgI6MdQikXOcbP0ujJAC3+S6eNBvQfXuLsYMM5vegQ9+iUDArJ503pPCo+JPh9Bar2QOBwm8NqbTzKq+A3UW5og5M21cG3miFWZGuZyXGkzX7gMglH6af1MF77Q9QofKptygq2Kb5ai39xkgSenVKGZDy7E+z8yeYEtWLFm5fawLOLzoYMv8Rpar0Hz2RaZfRnVVvccC3is0U=
+    on_success: never
+    on_failure: always
+  email: false
 
 before_deploy: make cross
 deploy:
-    provider: releases
-    api_key:
-        secure: IOtDtwf6ub+Bpeo4xyAp/JC6x4OFjdzLCOdXCVIszRppc58oF+Gak5kQh+sT2NAX4iuYR2GmxNUrvzt5UlF3hShPIvXRM2/475u7791N7baH6he4+lieR9G43DrnQHDvyvpkAqanPojDLLr2YLdQvd+Y60GnVm3mxuV5ge6rb4bT3pzlkDjPOwYKZ5UuO9cdCJPHxbLJJKAx5BE/HQ2XpPORLm1GX+po5ilM2cP0L8BBUCMFN6JWVAyZTIfUVs7Vh111Ucj/Dx/THo/5OXj7F5+VRX1mc3nbNuWmQgmMeHrneuRWrN5rJLJDh8qzLFAk7tORK9j8vek2UCxnKwuC4oG3hHtXd0vAXtmw9pXpNLd5xz665CHYHAcBXzmzquZRhOyMhGQpne49keyzWxe9iyh9wScIFDp8RiB06twphZdG9ROu7Xt6b/kVbl6I37KMSo2sAAgCfMaNp4sNqhUq85r7Xc55goXGN0qritNTdacAwProWkvZPHi3J/XQiisUwXDQXt/J1yTomloDFInX/ASjYGR9qHFju5RwFsIKvr2GlcxamVvejm8oSLDrOAtgtrDFyOL3Gf4mkbyTjXcq6wCv85x9W76TJlNqYdVeIQZWfXnxIvOqFvutxiqTVwy3oJQwgFVter61XKn+LT31rGqnCoLtT79j4OvhgBtvUUU=
-    file:
-        - "release/nagome_darwin_amd64"
-        - "release/nagome_linux_amd64"
-        - "release/nagome_windows_amd64.exe"
-    skip_cleanup: true
-    on:
-        repo: diginatu/nagome
-        tags: true
+  provider: releases
+  api_key:
+    secure: fomz/jX5bSpLzKmoRW8EylCBcOtGX1jd0P+0nYW0j0FmILq97W2w+zgHBAvRFfiTNXOPnK5HTY1KEz39a+GCZGpM7+GQTcLeT9nLZweZHsbscUqlLPfGoieWVWbW+dbsLTX0cgCVMGwNONsPfvyJW0T5+OM3DTl771uq1Ai0ozXwijqr1TTPKWq+G/SV73uWwGyxBeOqAf7E5/Aa0jfh/dAAo1DCFIERzzzcYLZ8xafMf52IJyQKhM1d4yUQo73iiY66o+pXxBj69V4bCEETmGVkYUhZzx1ssmAG0uihyY6Y1jNtC7TaVCrtsQDY1JsXeccLxcpaT6F2kDCS4s3RqAVfP5cSGLw+yuKCYW1uN0EdSO4BIxIdFGx5Ny24PWmbCXIeHdSqCm1as0wH1wMcgpqh6KiYzz6Ik2YtBQAzlu4qAYWqRiCgy2GSq3+3Ok7tO1C+kifsrcvGqgmV3jwmFPQ6AQwutiqfSVf9Qjz8aBw3ndC+akzuGdI9hY8kDj3ThRjfEngIpS3Msep9EdZLkS4hy76AOnbJneI0hEzW4qouEwq1dlmuDmq6OoJhLNoG1y+g13wglg9+heGf83QnSSopSyZaKSV00xf7093EJ/hWGauXG0s8H4SEur1O7haiNgOz0WXDCerOq4UYRVtrjuHMG+/WXdn4+14XOPnVCqg=
+  file:
+    - "release/nagome_darwin_amd64"
+    - "release/nagome_linux_amd64"
+    - "release/nagome_windows_amd64.exe"
+  skip_cleanup: true
+  on:
+    repo: diginatu/nagome
+    tags: true

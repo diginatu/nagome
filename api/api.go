@@ -1,25 +1,23 @@
-package viewer
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/diginatu/nagome/nicolive"
 )
 
 // Message is base API struct for plugin
 type Message struct {
-	Domain  string          `json:"domain"`
-	Command string          `json:"command"`
+	Domain  string          `json:"domain,omitempty"`
+	Command string          `json:"command,omitempty"`
 	Content json.RawMessage `json:"content,omitempty"` // The structure of Content is depend on the Command (and Domain).
 
-	plgno int
+	Plgno int `json:"-"`
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.plgno)
+	return fmt.Sprintf("{%s %s plug:%d}", m.Domain, m.Command, m.Plgno)
 }
 
 // NewMessage returns new Message with the given values.
@@ -40,7 +38,7 @@ func NewMessage(dom, com string, con interface{}) (*Message, error) {
 		Domain:  dom,
 		Command: com,
 		Content: conj,
-		plgno:   -1,
+		Plgno:   -1,
 	}
 	return m, nil
 }
@@ -60,7 +58,6 @@ const (
 	DomainQuery     = "nagome_query"
 	DomainComment   = "nagome_comment"
 	DomainUI        = "nagome_ui"
-	DomainAntenna   = "nagome_antenna"
 	DomainDirect    = "nagome_direct"    // DomainDirect is a special domain (from plugin).
 	DomainDirectngm = "nagome_directngm" // DomainDirectNgm is a domain for direct message from Nagome.
 
@@ -71,16 +68,15 @@ const (
 // Command names
 const (
 	// DomainNagome
-	CommNagomeBroadOpen    = "Broad.Open"
-	CommNagomeBroadClose   = "Broad.Close"
-	CommNagomeBroadInfo    = "Broad.Info"
-	CommNagomeCommentSend  = "Comment.Send"
-	CommNagomeAntennaOpen  = "Antenna.Open"
-	CommNagomeAntennaClose = "Antenna.Close"
-	CommNagomeUserUpdate   = "User.Update" // CommNagomeUserUpdate is Emitted when User info is updated by fetching or setting name etc.
+	// Event that is mainly sent from Nagome
+	CommNagomeBroadOpen   = "Broad.Open"
+	CommNagomeBroadClose  = "Broad.Close"
+	CommNagomeBroadInfo   = "Broad.Info"
+	CommNagomeCommentSend = "Comment.Send"
+	CommNagomeUserUpdate  = "User.Update" // CommNagomeUserUpdate is Emitted when User info is updated by fetching or setting name etc.
 
 	// DomainComment
-	// This domain is for only sending comments.
+	// Event that is mainly sent from Nagome
 	CommCommentGot = "Got"
 
 	// DomainQuery
@@ -112,10 +108,6 @@ const (
 	CommUIClearComments = "ClearComments"
 	CommUIConfigAccount = "ConfigAccount" // Open the window of account setting or suggest user to configure it.
 
-	// DomainAntenna
-	// All antenna items (started live).
-	CommAntennaGot = "Got"
-
 	// DomainDirect (special domain)
 	// The messages is sent between a plugin and Nagome.  It is not broadcasted and can not be filtered.
 
@@ -143,38 +135,61 @@ const (
 	CommDirectngmUserGet = "User.Get"
 )
 
+// Live Platforms
+const (
+	PlatformNiconicoLive = "NL"
+)
+
 // Contents
 //
 // Contents in the Message API
 
 // CtNagomeBroadOpen is a content of CommNagomeBroadOpen
 type CtNagomeBroadOpen struct {
+	Platform    string `json:"platform"`
 	BroadID     string `json:"broad_id"`
+	BroadURL    string `json:"broad_url"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	CommunityID string `json:"community_id"`
-	OwnerID     string `json:"owner_id"`
-	OwnerName   string `json:"owner_name"`
-	OwnerBroad  bool   `json:"owner_broad"`
+	ChannelName string `json:"channel_name,omitempty"`
+	ChannelID   string `json:"channel_id,omitempty"`
+	ChannelURL  string `json:"channel_url,omitempty"`
+	OwnerName   string `json:"owner_name,omitempty"`
+	OwnerID     string `json:"owner_id,omitempty"`
+	OwnerURL    string `json:"owner_url,omitempty"`
+	OwnerBroad  bool   `json:"owner_broad,omitempty"`
 
-	OpenTime  time.Time `json:"open_time"`
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
+	ScheduledStartTime time.Time `json:"scheduled_start_time,omitempty"`
+	StartTime          time.Time `json:"start_time"`
+	EndTime            time.Time `json:"end_time"`
 }
 
 // CtNagomeBroadInfo is a content of CommNagomeBroadInfo
 type CtNagomeBroadInfo struct {
-	WatchCount   string `json:"watch_count"`
-	CommentCount string `json:"comment_count"`
+	Platform            string `json:"platform"`
+	ViewCount           string `json:"view_count,omitempty"`
+	ConcurrentViewCount string `json:"concurrent_view_count,omitempty"`
+	CommentCount        string `json:"comment_count,omitempty"`
+	LikeCount           string `json:"like_count,omitempty"`
+	DislikeCount        string `json:"dislike_count,omitempty"`
+}
+
+type User struct {
+	Platform     string    `json:"platform"`
+	ID           string    `json:"id,omitempty"`
+	Name         string    `json:"name"`
+	CreateTime   time.Time `json:"create_time,omitempty"`
+	Is184        bool      `json:"is184,omitempty"`
+	ThumbnailURL string    `json:"thumbnail_url,omitempty"`
 }
 
 // CtNagomeUserUpdate is a content of CommNagomeUserUpdate
-type CtNagomeUserUpdate nicolive.User
+type CtNagomeUserUpdate User
 
 // CtQueryBroadConnect is a content of CommQueryBroadConnect
 type CtQueryBroadConnect struct {
-	BroadID string `json:"broad_id"`
-	RetryN  int    `json:"retry_n,omitempty"`
+	URL    string `json:"url"`
+	RetryN int    `json:"retry_n,omitempty"` // Internal valuable that holds how many retries have done
 }
 
 // type of CtQueryBroadSendComment
@@ -185,21 +200,46 @@ const (
 
 // CtQueryBroadSendComment is a content of CommQueryBroadSendComment
 type CtQueryBroadSendComment struct {
-	Text  string `json:"text"`
-	Iyayo bool   `json:"iyayo"`
-	Type  string `json:"type,omitempty"` // if omitted, automatically selected depend on the settings
+	Platform string `json:"platform"`
+	Text     string `json:"text"`
+	Iyayo    bool   `json:"iyayo,omitempty"`
+	Type     string `json:"type,omitempty"` // if omitted, automatically selected depend on the settings
 }
 
 // CtQueryAccountSet is a content of CommQueryAccountSet
-type CtQueryAccountSet nicolive.Account
+type CtQueryAccountSet struct {
+	NicoLive *NicoLiveAccount `json:"nico_live,omitempty"`
+}
+type NicoLiveAccount struct {
+	Mail        string `json:"mail"`
+	Pass        string `json:"pass"`
+	Usersession string `json:"usersession"`
+}
 
 // CtQueryLogPrint is a content of CommQueryLogPrint
 type CtQueryLogPrint struct {
 	Text string `json:"text"`
 }
 
+type SettingsSlot struct {
+	Name            string          `json:"name"`
+	AutoSaveTo0Slot bool            `json:"auto_save_to0_slot"`
+	PluginDisable   map[string]bool `json:"plugin_disable"`
+
+	Nicolive SettingsNicolive `json:"nicolive"`
+}
+
+type SettingsNicolive struct {
+	UserNameGet  bool `json:"user_name_get"`
+	OwnerComment bool `json:"owner_comment"`
+}
+
 // CtQuerySettingsSetCurrent is a content of CommQuerySettingsSetCurrent
 type CtQuerySettingsSetCurrent SettingsSlot
+
+type SettingsSlots struct {
+	Config []*SettingsSlot `json:"config"`
+}
 
 // CtQuerySettingsSetAll is a content of CommQuerySettingsSetAll
 type CtQuerySettingsSetAll SettingsSlots
@@ -211,12 +251,13 @@ type CtQueryPlugEnable struct {
 }
 
 // CtQueryUserSet is a content for CommQueryUserSet
-type CtQueryUserSet nicolive.User
+type CtQueryUserSet User
 
 // CtQueryUserSetName is a content for CommQueryUserSetName
 type CtQueryUserSetName struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	Platform string `json:"platform"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
 }
 
 // CtQueryUserDelete is a content for CommQueryUserDelete
@@ -231,18 +272,20 @@ type CtQueryUserFetch struct {
 
 // A CtCommentGot is a content of CommCommentGot
 type CtCommentGot struct {
-	No      int       `json:"no"`
-	Date    time.Time `json:"date"`
-	Raw     string    `json:"raw"`
-	Comment string    `json:"comment"`
+	Platform string    `json:"platform"`
+	No       int       `json:"no"`
+	Date     time.Time `json:"date"`
+	Raw      string    `json:"raw"` // Untouched comment message.  Mainly for logging purpose.
+	Comment  string    `json:"comment"`
 
-	UserID           string `json:"user_id"`
+	UserID           string `json:"user_id,omitempty"`
 	UserName         string `json:"user_name"`
 	UserThumbnailURL string `json:"user_thumbnail_url,omitempty"`
+	UserUrl          string `json:"user_url,omitempty"`
 	Score            int    `json:"score,omitempty"`
-	IsPremium        bool   `json:"is_premium"`
+	IsPremium        bool   `json:"is_premium,omitempty"`
 	IsBroadcaster    bool   `json:"is_broadcaster"`
-	IsStaff          bool   `json:"is_staff"`
+	IsStaff          bool   `json:"is_staff,omitempty"`
 	IsAnonymity      bool   `json:"is_anonymity"`
 }
 
@@ -252,13 +295,6 @@ type CtUINotification struct {
 	Type        string `json:"type"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-}
-
-// CtAntennaGot is a content of CommAntennaGot
-type CtAntennaGot struct {
-	BroadID     string `json:"broad_id"`
-	CommunityID string `json:"community_id"`
-	UserID      string `json:"user_id"`
 }
 
 // type of CtUINotification
@@ -272,6 +308,12 @@ type CtDirectNo struct {
 	No int `json:"no"`
 }
 
+// CtDirectUserGet is a content for CommDirectUserGet
+type CtDirectUserGet struct {
+	Platform string `json:"platform"`
+	ID       string `json:"id"`
+}
+
 // CtDirectngmAppVersion is a content for CommDirectngmAppVersion
 type CtDirectngmAppVersion struct {
 	Name    string `json:"name"`
@@ -280,7 +322,19 @@ type CtDirectngmAppVersion struct {
 
 // CtDirectngmPlugList is a content for CommDirectngmPlugList
 type CtDirectngmPlugList struct {
-	Plugins *[]*Plugin `json:"plugins"`
+	Plugins []*Plugin `json:"plugins"`
+}
+
+// A Plugin is a Nagome plugin.
+type Plugin struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Version     string   `json:"version"`
+	Author      string   `json:"author"`
+	Method      string   `json:"method"`
+	Subscribe   []string `json:"subscribe"`
+	No          int      `json:"no"`
+	State       int      `json:"state"` // Don't change directly
 }
 
 // CtDirectngmSettingsCurrent is a content for CommDirectngmSettingsCurrent
@@ -289,10 +343,5 @@ type CtDirectngmSettingsCurrent SettingsSlot
 // CtDirectngmSettingsAll is a content for CommDirectngmSettingsAll
 type CtDirectngmSettingsAll SettingsSlots
 
-// CtDirectUserGet is a content for CommDirectUserGet
-type CtDirectUserGet struct {
-	ID string `json:"id"`
-}
-
 // CtDirectngmUserGet is a content for CommDirectngmUserGet
-type CtDirectngmUserGet nicolive.User
+type CtDirectngmUserGet User

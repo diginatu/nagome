@@ -25,7 +25,7 @@ clean:
 
 .PHONY: test
 test:
-	go test -v -race $(GOPACKAGES)
+	go test -race $(GOPACKAGES)
 
 .PHONY: coverage
 coverage:

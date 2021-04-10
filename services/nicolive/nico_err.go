@@ -10,6 +10,7 @@ type ErrNum int
 // Enum ErrNum
 const (
 	ErrOther ErrNum = iota
+	ErrInvalidLiveURL
 	ErrSendComment
 	ErrOpen
 	ErrConnection
@@ -35,6 +36,8 @@ func (e Error) TypeString() string {
 	switch e.etype {
 	case ErrOther:
 		s = "other"
+	case ErrInvalidLiveURL:
+		s = "invalid live URL"
 	case ErrSendComment:
 		s = "sending comment"
 	case ErrConnection:

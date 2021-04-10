@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diginatu/nagome/api"
+	"github.com/diginatu/nagome/services/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -31,16 +33,16 @@ const (
 
 // A Plugin is a Nagome plugin.
 type Plugin struct {
-	Name        string      `yaml:"name"        json:"name"`
-	Description string      `yaml:"description" json:"description"`
-	Version     string      `yaml:"version"     json:"version"`
-	Author      string      `yaml:"author"      json:"author"`
-	Method      string      `yaml:"method"      json:"method"`
-	Exec        []string    `yaml:"exec"        json:"-"`
-	Nagomever   string      `yaml:"nagomever"   json:"-"`
-	Subscribe   []string    `yaml:"subscribe"   json:"subscribe"`
-	No          int         `yaml:"-"           json:"no"`
-	GetState    pluginState `yaml:"-"           json:"state"` // Don't change directly
+	Name        string      `yaml:"name"`
+	Description string      `yaml:"description"`
+	Version     string      `yaml:"version"`
+	Author      string      `yaml:"author"`
+	Method      string      `yaml:"method"`
+	Exec        []string    `yaml:"exec"`
+	Nagomever   string      `yaml:"nagomever"`
+	Subscribe   []string    `yaml:"subscribe"`
+	No          int         `yaml:"-"`
+	GetState    pluginState `yaml:"-"` // Don't change directly
 	setStateCh  chan (pluginState)
 	stateMu     sync.Mutex
 	rwc         io.ReadWriteCloser
@@ -60,6 +62,31 @@ func newPlugin(cv *CommentViewer) *Plugin {
 		writec:     make(chan []byte, pluginEachMessageChanSize),
 		cv:         cv,
 	}
+}
+
+// API returns instance of API representation of the Plugin
+func (pl *Plugin) API() *api.Plugin {
+	return &api.Plugin{
+		Name:        pl.Name,
+		Description: pl.Description,
+		Version:     pl.Version,
+		Author:      pl.Author,
+		Method:      pl.Method,
+		Subscribe:   pl.Subscribe,
+		No:          pl.No,
+		State:       int(pl.GetState),
+	}
+}
+
+// NewPluginsAPI creates new instance of API representation of the Plugins
+func NewPluginsAPI(pls []*Plugin) []*api.Plugin {
+	apiPls := make([]*api.Plugin, len(pls))
+
+	for i, pl := range pls {
+		apiPls[i] = pl.API()
+	}
+
+	return apiPls
 }
 
 // Open opens connection and start processing.
@@ -120,7 +147,7 @@ func (pl *Plugin) SetState(enable bool) {
 }
 
 // WriteMess writes a Nagome message into the plugin.
-func (pl *Plugin) WriteMess(m *Message) (fail bool) {
+func (pl *Plugin) WriteMess(m *api.Message) (fail bool) {
 	jm, err := json.Marshal(m)
 	if err != nil {
 		pl.cv.cli.log.Println(err)
@@ -196,12 +223,12 @@ func (pl *Plugin) evRoutine() {
 
 	// Run decoder.  It puts a message into "mes".
 	dec := json.NewDecoder(pl.rwc)
-	mes := make(chan (*Message))
+	mes := make(chan (*api.Message))
 	pl.wg.Add(1)
 	go func() {
 		defer pl.wg.Done()
 		for {
-			m := new(Message)
+			m := new(api.Message)
 			err := dec.Decode(m)
 			if err != nil {
 				select {
@@ -209,8 +236,10 @@ func (pl *Plugin) evRoutine() {
 				case <-pl.quit:
 				default:
 					if err != io.EOF {
-						pl.cv.EmitEvNewNotification(CtUINotificationTypeInfo, "plugin disconnected",
-							fmt.Sprintf("plugin [%s] : connection disconnected", pl.Name))
+						utils.EmitEvNewNotification(api.CtUINotificationTypeInfo,
+							"plugin disconnected",
+							fmt.Sprintf("plugin [%s] : connection disconnected", pl.Name),
+							pl.cv.Evch, pl.cv.cli.log)
 						pl.cv.cli.log.Println(err)
 					}
 				}
@@ -234,7 +263,9 @@ func (pl *Plugin) evRoutine() {
 		_, err := fmt.Fprintf(bufw, "%s\n", p)
 		if err != nil {
 			pl.cv.cli.log.Println(err)
-			pl.cv.EmitEvNewNotification(CtUINotificationTypeInfo, "plugin", "failed to write a message : "+pl.Name)
+			utils.EmitEvNewNotification(api.CtUINotificationTypeInfo,
+				"plugin", "failed to write a message : "+pl.Name,
+				pl.cv.Evch, pl.cv.cli.log)
 			// quit if UI plugin disconnect
 			if pl.IsMain() {
 				pl.cv.Quit()
@@ -259,7 +290,7 @@ func (pl *Plugin) evRoutine() {
 			if pl.GetState != pluginStateEnable {
 				continue
 			}
-			m.plgno = pl.No
+			m.Plgno = pl.No
 			pl.cv.cli.log.Printf("plugin message [%s] : %v", pl.Name, m)
 			pl.cv.Evch <- m
 
@@ -292,13 +323,13 @@ func (pl *Plugin) evRoutine() {
 				pl.GetState = e
 
 				// send message
-				m := &Message{
-					Domain: DomainDirectngm,
+				m := &api.Message{
+					Domain: api.DomainDirectngm,
 				}
 				if e == pluginStateEnable {
-					m.Command = CommDirectngmPlugEnabled
+					m.Command = api.CommDirectngmPlugEnabled
 				} else if e == pluginStateDisable {
-					m.Command = CommDirectngmPlugDisabled
+					m.Command = api.CommDirectngmPlugDisabled
 				}
 				jm, err := json.Marshal(m)
 				if err != nil {
@@ -342,7 +373,7 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 
 	dec := json.NewDecoder(c)
 
-	m := new(Message)
+	m := new(api.Message)
 	// It may stop here long time
 	err := dec.Decode(m)
 	if err != nil {
@@ -350,13 +381,13 @@ func handleTCPPlugin(c io.ReadWriteCloser, cv *CommentViewer) {
 		endc <- true
 		return
 	}
-	if m.Domain != DomainDirect || m.Command != CommDirectNo {
+	if m.Domain != api.DomainDirect || m.Command != api.CommDirectNo {
 		cv.cli.log.Println("send Direct.No message at first")
 		endc <- true
 		return
 	}
 
-	var ct CtDirectNo
+	var ct api.CtDirectNo
 	if err := json.Unmarshal(m.Content, &ct); err != nil {
 		cv.cli.log.Println(err)
 		endc <- true

@@ -8,12 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/diginatu/nagome/nicolive"
+	"github.com/diginatu/nagome/api"
 )
 
 const (
 	eventBufferSize  = 50
-	accountFileName  = "account.yml"
 	logFileName      = "info.log"
 	logFlags         = log.Lshortfile | log.Ltime
 	pluginDirName    = "plugin"
@@ -124,22 +123,13 @@ func (c *CLI) RunCli(args []string) int {
 
 	cv := NewCommentViewer(*tcpPort, c)
 
-	ac, err := nicolive.AccountLoad(filepath.Join(c.SavePath, accountFileName))
-	if err != nil {
-		c.log.Println(err)
-		cv.Ac = new(nicolive.Account)
-		cv.Evch <- NewMessageMust(DomainUI, CommUIConfigAccount, nil)
-	} else {
-		cv.Ac = ac
-	}
-
 	// add main plugin
 	plug := newPlugin(cv)
 	plug.Name = "main"
 	plug.Description = "main plugin"
 	plug.Version = "0.0"
 	plug.Method = pluginMethodStd
-	plug.Subscribe = []string{DomainNagome, DomainComment, DomainUI}
+	plug.Subscribe = []string{api.DomainNagome, api.DomainComment, api.DomainUI}
 	if mainyml != "" {
 		err = plug.Load(mainyml)
 		if err != nil {
@@ -157,9 +147,6 @@ func (c *CLI) RunCli(args []string) int {
 	}
 
 	cv.Start()
-	if cv.Ac != nil {
-		cv.AntennaConnect()
-	}
 	cv.Wait()
 
 	if cv.Settings.AutoSaveTo0Slot {
@@ -190,7 +177,7 @@ func (c *CLI) generatePluginTemplate(name, pluginPath string) error {
 	pl := Plugin{
 		Name:      name,
 		Version:   "1.0",
-		Subscribe: []string{DomainNagome},
+		Subscribe: []string{api.DomainNagome},
 		Method:    "tcp",
 		Exec:      []string{"{{path}}/" + name, "{{port}}", "{{no}}"},
 	}
